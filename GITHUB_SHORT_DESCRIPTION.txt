@@ -1,0 +1,1 @@
+Professional voice-over generation platform with 24+ voices, emotion control, and Docker deployment. Create high-quality voiceovers for animations, commercials, podcasts, and more. Built with React, Express, ElevenLabs, and Docker.
