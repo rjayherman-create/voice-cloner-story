@@ -1,0 +1,31 @@
+# 🚀 Quick GitHub Push Guide
+
+## Your Code is Ready!
+
+Local repository is initialized with 89 files and initial commit.
+
+## To Push to GitHub (3 commands):
+
+```bash
+# 1. Create empty repo on GitHub at https://github.com/new
+#    Name: voice-over-system
+#    Then copy the HTTPS URL
+
+# 2. Replace YOUR_USERNAME and run:
+git remote add origin https://github.com/YOUR_USERNAME/voice-over-system.git
+
+# 3. Push your code
+git branch -M main
+git push -u origin main
+```
+
+## That's it! ✅
+
+Your project will appear on GitHub at:
+`https://github.com/YOUR_USERNAME/voice-over-system`
+
+---
+
+**Alternatively, if you want me to help:**
+- Give me your GitHub username
+- I can generate commands specific to your account
