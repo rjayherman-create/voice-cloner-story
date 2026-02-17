@@ -1,0 +1,240 @@
+.timeline-editor {
+  height: 280px;
+  background: rgba(0, 0, 0, 0.7);
+  border-top: 2px solid #00ffff;
+  border-bottom: 2px solid #00ffff;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Courier New', monospace;
+  color: #00ffff;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 255, 255, 0.1);
+  border-bottom: 1px solid #00ffff;
+}
+
+.timeline-header h3 {
+  margin: 0;
+}
+
+.voice-section {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.voice-section label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.file-input-btn {
+  background: rgba(255, 100, 100, 0.2);
+  border: 1px solid #ff6464;
+  color: #ff6464;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.file-input-btn:hover {
+  background: rgba(255, 100, 100, 0.4);
+  box-shadow: 0 0 10px #ff6464;
+}
+
+.voice-info {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  background: rgba(100, 255, 100, 0.1);
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  border: 1px solid #64ff64;
+}
+
+.voice-info span {
+  color: #64ff64;
+  font-size: 0.9rem;
+}
+
+.waveform-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid #00ffff;
+  overflow-x: auto;
+}
+
+.waveform-canvas {
+  cursor: crosshair;
+  flex: 1;
+  min-width: 100%;
+  height: 100%;
+}
+
+.timeline-tracks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.timeline-track {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  flex: 1;
+  min-height: 50px;
+}
+
+.track-label {
+  width: 120px;
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  background: rgba(0, 255, 255, 0.05);
+  border-right: 1px solid rgba(0, 255, 255, 0.2);
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.track-content {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.keyframe-marker {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 255, 255, 0.3);
+  border: 1px solid #00ffff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  transform: translateX(-50%);
+  top: 50%;
+  transform: translateY(-50%) translateX(-50%);
+}
+
+.keyframe-marker:hover {
+  background: rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 10px #00ffff;
+  transform: translateY(-50%) translateX(-50%) scale(1.2);
+}
+
+.keyframe-marker.effect-marker {
+  background: rgba(255, 0, 255, 0.3);
+  border-color: #ff00ff;
+  color: #ff00ff;
+}
+
+.keyframe-marker.effect-marker:hover {
+  background: rgba(255, 0, 255, 0.6);
+  box-shadow: 0 0 10px #ff00ff;
+}
+
+.playhead {
+  position: absolute;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(to right, #ff00ff, #00ffff);
+  pointer-events: none;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+  z-index: 10;
+}
+
+.timeline-scrubber-container {
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.timeline-scrubber {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  accent-color: #ff00ff;
+}
+
+.keyframe-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  gap: 1rem;
+}
+
+.btn-add-keyframe {
+  background: rgba(100, 255, 100, 0.2);
+  border: 1px solid #64ff64;
+  color: #64ff64;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.btn-add-keyframe:hover {
+  background: rgba(100, 255, 100, 0.4);
+  box-shadow: 0 0 10px #64ff64;
+}
+
+.info-text {
+  font-size: 0.9rem;
+  color: rgba(0, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+/* Scrollbar */
+.timeline-tracks::-webkit-scrollbar {
+  width: 8px;
+}
+
+.timeline-tracks::-webkit-scrollbar-track {
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.timeline-tracks::-webkit-scrollbar-thumb {
+  background: #00ffff;
+  border-radius: 4px;
+}
+
+.timeline-tracks::-webkit-scrollbar-thumb:hover {
+  background: #00cccc;
+}
+
+@media (max-width: 768px) {
+  .timeline-editor {
+    height: 200px;
+  }
+
+  .voice-section {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .track-label {
+    width: 80px;
+    font-size: 0.85rem;
+  }
+}

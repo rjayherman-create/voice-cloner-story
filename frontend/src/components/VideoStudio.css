@@ -1,0 +1,283 @@
+.video-studio-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(135deg, #0a0e27 0%, #16213e 100%);
+  color: #00ffff;
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+}
+
+/* Header */
+.vs-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.5rem;
+  background: rgba(0, 255, 255, 0.1);
+  border-bottom: 2px solid #00ffff;
+}
+
+.vs-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #00ffff;
+}
+
+.vs-project-name {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid #00ffff;
+  color: #00ffff;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+}
+
+.vs-project-name:focus {
+  outline: none;
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 10px #00ffff;
+}
+
+.vs-time {
+  font-size: 1.3rem;
+  font-weight: bold;
+  min-width: 80px;
+  text-align: right;
+  color: #ff00ff;
+}
+
+/* Controls */
+.vs-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid #00ffff;
+}
+
+.vs-btn {
+  background: rgba(0, 255, 255, 0.2);
+  border: 1px solid #00ffff;
+  color: #00ffff;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  font-family: 'Courier New', monospace;
+}
+
+.vs-btn:hover {
+  background: rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 10px #00ffff;
+}
+
+.vs-timeline-slider {
+  flex: 1;
+  height: 6px;
+  cursor: pointer;
+  accent-color: #ff00ff;
+}
+
+/* Main */
+.vs-main {
+  display: flex;
+  flex: 1;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.vs-preview {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid #00ffff;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.vs-preview-canvas {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vs-canvas-content {
+  text-align: center;
+  color: rgba(0, 255, 255, 0.5);
+}
+
+.vs-canvas-content h2 {
+  margin: 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.vs-canvas-content p {
+  margin: 0.25rem 0;
+}
+
+/* Tracks */
+.vs-tracks {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #00ffff;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.vs-tracks h3 {
+  margin: 0 0 1rem 0;
+  color: #ff00ff;
+  font-size: 1.1rem;
+}
+
+.vs-track {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+}
+
+.vs-track-label {
+  width: 100px;
+  flex-shrink: 0;
+  color: #00ffff;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.vs-track-bar {
+  flex: 1;
+  height: 40px;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.vs-track-item {
+  height: 100%;
+  background: rgba(0, 255, 255, 0.3);
+  border: 1px solid #00ffff;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00ffff;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.vs-track-placeholder {
+  color: rgba(0, 255, 255, 0.4);
+  font-size: 0.85rem;
+}
+
+/* Timeline */
+.vs-timeline {
+  padding: 1rem 1.5rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid #00ffff;
+  border-bottom: 1px solid #00ffff;
+}
+
+.vs-timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  color: rgba(0, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+.vs-timeline-bar {
+  height: 20px;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid #00ffff;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.vs-timeline-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #00ffff, #ff00ff);
+  transition: width 0.1s linear;
+}
+
+/* Status */
+.vs-status {
+  display: flex;
+  justify-content: space-around;
+  padding: 0.75rem 1.5rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid #00ffff;
+  color: rgba(0, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+/* Scrollbar */
+.vs-tracks::-webkit-scrollbar {
+  width: 8px;
+}
+
+.vs-tracks::-webkit-scrollbar-track {
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.vs-tracks::-webkit-scrollbar-thumb {
+  background: #00ffff;
+  border-radius: 4px;
+}
+
+.vs-tracks::-webkit-scrollbar-thumb:hover {
+  background: #00cccc;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .vs-main {
+    flex-direction: column;
+  }
+
+  .vs-preview,
+  .vs-tracks {
+    flex: 1;
+    min-height: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .vs-header {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .vs-project-name {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .vs-controls {
+    flex-wrap: wrap;
+  }
+
+  .vs-main {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+}

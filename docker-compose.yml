@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  voice-over-app:
+    build: .
+    container_name: voice-over-system
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - AZURE_SPEECH_KEY=${AZURE_SPEECH_KEY}
+      - AZURE_SPEECH_REGION=${AZURE_SPEECH_REGION}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./projects:/app/projects
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Redis for caching (speeds up voice fetching)
+  redis:
+    image: redis:7-alpine
+    container_name: voice-over-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  redis-data:

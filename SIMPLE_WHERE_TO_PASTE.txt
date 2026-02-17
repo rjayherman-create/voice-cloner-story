@@ -1,0 +1,28 @@
+# 🎯 ULTRA-SIMPLE: Where To Paste Your Key
+
+## The Prompt You'll See
+
+```
+🔑 Enter your ElevenLabs API key (hidden): ___
+                                            👆 PASTE HERE
+```
+
+## What To Do
+
+1. **Get your key** from https://elevenlabs.io/account/api-keys
+2. **Copy it** (click the [Copy] button)
+3. **Click in PowerShell** where you see the cursor
+4. **Right-click** → **Paste** (or Ctrl+V)
+5. **See dots appear**: `••••••••••••••••••••••••••••••`
+6. **Press Enter**
+7. **Type**: `yes`
+8. **Press Enter**
+9. **Done!** ✅
+
+---
+
+## That's It!
+
+Your key is now safely saved and hidden behind dots on your screen.
+
+The setup script handles everything else. 🚀

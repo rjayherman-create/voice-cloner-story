@@ -1,0 +1,80 @@
+# ⚡ QUICK SETUP - 3 MINUTES
+
+## Choose Your Method
+
+### 🟢 RECOMMENDED: PowerShell (Easiest & Safest)
+
+```powershell
+cd "C:\voice over system"
+powershell -ExecutionPolicy Bypass -File setup-api-key.ps1
+```
+
+**Then:**
+1. Paste your API key
+2. Type "yes" to confirm
+3. Done! ✅
+
+---
+
+### 🟡 ALTERNATIVE: Batch File
+
+```bash
+cd C:\voice over system
+setup-api-key.bat
+```
+
+**Then:**
+1. Paste your API key
+2. Type "yes" to confirm
+3. Done! ✅
+
+---
+
+### 🔵 ALTERNATIVE: Node.js
+
+```bash
+cd "C:\voice over system"
+node setup-api-key.js
+```
+
+**Then:**
+1. Paste your API key
+2. Type "yes" to confirm
+3. Done! ✅
+
+---
+
+## After Setup (2 minutes)
+
+1. **Restart server:**
+   ```bash
+   npm start
+   ```
+
+2. **Open browser:**
+   ```
+   http://localhost:5001
+   ```
+
+3. **Start creating:**
+   - Click "+ New Project"
+   - Write script
+   - Click "🎭 Cartoon" for cartoon voices
+   - Click "🎬 Generate"
+   - Download MP3! 🎉
+
+---
+
+## Get Your API Key (2 minutes)
+
+1. Go to: https://elevenlabs.io/account/api-keys
+2. Login (or sign up - free!)
+3. Copy your key (starts with `sk_`)
+4. Run setup script above
+5. Paste when prompted
+
+---
+
+## ✅ That's It!
+
+You're done in 3-5 minutes. Enjoy! 🎙️
