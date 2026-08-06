@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Voice Clone Test — ElevenLabs Standalone Engine</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #151b28;
+      --card-border: #232d42;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.15);
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --indigo: #6366f1;
+      --font-serif: Georgia, Cambria, "Times New Roman", Times, serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .header-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .header-title {
+      font-family: var(--font-serif);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      width: fit-content;
+    }
+
+    .status-badge.connected {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--emerald);
+    }
+
+    .status-badge.error {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: var(--rose);
+    }
+
+    .status-badge.pending {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: var(--amber);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .card-title {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .step-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--amber);
+      font-weight: 700;
+    }
+
+    .notice-box {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      font-size: 0.875rem;
+      color: #fcd34d;
+      line-height: 1.5;
+    }
+
+    .warning-box {
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      font-size: 0.85rem;
+      color: #fca5a5;
+      font-family: var(--font-mono);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="text"], textarea, select {
+      background: #0d121f;
+      border: 1px solid var(--card-border);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      width: 100%;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--amber);
+    }
+
+    .btn {
+      background: var(--amber);
+      color: #0b0f19;
+      font-weight: 700;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.85rem 1.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .btn:hover:not(:disabled) {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: #f1f5f9;
+      border: 1px solid #334155;
+    }
+
+    .btn-rose {
+      background: var(--rose);
+      color: #fff;
+    }
+
+    .recorder-grid {
+      display: grid;
+      grid-cols-1;
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 640px) {
+      .recorder-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .timer-display {
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--amber);
+      text-align: center;
+      margin: 0.5rem 0;
+    }
+
+    .audio-meta {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .consent-wrapper {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      background: #0d121f;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--card-border);
+      cursor: pointer;
+    }
+
+    .consent-wrapper input {
+      width: 1.2rem;
+      height: 1.2rem;
+      accent-color: var(--amber);
+      margin-top: 0.15rem;
+    }
+
+    .consent-label {
+      font-size: 0.875rem;
+      color: #e2e8f0;
+      user-select: none;
+    }
+
+    .result-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .result-title {
+      font-weight: 700;
+      color: var(--emerald);
+      font-size: 1.1rem;
+    }
+
+    .voice-id-tag {
+      font-family: var(--font-mono);
+      background: #064e3b;
+      color: #a7f3d0;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.35rem;
+      font-size: 0.9rem;
+      width: fit-content;
+    }
+
+    details {
+      background: #0d121f;
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+    }
+
+    summary {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--amber);
+      cursor: pointer;
+      outline: none;
+    }
+
+    .debug-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    .debug-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 0.35rem;
+    }
+
+    .debug-key { color: var(--text-muted); }
+    .debug-val { color: #fff; text-align: right; }
+
+    audio {
+      width: 100%;
+      height: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- HEADER & STEP 1: ELEVENLABS API STATUS -->
+    <header class="header-card">
+      <div>
+        <span class="step-tag">STEP 1 — ELEVENLABS STATUS</span>
+        <h1 class="header-title">Family Voice Clone Test</h1>
+      </div>
+
+      <div id="statusBadge" class="status-badge pending">
+        <span>Connecting to ElevenLabs API...</span>
+      </div>
+
+      <!-- KEY SETTER FALLBACK IF .env IS MISSING KEY -->
+      <div id="keySetterBox" style="display: none;" class="notice-box space-y-2">
+        <strong>⚠️ ELEVENLABS_API_KEY missing in server .env file.</strong>
+        <p style="margin-top: 0.35rem; margin-bottom: 0.75rem; font-size: 0.8rem; color: #fef08a;">
+          Paste your secret XI-API-Key below to save it into the server's <code>.env</code> file (it will ONLY be read by Express server):
+        </p>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="password" id="inputApiKey" placeholder="Paste XI-API-Key..." />
+          <button id="btnSaveKey" class="btn" style="white-space: nowrap;">Save to .env</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- STEP 2: RECORD OR UPLOAD VOICE SAMPLE -->
+    <section class="card">
+      <div class="card-title">
+        <span>STEP 2 — RECORD A FAMILY MEMBER'S VOICE</span>
+        <span class="step-tag">MICROPHONE / FILE</span>
+      </div>
+
+      <div class="notice-box">
+        💡 <strong>Instruction for Best Results:</strong> Record 1–2 minutes in a quiet room. Use one speaker only. Speak naturally as if you were reading a bedtime story.
+      </div>
+
+      <div class="form-group">
+        <label for="voiceNameInput">Voice Profile Name</label>
+        <input type="text" id="voiceNameInput" value="Grandpa Story Voice" placeholder="e.g. Grandpa Story Voice" />
+      </div>
+
+      <div class="recorder-grid">
+        <!-- MIC RECORDING -->
+        <div style="background: #0d121f; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--card-border); text-align: center; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+          <div>
+            <label>BROWSER MICROPHONE</label>
+            <div id="timerDisplay" class="timer-display">00:00</div>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; justify-center: center;">
+            <button id="btnStartRec" class="btn" style="flex: 1;">[ START RECORDING ]</button>
+            <button id="btnStopRec" class="btn btn-rose" style="flex: 1;" disabled>[ STOP ]</button>
+          </div>
+        </div>
+
+        <!-- UPLOAD EXISTING AUDIO FILE -->
+        <div style="background: #0d121f; padding: 1.25rem; border-radius: 0.75rem; border: 1px solid var(--card-border); display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+          <div>
+            <label>UPLOAD EXISTING AUDIO</label>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; margin-bottom: 0.75rem;">
+              Accepts common formats: MP3, WAV, M4A, WEBM
+            </p>
+          </div>
+          <input type="file" id="fileInput" accept="audio/mp3,audio/wav,audio/m4a,audio/webm,audio/*" style="font-size: 0.85rem;" />
+        </div>
+      </div>
+
+      <!-- SHORT RECORDING WARNING -->
+      <div id="shortWarningBox" class="warning-box" style="display: none;">
+        ⚠️ Your recording is shorter than the recommended voice-cloning sample (under 30s). For better results record approximately 1–2 minutes.
+      </div>
+    </section>
+
+    <!-- STEP 3: ORIGINAL RECORDING PLAYBACK -->
+    <section id="originalSection" class="card" style="display: none;">
+      <div class="card-title">
+        <span>STEP 3 — ORIGINAL RECORDING PLAYBACK</span>
+        <span class="step-tag">REQUIRED PREVIEW</span>
+      </div>
+
+      <audio id="originalAudio" controls></audio>
+
+      <div id="originalMeta" class="audio-meta">
+        <span id="metaFilename">Filename: --</span>
+        <span id="metaSize">File size: --</span>
+        <span id="metaDuration">Duration: --</span>
+      </div>
+
+      <!-- STEP 4: CONSENT CHECKBOX -->
+      <div style="margin-top: 0.5rem;">
+        <label class="consent-wrapper">
+          <input type="checkbox" id="consentCheckbox" />
+          <span class="consent-label">
+            <strong>STEP 4 CONSENT:</strong> I confirm that I own this voice or have permission from the speaker to clone it.
+          </span>
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+        <button id="btnRerecord" class="btn btn-secondary" style="flex: 1;">[ RERECORD ]</button>
+        <button id="btnCreateClone" class="btn" style="flex: 2;" disabled>[ CREATE VOICE CLONE ]</button>
+      </div>
+    </section>
+
+    <!-- STEP 5: CLONE RESULT PANEL -->
+    <section id="cloneResultSection" class="card" style="display: none;">
+      <div class="card-title">
+        <span>STEP 5 — ELEVENLABS VOICE CLONE CREATED</span>
+        <span class="step-tag">VERIFIED</span>
+      </div>
+
+      <div class="result-box">
+        <div class="result-title">✓ VOICE CLONE CREATED</div>
+        <div style="font-size: 0.95rem; margin-top: 0.25rem;">
+          Voice: <strong id="createdVoiceName">--</strong>
+        </div>
+        <div style="margin-top: 0.5rem;">
+          ElevenLabs Voice ID:
+          <div id="createdVoiceId" class="voice-id-tag">--</div>
+        </div>
+      </div>
+
+      <!-- STEP 6 & 7: CRITICAL VOICE-ID TEST -->
+      <div style="border-t: 1px solid var(--card-border); padding-top: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+        <div class="form-group">
+          <label for="testTextInput">STEP 6 — CRITICAL VOICE-ID TEST TEXT</label>
+          <textarea id="testTextInput" rows="3">Hi! This is a test of my cloned family voice. Tonight we're going to read a wonderful story together.</textarea>
+        </div>
+
+        <button id="btnGenerateTest" class="btn">[ GENERATE TEST SPEECH USING THIS VOICE ID ]</button>
+      </div>
+    </section>
+
+    <!-- STEP 7: GENERATED VOICE PLAYBACK -->
+    <section id="ttsResultSection" class="card" style="display: none;">
+      <div class="card-title">
+        <span>STEP 7 — PLAY GENERATED VOICE</span>
+        <span class="step-tag">AUDIO RESULT</span>
+      </div>
+
+      <div class="result-box" style="background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.3);">
+        <div class="result-title" style="color: #a5b4fc;">GENERATED CLONED VOICE</div>
+        <audio id="ttsAudio" controls style="margin-top: 0.5rem;"></audio>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+          <button id="btnPlayTts" class="btn" style="flex: 1;">[ PLAY ]</button>
+          <a id="btnDownloadTts" class="btn btn-secondary" style="flex: 1; text-decoration: none; text-align: center;" download="cloned_voice_test.mp3">[ DOWNLOAD MP3 ]</a>
+        </div>
+
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem; font-family: var(--font-mono);">
+          Generated using ElevenLabs Voice ID: <strong id="usedVoiceIdDisplay" style="color: #a5b4fc;">--</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- ERROR DISPLAY BOX (NO MOCKED FALLBACK) -->
+    <section id="errorDisplayBox" class="warning-box" style="display: none;">
+      <strong style="font-size: 1rem; color: var(--rose);">VOICE CLONING FAILED</strong>
+      <p id="errorDetailText" style="margin-top: 0.5rem; font-size: 0.85rem; color: #fca5a5; word-break: break-all; white-space: pre-wrap;"></p>
+    </section>
+
+    <!-- DEBUG INFORMATION PANEL -->
+    <details>
+      <summary>VOICE CLONING DEBUG PANEL</summary>
+      <div class="debug-grid">
+        <div class="debug-row"><span class="debug-key">ElevenLabs connection:</span><span id="dbgConn" class="debug-val">Pending</span></div>
+        <div class="debug-row"><span class="debug-key">Sample uploaded:</span><span id="dbgUploaded" class="debug-val">No</span></div>
+        <div class="debug-row"><span class="debug-key">Sample MIME type:</span><span id="dbgMime" class="debug-val">N/A</span></div>
+        <div class="debug-row"><span class="debug-key">Sample size:</span><span id="dbgSize" class="debug-val">0 KB</span></div>
+        <div class="debug-row"><span class="debug-key">Clone request:</span><span id="dbgCloneReq" class="debug-val">Not started</span></div>
+        <div class="debug-row"><span class="debug-key">Returned voice_id:</span><span id="dbgVoiceId" class="debug-val">None</span></div>
+        <div class="debug-row"><span class="debug-key">requires_verification:</span><span id="dbgVerify" class="debug-val">N/A</span></div>
+        <div class="debug-row"><span class="debug-key">TTS voice_id:</span><span id="dbgTtsVoiceId" class="debug-val">None</span></div>
+        <div class="debug-row"><span class="debug-key">TTS request:</span><span id="dbgTtsReq" class="debug-val">Not started</span></div>
+      </div>
+    </details>
+
+  </div>
+
+  <script>
+    // State management
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordStartTime = 0;
+    let timerInterval = null;
+    let activeAudioBlob = null;
+    let activeAudioFile = null;
+    let activeAudioDuration = 0;
+    let createdVoiceId = null;
+
+    // DOM Elements
+    const statusBadge = document.getElementById('statusBadge');
+    const keySetterBox = document.getElementById('keySetterBox');
+    const btnSaveKey = document.getElementById('btnSaveKey');
+    const inputApiKey = document.getElementById('inputApiKey');
+
+    const voiceNameInput = document.getElementById('voiceNameInput');
+    const btnStartRec = document.getElementById('btnStartRec');
+    const btnStopRec = document.getElementById('btnStopRec');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const fileInput = document.getElementById('fileInput');
+    const shortWarningBox = document.getElementById('shortWarningBox');
+
+    const originalSection = document.getElementById('originalSection');
+    const originalAudio = document.getElementById('originalAudio');
+    const metaFilename = document.getElementById('metaFilename');
+    const metaSize = document.getElementById('metaSize');
+    const metaDuration = document.getElementById('metaDuration');
+
+    const consentCheckbox = document.getElementById('consentCheckbox');
+    const btnRerecord = document.getElementById('btnRerecord');
+    const btnCreateClone = document.getElementById('btnCreateClone');
+
+    const cloneResultSection = document.getElementById('cloneResultSection');
+    const createdVoiceName = document.getElementById('createdVoiceName');
+    const createdVoiceIdEl = document.getElementById('createdVoiceId');
+    const testTextInput = document.getElementById('testTextInput');
+    const btnGenerateTest = document.getElementById('btnGenerateTest');
+
+    const ttsResultSection = document.getElementById('ttsResultSection');
+    const ttsAudio = document.getElementById('ttsAudio');
+    const btnPlayTts = document.getElementById('btnPlayTts');
+    const btnDownloadTts = document.getElementById('btnDownloadTts');
+    const usedVoiceIdDisplay = document.getElementById('usedVoiceIdDisplay');
+
+    const errorDisplayBox = document.getElementById('errorDisplayBox');
+    const errorDetailText = document.getElementById('errorDetailText');
+
+    // Debug elements
+    const dbgConn = document.getElementById('dbgConn');
+    const dbgUploaded = document.getElementById('dbgUploaded');
+    const dbgMime = document.getElementById('dbgMime');
+    const dbgSize = document.getElementById('dbgSize');
+    const dbgCloneReq = document.getElementById('dbgCloneReq');
+    const dbgVoiceId = document.getElementById('dbgVoiceId');
+    const dbgVerify = document.getElementById('dbgVerify');
+    const dbgTtsVoiceId = document.getElementById('dbgTtsVoiceId');
+    const dbgTtsReq = document.getElementById('dbgTtsReq');
+
+    // Helper functions
+    function showError(message) {
+      errorDisplayBox.style.display = 'block';
+      errorDetailText.textContent = message;
+      window.scrollTo({ top: errorDisplayBox.offsetTop - 50, behavior: 'smooth' });
+    }
+
+    function clearError() {
+      errorDisplayBox.style.display = 'none';
+      errorDetailText.textContent = '';
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function formatSeconds(secs) {
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // ==================================================
+    // STEP 1 — CHECK ELEVENLABS STATUS
+    // ==================================================
+    async function checkStatus() {
+      try {
+        statusBadge.className = 'status-badge pending';
+        statusBadge.textContent = 'Checking ElevenLabs API status...';
+        
+        const res = await fetch('/api/elevenlabs/status');
+        const data = await res.json();
+
+        if (res.ok && data.status === 'connected') {
+          statusBadge.className = 'status-badge connected';
+          statusBadge.textContent = '✓ ElevenLabs API Connected';
+          keySetterBox.style.display = 'none';
+          dbgConn.textContent = 'Connected';
+          dbgConn.style.color = '#10b981';
+          clearError();
+        } else {
+          statusBadge.className = 'status-badge error';
+          const errMsg = `ElevenLabs returned: ${data.code || res.status} — ${data.error || 'Connection failed'}`;
+          statusBadge.textContent = `❌ ${data.error || 'Connection Failed'}`;
+          keySetterBox.style.display = 'block';
+          dbgConn.textContent = `Failed (${data.code || res.status})`;
+          dbgConn.style.color = '#f43f5e';
+          showError(errMsg);
+        }
+      } catch (err) {
+        statusBadge.className = 'status-badge error';
+        statusBadge.textContent = '❌ Server Connection Error';
+        dbgConn.textContent = 'Failed (Server Offline)';
+        showError(`Server error: ${err.message}`);
+      }
+    }
+
+    checkStatus();
+
+    // Save key to .env helper
+    btnSaveKey.addEventListener('click', async () => {
+      const key = inputApiKey.value.trim();
+      if (!key) return alert('Please paste an API key.');
+      
+      const res = await fetch('/api/elevenlabs/set-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: key })
+      });
+      if (res.ok) {
+        inputApiKey.value = '';
+        checkStatus();
+      } else {
+        alert('Failed to save key.');
+      }
+    });
+
+    // ==================================================
+    // STEP 2 — MICROPHONE RECORDING & FILE UPLOAD
+    // ==================================================
+    btnStartRec.addEventListener('click', async () => {
+      clearError();
+      audioChunks = [];
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        let mimeType = 'audio/webm;codecs=opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'audio/webm';
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+          const duration = Math.round((Date.now() - recordStartTime) / 1000);
+          setAudioSample(blob, 'microphone_recording.webm', duration);
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start(100);
+        recordStartTime = Date.now();
+        btnStartRec.disabled = true;
+        btnStopRec.disabled = false;
+
+        timerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+          timerDisplay.textContent = formatSeconds(elapsed);
+        }, 1000);
+      } catch (err) {
+        showError(`Microphone access error: ${err.message}`);
+      }
+    });
+
+    btnStopRec.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        clearInterval(timerInterval);
+        btnStartRec.disabled = false;
+        btnStopRec.disabled = true;
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      clearError();
+      const file = e.target.files[0];
+      if (file) {
+        setAudioSample(file, file.name, null);
+      }
+    });
+
+    function setAudioSample(blobOrFile, filename, durationSec) {
+      activeAudioBlob = blobOrFile;
+      const url = URL.createObjectURL(blobOrFile);
+      originalAudio.src = url;
+
+      originalSection.style.display = 'flex';
+      originalSection.scrollIntoView({ behavior: 'smooth' });
+
+      metaFilename.textContent = `Filename: ${filename}`;
+      metaSize.textContent = `File size: ${formatBytes(blobOrFile.size)}`;
+      metaDuration.textContent = durationSec ? `Duration: ${durationSec}s` : 'Duration: calculating...';
+
+      // Check duration if file upload
+      if (!durationSec) {
+        const tempAudio = new Audio(url);
+        tempAudio.onloadedmetadata = () => {
+          activeAudioDuration = Math.round(tempAudio.duration);
+          metaDuration.textContent = `Duration: ${activeAudioDuration}s`;
+          checkShortWarning(activeAudioDuration);
+        };
+      } else {
+        activeAudioDuration = durationSec;
+        checkShortWarning(durationSec);
+      }
+
+      // Update Debug
+      dbgUploaded.textContent = 'Yes';
+      dbgMime.textContent = blobOrFile.type || 'audio/webm';
+      dbgSize.textContent = formatBytes(blobOrFile.size);
+    }
+
+    function checkShortWarning(durationSec) {
+      if (durationSec && durationSec < 30) {
+        shortWarningBox.style.display = 'block';
+      } else {
+        shortWarningBox.style.display = 'none';
+      }
+    }
+
+    btnRerecord.addEventListener('click', () => {
+      originalSection.style.display = 'none';
+      cloneResultSection.style.display = 'none';
+      ttsResultSection.style.display = 'none';
+      shortWarningBox.style.display = 'none';
+      timerDisplay.textContent = '00:00';
+      consentCheckbox.checked = false;
+      btnCreateClone.disabled = true;
+      clearError();
+    });
+
+    // ==================================================
+    // STEP 4 — CONSENT TOGGLE
+    // ==================================================
+    consentCheckbox.addEventListener('change', (e) => {
+      btnCreateClone.disabled = !e.target.checked;
+    });
+
+    // ==================================================
+    // STEP 5 — CREATE ELEVENLABS VOICE CLONE
+    // ==================================================
+    btnCreateClone.addEventListener('click', async () => {
+      clearError();
+
+      const name = voiceNameInput.value.trim();
+      if (!name) return alert('Please enter a Voice Name.');
+
+      if (!activeAudioBlob) return alert('No audio sample available.');
+
+      if (!consentCheckbox.checked) return alert('Consent checkbox is required.');
+
+      btnCreateClone.disabled = true;
+      btnCreateClone.textContent = 'CREATING VOICE CLONE ON ELEVENLABS...';
+      dbgCloneReq.textContent = 'In progress...';
+
+      try {
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('consent', 'true');
+        formData.append('sample', activeAudioBlob, 'voice_sample.webm');
+
+        const res = await fetch('/api/voices/clone', {
+          method: 'POST',
+          body: formData
+        });
+
+        const resText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(resText);
+        } catch (e) {
+          data = { error: resText };
+        }
+
+        if (!res.ok || data.status === 'error') {
+          const failureMsg = `VOICE CLONING FAILED\n\nElevenLabs returned: ${res.status} — ${data.error || resText}`;
+          dbgCloneReq.textContent = `Failed (${res.status})`;
+          dbgCloneReq.style.color = '#f43f5e';
+          showError(failureMsg);
+          btnCreateClone.disabled = false;
+          btnCreateClone.textContent = '[ CREATE VOICE CLONE ]';
+          return;
+        }
+
+        // SUCCESS!
+        createdVoiceId = data.voice_id;
+        createdVoiceName.textContent = data.name || name;
+        createdVoiceIdEl.textContent = data.voice_id;
+
+        cloneResultSection.style.display = 'flex';
+        cloneResultSection.scrollIntoView({ behavior: 'smooth' });
+
+        dbgCloneReq.textContent = 'Success';
+        dbgCloneReq.style.color = '#10b981';
+        dbgVoiceId.textContent = data.voice_id;
+        dbgVerify.textContent = data.requires_verification ? 'True' : 'False';
+
+      } catch (err) {
+        dbgCloneReq.textContent = 'Exception';
+        showError(`VOICE CLONING FAILED\n\nServer exception: ${err.message}`);
+        btnCreateClone.disabled = false;
+        btnCreateClone.textContent = '[ CREATE VOICE CLONE ]';
+      }
+    });
+
+    // ==================================================
+    // STEP 6 & 7 — CRITICAL VOICE-ID TTS TEST
+    // ==================================================
+    btnGenerateTest.addEventListener('click', async () => {
+      clearError();
+
+      if (!createdVoiceId) {
+        return showError('CRITICAL ERROR: No voice_id found from previous clone request.');
+      }
+
+      const text = testTextInput.value.trim();
+      if (!text) return alert('Test text cannot be empty.');
+
+      btnGenerateTest.disabled = true;
+      btnGenerateTest.textContent = 'SYNTHESIZING SPEECH USING CLONED VOICE ID...';
+      dbgTtsReq.textContent = 'In progress...';
+      dbgTtsVoiceId.textContent = createdVoiceId;
+
+      try {
+        const res = await fetch(`/api/voices/${createdVoiceId}/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          let errData;
+          try { errData = JSON.parse(errText); } catch (e) { errData = { error: errText }; }
+
+          const failureMsg = `TTS SYNTHESIS FAILED\n\nElevenLabs returned: ${res.status} — ${errData.error || errText}`;
+          dbgTtsReq.textContent = `Failed (${res.status})`;
+          dbgTtsReq.style.color = '#f43f5e';
+          showError(failureMsg);
+          btnGenerateTest.disabled = false;
+          btnGenerateTest.textContent = '[ GENERATE TEST SPEECH USING THIS VOICE ID ]';
+          return;
+        }
+
+        // CONFIRM VOICE ID MATCH FROM SERVER HEADER OR DISPLAY
+        const returnedVoiceIdHeader = res.headers.get('X-Voice-ID') || createdVoiceId;
+        if (returnedVoiceIdHeader !== createdVoiceId) {
+          showError(`CRITICAL VOICE ID MISMATCH! Expected ${createdVoiceId} but got ${returnedVoiceIdHeader}`);
+          return;
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+
+        ttsAudio.src = url;
+        btnDownloadTts.href = url;
+        usedVoiceIdDisplay.textContent = createdVoiceId;
+
+        ttsResultSection.style.display = 'flex';
+        ttsResultSection.scrollIntoView({ behavior: 'smooth' });
+
+        dbgTtsReq.textContent = 'Success';
+        dbgTtsReq.style.color = '#10b981';
+
+        btnGenerateTest.disabled = false;
+        btnGenerateTest.textContent = '[ GENERATE TEST SPEECH USING THIS VOICE ID ]';
+
+      } catch (err) {
+        dbgTtsReq.textContent = 'Exception';
+        showError(`TTS SYNTHESIS FAILED\n\nServer exception: ${err.message}`);
+        btnGenerateTest.disabled = false;
+        btnGenerateTest.textContent = '[ GENERATE TEST SPEECH USING THIS VOICE ID ]';
+      }
+    });
+
+    btnPlayTts.addEventListener('click', () => {
+      if (ttsAudio.src) ttsAudio.play();
+    });
+  </script>
+</body>
+</html>
