@@ -64,7 +64,7 @@ class ElevenLabsService {
           cartoonStyle: cartoonInfo ? cartoonInfo.cartoon : null,
           labels: voice.labels || {
             gender: voice.name.toLowerCase().includes('girl') || voice.name.toLowerCase().includes('woman') ? 'Female' : 'Male',
-            accent: 'Multilingual / Hebrew',
+            accent: 'Multilingual',
             descriptive: cartoonInfo ? cartoonInfo.style : 'Professional'
           },
           samples: voice.samples || []
@@ -118,10 +118,9 @@ class ElevenLabsService {
    */
   normalizeTextForTTS(text) {
     if (!text) return '';
-    // Normalize Unicode composition (NFC)
     let cleaned = text.normalize('NFC');
-    // Remove invisible directional marks (RLM, LRM) that confuse TTS engines
-    cleaned = cleaned.replace(/[\u200E\u200F\u202A-\u202E]/g, '');
+    // Remove invisible directional marks (RLM, LRM) and control characters
+    cleaned = cleaned.replace(/[\u200E\u200F\u202A-\u202E\uFEFF]/g, '');
     return cleaned.trim();
   }
 
@@ -135,7 +134,14 @@ class ElevenLabsService {
   async synthesize(text, voiceId, options = {}) {
     try {
       const cleanText = this.normalizeTextForTTS(text);
-      const isHebrew = this.isHebrewText(cleanText) || options.language === 'he';
+      const isHebrew = this.isHebrewText(cleanText);
+
+      // Resolve valid ElevenLabs voice ID
+      let targetVoiceId = voiceId;
+      if (!targetVoiceId || targetVoiceId.startsWith('default-') || targetVoiceId === 'undefined') {
+        // Fallback to standard universal ElevenLabs Rachel voice if invalid ID
+        targetVoiceId = '21m00Tcm4TlvDq8ikWAM';
+      }
 
       const stabilityVal = typeof options.stability === 'number' 
         ? options.stability 
@@ -147,9 +153,10 @@ class ElevenLabsService {
 
       const styleVal = typeof options.style === 'number' ? options.style : 0.0;
 
-      // Use ElevenLabs Multilingual V2 (eleven_multilingual_v2) or Turbo V2.5 for Hebrew
+      // eleven_multilingual_v2 is the official model for 32+ native languages including Hebrew
       const modelId = options.modelId || 'eleven_multilingual_v2';
 
+      // Strict schema compliance for ElevenLabs API (no unsupported extra fields)
       const payload = {
         text: cleanText,
         model_id: modelId,
@@ -161,14 +168,9 @@ class ElevenLabsService {
         }
       };
 
-      // If language is Hebrew, explicitly provide language_code to ElevenLabs API
-      if (isHebrew) {
-        payload.language_code = 'he';
-      }
+      console.log(`[ElevenLabsService] Synthesizing: voiceId=${targetVoiceId}, isHebrew=${isHebrew}, model=${modelId}, textLength=${cleanText.length}`);
 
-      console.log(`[ElevenLabsService] Synthesizing: isHebrew=${isHebrew}, model=${modelId}, chars=${cleanText.length}`);
-
-      const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
+      const response = await fetch(`${this.baseUrl}/text-to-speech/${targetVoiceId}?output_format=mp3_44100_128`, {
         method: 'POST',
         headers: {
           'xi-api-key': this.apiKey,
@@ -180,19 +182,20 @@ class ElevenLabsService {
       if (!response.ok) {
         let errorMsg = `${response.status}`;
         try {
-          const error = await response.json();
-          errorMsg = error.detail?.message || JSON.stringify(error);
+          const errorJson = await response.json();
+          errorMsg = errorJson.detail?.message || JSON.stringify(errorJson);
         } catch (e) {
           const textErr = await response.text();
           errorMsg = textErr || errorMsg;
         }
-        throw new Error(`ElevenLabs API error: ${errorMsg}`);
+        console.error(`[ElevenLabsService] ElevenLabs API error (${response.status}):`, errorMsg);
+        throw new Error(`ElevenLabs API error (${response.status}): ${errorMsg}`);
       }
 
       const audioBuffer = await response.arrayBuffer();
       return Buffer.from(audioBuffer);
     } catch (error) {
-      console.error('Error synthesizing audio:', error);
+      console.error('Error synthesizing audio in ElevenLabsService:', error.message);
       throw error;
     }
   }

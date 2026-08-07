@@ -77,7 +77,7 @@ const SUPPORTED_LANGUAGES = [
 
 // Clean Modern Hebrew phrases formatted for natural ElevenLabs pronunciation
 const MULTILINGUAL_PHRASES = {
-  en: "Goodnight my little hero, sleep tight and let the stars guide your dreams.",
+  en: "Welcome to FableVoice Audio Studio. Active voice model calibrated with multilingual speech synthesis.",
   es: "Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.",
   fr: "Bonne nuit mon petit ange, dors bien et fais de très beaux rêves étoilés.",
   de: "Gute Nacht, mein kleiner Held, schlaf gut und träum etwas Wunderschönes.",
@@ -87,7 +87,7 @@ const MULTILINGUAL_PHRASES = {
   zh: "晚安，我的小英雄，做个甜甜的美梦，繁星会守护着你。",
   ko: "잘 자요, 나의 작은 영웅. 반짝이는 별들이 예쁜 꿈으로 안내해 줄 거예요.",
   hi: "शुभ रात्रि मेरे प्यारे बच्चे, मीठे सपने देखो और आराम से सो जाओ।",
-  ar: "تصبح على خير يا بطلي الصغير، نوماً هניئاً وأחלאماً سعيدة.",
+  ar: "تصبح على خير يا بطلي الصغير، نوماً هنيئاً وأحلاماً سعيدة.",
   nl: "Goedenacht mijn kleine held, slaap lekker en droom fijn.",
   ru: "Спокойной ночи, мой маленький герой, приятных снов под звёздным небом.",
   he: "שלום, לילה טוב והמשך ערב נעים. חלומות פז ושינה מתוקה."
@@ -113,20 +113,20 @@ router.get('/voices', async (req, res) => {
     // Default fallback voices
     let defaultVoices = [
       { 
-        id: 'default-female', 
-        name: 'Sarah - Bedtime Storyteller', 
+        id: '21m00Tcm4TlvDq8ikWAM', 
+        name: 'Rachel - Calibrated Storyteller', 
         category: 'family', 
-        description: 'Warm, soothing maternal voice profile',
+        description: 'Warm, soothing maternal voice profile (Multilingual & Hebrew supported)',
         previewUrl: null,
-        labels: { gender: 'Female', accent: 'American', descriptive: 'Maternal Storyteller' }
+        labels: { gender: 'Female', accent: 'Multilingual', descriptive: 'Maternal Storyteller' }
       },
       { 
-        id: 'default-male', 
-        name: 'Roger - Adventure Narrator', 
+        id: 'AZnzlk1XvdvUeBnXmlld', 
+        name: 'Domi - Adventure Narrator', 
         category: 'professional', 
-        description: 'Deep, engaging fatherly voice profile',
+        description: 'Deep, engaging voice profile (Multilingual & Hebrew supported)',
         previewUrl: null,
-        labels: { gender: 'Male', accent: 'American', descriptive: 'Deep & Reassuring' }
+        labels: { gender: 'Male', accent: 'Multilingual', descriptive: 'Deep & Reassuring' }
       }
     ];
 
@@ -219,15 +219,15 @@ router.post('/generate', async (req, res) => {
   try {
     const { script, voice, emotion, stability, similarityBoost, style, speed, modelId, language } = req.body;
 
-    if (!script || !voice) {
-      return res.status(400).json({ error: 'Script and voice are required' });
+    if (!script || !script.trim()) {
+      return res.status(400).json({ error: 'Script text is required' });
     }
 
     if (!elevenLabsService || !elevenLabsService.isConfigured()) {
-      return res.status(400).json({ error: 'ElevenLabs API not configured' });
+      return res.status(400).json({ error: 'ElevenLabs API key is not configured or invalid' });
     }
 
-    console.log(`[VoiceOver] Multilingual synthesis: voice=${voice}, language=${language || 'auto'}, chars=${script.length}`);
+    console.log(`[VoiceOver] Synthesis request: voice=${voice}, chars=${script.length}, language=${language || 'auto'}`);
 
     try {
       const audioBuffer = await elevenLabsService.synthesize(script, voice, {
@@ -260,12 +260,12 @@ router.post('/generate', async (req, res) => {
         createdAt: new Date().toISOString()
       });
     } catch (err) {
-      console.error('[VoiceOver] ElevenLabs synthesis error:', err);
-      return res.status(500).json({ error: 'Audio synthesis failed', details: err.message });
+      console.error('[VoiceOver] ElevenLabs synthesis failed:', err.message);
+      return res.status(500).json({ error: err.message || 'Audio synthesis failed' });
     }
   } catch (error) {
-    console.error('Generation error:', error);
-    res.status(500).json({ error: 'Voiceover generation failed' });
+    console.error('Generation route error:', error);
+    res.status(500).json({ error: error.message || 'Voiceover generation failed' });
   }
 });
 
