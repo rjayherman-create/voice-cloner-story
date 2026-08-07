@@ -59,12 +59,12 @@ class ElevenLabsService {
           name: voice.name,
           category: isCloned ? 'family' : (cartoonInfo ? 'cartoon' : 'professional'),
           description: voice.description || (cartoonInfo ? cartoonInfo.style : 'High quality voice model'),
-          previewUrl: voice.preview_url,
+          previewUrl: voice.previewUrl || voice.preview_url,
           isCloned: isCloned,
           cartoonStyle: cartoonInfo ? cartoonInfo.cartoon : null,
           labels: voice.labels || {
             gender: voice.name.toLowerCase().includes('girl') || voice.name.toLowerCase().includes('woman') ? 'Female' : 'Male',
-            accent: 'American',
+            accent: 'Multilingual / Hebrew',
             descriptive: cartoonInfo ? cartoonInfo.style : 'Professional'
           },
           samples: voice.samples || []
@@ -112,8 +112,31 @@ class ElevenLabsService {
     return voices.filter(v => v.category === category);
   }
 
+  /**
+   * Cleans text to ensure high-fidelity pronunciation in ElevenLabs
+   * Removes unsupported unicode control characters and ensures standard UTF-8 Modern Hebrew
+   */
+  normalizeTextForTTS(text) {
+    if (!text) return '';
+    // Normalize Unicode composition (NFC)
+    let cleaned = text.normalize('NFC');
+    // Remove invisible directional marks (RLM, LRM) that confuse TTS engines
+    cleaned = cleaned.replace(/[\u200E\u200F\u202A-\u202E]/g, '');
+    return cleaned.trim();
+  }
+
+  /**
+   * Detects if the string contains Hebrew characters
+   */
+  isHebrewText(text) {
+    return /[\u0590-\u05FF]/.test(text);
+  }
+
   async synthesize(text, voiceId, options = {}) {
     try {
+      const cleanText = this.normalizeTextForTTS(text);
+      const isHebrew = this.isHebrewText(cleanText) || options.language === 'he';
+
       const stabilityVal = typeof options.stability === 'number' 
         ? options.stability 
         : this.mapEmotionToStability(options.emotion || 'neutral');
@@ -124,19 +147,26 @@ class ElevenLabsService {
 
       const styleVal = typeof options.style === 'number' ? options.style : 0.0;
 
-      // Use ElevenLabs Multilingual Model V2 for 32+ native languages
+      // Use ElevenLabs Multilingual V2 (eleven_multilingual_v2) or Turbo V2.5 for Hebrew
       const modelId = options.modelId || 'eleven_multilingual_v2';
 
       const payload = {
-        text,
+        text: cleanText,
         model_id: modelId,
         voice_settings: {
-          stability: stabilityVal,
+          stability: isHebrew ? Math.max(0.45, stabilityVal) : stabilityVal,
           similarity_boost: similarityVal,
           style: styleVal,
           use_speaker_boost: true
         }
       };
+
+      // If language is Hebrew, explicitly provide language_code to ElevenLabs API
+      if (isHebrew) {
+        payload.language_code = 'he';
+      }
+
+      console.log(`[ElevenLabsService] Synthesizing: isHebrew=${isHebrew}, model=${modelId}, chars=${cleanText.length}`);
 
       const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
         method: 'POST',
@@ -153,8 +183,8 @@ class ElevenLabsService {
           const error = await response.json();
           errorMsg = error.detail?.message || JSON.stringify(error);
         } catch (e) {
-          const text = await response.text();
-          errorMsg = text || errorMsg;
+          const textErr = await response.text();
+          errorMsg = textErr || errorMsg;
         }
         throw new Error(`ElevenLabs API error: ${errorMsg}`);
       }

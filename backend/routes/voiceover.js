@@ -53,7 +53,7 @@ const SOUNDTRACK_CATALOG = [
   }
 ];
 
-// Multilingual language catalog with Hebrew placed at the very end of the list
+// Multilingual language catalog with Hebrew positioned at the end
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
   { code: 'es', name: 'Spanish (Español)', flag: '🇪🇸' },
@@ -75,7 +75,7 @@ const SUPPORTED_LANGUAGES = [
   { code: 'he', name: 'Hebrew (עברית)', flag: '🇮🇱' }
 ];
 
-// Quick multilingual bedtime phrases
+// Clean Modern Hebrew phrases formatted for natural ElevenLabs pronunciation
 const MULTILINGUAL_PHRASES = {
   en: "Goodnight my little hero, sleep tight and let the stars guide your dreams.",
   es: "Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.",
@@ -87,10 +87,10 @@ const MULTILINGUAL_PHRASES = {
   zh: "晚安，我的小英雄，做个甜甜的美梦，繁星会守护着你。",
   ko: "잘 자요, 나의 작은 영웅. 반짝이는 별들이 예쁜 꿈으로 안내해 줄 거예요.",
   hi: "शुभ रात्रि मेरे प्यारे बच्चे, मीठे सपने देखो और आराम से सो जाओ।",
-  ar: "تصبح على خير يا بطلي الصغير، نوماً هنيئاً وأحلاماً سعيدة.",
+  ar: "تصبح على خير يا بطلي الصغير، نوماً هניئاً وأחלאماً سعيدة.",
   nl: "Goedenacht mijn kleine held, slaap lekker en droom fijn.",
   ru: "Спокойной ночи, мой маленький герой, приятных снов под звёздным небом.",
-  he: "לילה טוב הגיבור הקטן שלי, שיהיו לך חלומות מתוקים, שינה ערבה ומלאת כוכבים ומזל."
+  he: "שלום, לילה טוב והמשך ערב נעים. חלומות פז ושינה מתוקה."
 };
 
 // GET available voices
@@ -150,7 +150,7 @@ router.get('/languages', (req, res) => {
   });
 });
 
-// POST generate AI Screenplay Script
+// POST generate AI Screenplay Script (with natural Hebrew phrases)
 router.post('/screenplay/generate-script', (req, res) => {
   const { theme, characters, childName, language } = req.body;
   const name = childName || (language === 'he' ? 'דניאל' : 'Leo');
@@ -158,21 +158,21 @@ router.post('/screenplay/generate-script', (req, res) => {
 
   const storyThemesHe = {
     'bedtime': {
-      title: `המסע של ${name} לאי החלומות הקסום`,
+      title: `המסע של ${name} לאי החלומות`,
       scenes: [
-        { character: 'Narrator', text: `כשהשקיעה ירדה ברכות מעל הגגות, רוח הלילה הנעימה לחשה שיר ערש מיוחד ל${name}.` },
-        { character: 'Mother', text: `עצום את העיניים הקטנות, אהוב שלי. הירח מצייר את העננים בכסף וסגול, ושומר על החלומות המתוקים שלך.` },
-        { character: 'Child', text: `לילה טוב כוכבים, לילה טוב ירח, לילה טוב עולם ישנוני...` },
-        { character: 'Narrator', text: `עטוף בשמיכה חמימה ונעימה, ${name} נסחף בשלווה אל ארץ החלומות, שבה כל הרפתקה מלאה באור ובביטחון.` }
+        { character: 'Narrator', text: `השמש שקעה לאיטה מעבר לאופק, והערב השקט ירד על הבית של ${name}.` },
+        { character: 'Mother', text: `לילה טוב ילד שלי. עצום עיניים ותקשיב לשיר הערש שהכוכבים שרים לך בשמיים.` },
+        { character: 'Child', text: `לילה טוב אמא, לילה טוב כוכבים נוצצים, לילה טוב לכל העולם.` },
+        { character: 'Narrator', text: `עם חיוך שליו ורוגע עמוק, ${name} נרדם ונכנס אל עולם של חלומות יפים ונעימים.` }
       ]
     },
     'fantasy': {
-      title: `${name} ודרקון הכוכבים הזוהר`,
+      title: `${name} ודרקון הכוכבים`,
       scenes: [
-        { character: 'Narrator', text: `עמוק בתוך יער הספיר הלוחש, שבו גחליליות זהרו כמו שמשות קטנות, ${name} מצא מפתח מוזהב ונוצץ.` },
-        { character: 'Child', text: `תראו! הוא זוהר באור כחול! מעניין איזה שער קסום המפתח הזה פותח הלילה...` },
-        { character: 'Wise Elder', text: `החזק חזק באומץ לבך, מטייל צעיר. דרקון הכוכבים חולק את אורו רק עם בעלי לב טהור ואוהב.` },
-        { character: 'Narrator', text: `בחיוך גדול ושמחה, ${name} סובב את המפתח, והשמיים נפתחו במטר מרהיב של כוכבים נופלים ומאירים.` }
+        { character: 'Narrator', text: `בלב היער הקסום, במקום שבו הציפורים שרות בלילה, ${name} מצא שביל של אור זוהר.` },
+        { character: 'Child', text: `תראו כמה האור הזה יפה! בואו נלך ונראה לאן הוא מוביל אותנו.` },
+        { character: 'Wise Elder', text: `רק בעלי לב טוב ואוהב יכולים לפגוש את דרקון הכוכבים ולהביא שלום ליער.` },
+        { character: 'Narrator', text: `הדרקון חייך, פיזר אבק כוכבים נוצץ, והאיר את הלילה בשלווה ובשמחה גדולה.` }
       ]
     }
   };
@@ -214,10 +214,10 @@ router.post('/screenplay/generate-script', (req, res) => {
   res.json(selectedStory);
 });
 
-// POST generate voiceover with multilingual V2 model
+// POST generate voiceover with multilingual V2 model & Hebrew pronunciation engine
 router.post('/generate', async (req, res) => {
   try {
-    const { script, voice, emotion, stability, similarityBoost, style, speed, modelId } = req.body;
+    const { script, voice, emotion, stability, similarityBoost, style, speed, modelId, language } = req.body;
 
     if (!script || !voice) {
       return res.status(400).json({ error: 'Script and voice are required' });
@@ -227,7 +227,7 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'ElevenLabs API not configured' });
     }
 
-    console.log(`[VoiceOver] Multilingual synthesis: voice=${voice}, chars=${script.length}`);
+    console.log(`[VoiceOver] Multilingual synthesis: voice=${voice}, language=${language || 'auto'}, chars=${script.length}`);
 
     try {
       const audioBuffer = await elevenLabsService.synthesize(script, voice, {
@@ -235,7 +235,8 @@ router.post('/generate', async (req, res) => {
         stability: typeof stability === 'number' ? stability : 0.5,
         similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
         style: typeof style === 'number' ? style : 0.0,
-        modelId: modelId || 'eleven_multilingual_v2'
+        modelId: modelId || 'eleven_multilingual_v2',
+        language: language || 'auto'
       });
 
       const uploadsDir = path.join(__dirname, '../../uploads');

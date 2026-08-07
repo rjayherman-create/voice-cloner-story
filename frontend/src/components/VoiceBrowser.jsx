@@ -57,7 +57,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   ]);
   const [multilingualPhrases, setMultilingualPhrases] = useState({
     en: 'Welcome to FableVoice Audio Studio. Active voice model calibrated with multilingual speech synthesis.',
-    he: 'לילה טוב הגיבור הקטן שלי, שיהיו לך חלומות מתוקים, שינה ערבה ומלאת כוכבים ומזל.'
+    he: 'שלום, לילה טוב והמשך ערב נעים. חלומות פז ושינה מתוקה.'
   });
 
   // 3. Multi-Sample Voice Quality Booster states
@@ -86,7 +86,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [cloneLoading, setCloneLoading] = useState(false);
   const [cloneStatusMsg, setCloneStatusMsg] = useState({ type: '', text: '' });
 
-  // TTS Synthesis Test state (defaulting with English first)
+  // TTS Synthesis Test state
   const [ttsText, setTtsText] = useState('Welcome to FableVoice Audio Studio. Active voice model calibrated with multilingual speech synthesis.');
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesizedAudioUrl, setSynthesizedAudioUrl] = useState(null);
@@ -372,7 +372,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const formData = new FormData();
       formData.append('name', voiceModelLabel.trim());
       formData.append('relationship', 'Family Member');
-      formData.append('description', 'FableVoice Multilingual Calibrated Voice Model.');
+      formData.append('description', 'FableVoice Multilingual & Hebrew Calibrated Voice Model.');
       formData.append('sampleFile', audioBufferBlob, `${voiceModelLabel.trim().replace(/\s+/g, '-')}-sample.mp3`);
 
       const res = await fetch('/api/voice-library/clone', {
@@ -404,7 +404,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
       setFamilyVoices(prev => [newFamVoice, ...prev]);
       setSelectedVoiceId(newFamVoice.id);
-      setCloneStatusMsg({ type: 'success', text: `✨ Voice "${voiceModelLabel}" cloned! Now speaks 32+ native languages!` });
+      setCloneStatusMsg({ type: 'success', text: `✨ Voice "${voiceModelLabel}" cloned! Now speaks 32+ native languages & Hebrew!` });
 
       setVoiceModelLabel('');
       setAudioBufferBlob(null);
@@ -526,7 +526,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 2. Synthesize Speech with Multilingual V2 Model & Sliders
+  // 2. Synthesize Speech with Multilingual V2 Model & Hebrew detection
   const handleSynthesize = async () => {
     if (!ttsText.trim() || !selectedVoiceId) return;
 
@@ -542,7 +542,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
           stability: voiceStability,
           similarityBoost: voiceSimilarity,
           speed: voiceSpeed,
-          modelId: 'eleven_multilingual_v2'
+          modelId: 'eleven_multilingual_v2',
+          language: selectedLanguage
         })
       });
 
@@ -599,7 +600,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
             voice: assignedVoiceId,
             stability: voiceStability,
             similarityBoost: voiceSimilarity,
-            modelId: 'eleven_multilingual_v2'
+            modelId: 'eleven_multilingual_v2',
+            language: selectedLanguage
           })
         });
 
@@ -703,7 +705,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             <div className="rack-info">
               <div className="rack-label">STUDIO RACK 01 • MULTILINGUAL V2</div>
               <h1 className="rack-title">Voice Sample Recording & AI Multilingual Trainer</h1>
-              <p className="rack-subtitle">Capture a 15-second vocal sample to clone on ElevenLabs and speak in 32+ native languages.</p>
+              <p className="rack-subtitle">Capture a 15-second vocal sample to clone on ElevenLabs and speak in 32+ native languages & Hebrew.</p>
             </div>
 
             <div className="rack-actions">
@@ -1342,7 +1344,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
 const client = new ElevenLabsClient({ apiKey: "YOUR_API_KEY" });
 const audioStream = await client.textToSpeech.convert("${selectedVoiceId || '21m00Tcm4TlvDq8ikWAM'}", {
-  text: "Buenas noches mi pequeño héroe, que descanses bien.",
+  text: "שלום, לילה טוב והמשך ערב נעים.",
   model_id: "eleven_multilingual_v2",
   voice_settings: { stability: 0.5, similarity_boost: 0.75 }
 });`}
