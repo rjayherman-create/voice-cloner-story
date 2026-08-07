@@ -14,6 +14,9 @@ COPY backend ./backend
 # Copy frontend build
 COPY frontend/dist ./frontend/dist
 
+# Copy environment file
+COPY .env .env
+
 # Expose port
 EXPOSE 5001
 

@@ -18,12 +18,7 @@ function App() {
   const [selectedPreview, setSelectedPreview] = useState(null);
   const [previewPlaying, setPreviewPlaying] = useState(null);
 
-  // Voice Library filter states
-  const [libraryVoices, setLibraryVoices] = useState([]);
-  const [libraryLoading, setLibraryLoading] = useState(false);
-  const [filterGender, setFilterGender] = useState('all');
-  const [filterAccent, setFilterAccent] = useState('all');
-  const [filterStyle, setFilterStyle] = useState('all');
+
 
   // Projects states
   const [projects, setProjects] = useState([]);
@@ -158,25 +153,7 @@ function App() {
     }
   };
 
-  const loadLibraryVoices = async () => {
-    if (libraryVoices.length > 0) {
-      setCurrentPage('voice-library');
-      return;
-    }
 
-    setLibraryLoading(true);
-    try {
-      const response = await fetch('http://localhost:5001/api/voiceover/voices');
-      const data = await response.json();
-      setLibraryVoices(data);
-      setCurrentPage('voice-library');
-    } catch (err) {
-      console.error('Failed to load library voices:', err);
-      setError('Failed to load voices from ElevenLabs');
-    } finally {
-      setLibraryLoading(false);
-    }
-  };
 
   const handleGenerate = async (e) => {
     e.preventDefault();
@@ -264,18 +241,7 @@ function App() {
     (voice.description && voice.description.toLowerCase().includes(voiceFilter.toLowerCase()))
   );
 
-  const filteredLibraryVoices = libraryVoices.filter(voice => {
-    const matchesSearch = voiceFilter === '' || 
-      voice.name.toLowerCase().includes(voiceFilter.toLowerCase()) ||
-      (voice.description && voice.description.toLowerCase().includes(voiceFilter.toLowerCase()));
-    
-    return matchesSearch;
-  });
 
-  // Get unique filter options
-  const genders = ['all', ...new Set(libraryVoices.map(v => v.gender).filter(Boolean))];
-  const accents = ['all', ...new Set(libraryVoices.map(v => v.accent).filter(Boolean))];
-  const styles = ['all', ...new Set(libraryVoices.map(v => v.style).filter(Boolean))];
 
   const handleSelectVoice = (voice) => {
     setSelectedVoice(voice.id || voice.name);
@@ -314,17 +280,10 @@ function App() {
               🎙️ Quick Voice
             </button>
             <button 
-              className={`nav-item ${currentPage === 'voice-library' ? 'active' : ''}`}
-              onClick={loadLibraryVoices}
-              disabled={libraryLoading}
-            >
-              🎤 Voice Library
-            </button>
-            <button 
               className={`nav-item ${currentPage === 'voice-browser' ? 'active' : ''}`}
               onClick={() => setCurrentPage('voice-browser')}
             >
-              🎵 Browse Voices
+              🎤 Browse Voices
             </button>
             <button 
               className={`nav-item ${currentPage === 'projects' ? 'active' : ''}`}
@@ -655,157 +614,7 @@ function App() {
           </div>
         )}
 
-        {currentPage === 'voice-library' && (
-          <div className="page-voice-library">
-            <div className="library-top-section">
-              <div>
-                <h1>Voice Talent Library</h1>
-                <p>Browse and test available voices from ElevenLabs</p>
-              </div>
-              <button className="create-custom-btn">
-                + Create Custom Voice
-              </button>
-            </div>
 
-            {/* Filters Section */}
-            <div className="filters-section">
-              <div className="filters-header">
-                <span className="filter-icon">⚙️</span>
-                <span className="filter-title">Filters</span>
-              </div>
-
-              <div className="filters-grid">
-                <div className="filter-group">
-                  <label>Gender</label>
-                  <select 
-                    value={filterGender}
-                    onChange={(e) => setFilterGender(e.target.value)}
-                    className="filter-select"
-                  >
-                    {genders.map(g => (
-                      <option key={g} value={g}>
-                        {g === 'all' ? 'All Genders' : g.charAt(0).toUpperCase() + g.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="filter-group">
-                  <label>Accent</label>
-                  <select 
-                    value={filterAccent}
-                    onChange={(e) => setFilterAccent(e.target.value)}
-                    className="filter-select"
-                  >
-                    {accents.map(a => (
-                      <option key={a} value={a}>
-                        {a === 'all' ? 'All Accents' : a}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="filter-group">
-                  <label>Style</label>
-                  <select 
-                    value={filterStyle}
-                    onChange={(e) => setFilterStyle(e.target.value)}
-                    className="filter-select"
-                  >
-                    {styles.map(s => (
-                      <option key={s} value={s}>
-                        {s === 'all' ? 'All Styles' : s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Voices Grid */}
-            <div className="voices-grid-section">
-              {libraryLoading ? (
-                <div className="loading-spinner">Loading voices from ElevenLabs...</div>
-              ) : filteredLibraryVoices.length === 0 ? (
-                <div className="no-voices">
-                  {voiceFilter ? 'No voices match your search' : 'No voices available'}
-                </div>
-              ) : (
-                <div className="voices-grid">
-                  {filteredLibraryVoices.map((voice) => (
-                    <div key={voice.id} className="voice-card">
-                      <h3 className="voice-name">{voice.name}</h3>
-                      
-                      <div className="voice-details">
-                        {voice.gender && (
-                          <div className="detail-item">
-                            <span className="detail-label">Gender:</span>
-                            <span className="detail-value">{voice.gender}</span>
-                          </div>
-                        )}
-                        {voice.accent && (
-                          <div className="detail-item">
-                            <span className="detail-label">Accent:</span>
-                            <span className="detail-value">{voice.accent}</span>
-                          </div>
-                        )}
-                        {voice.style && (
-                          <div className="detail-item">
-                            <span className="detail-label">Style:</span>
-                            <span className="detail-value">{voice.style}</span>
-                          </div>
-                        )}
-                        {voice.age && (
-                          <div className="detail-item">
-                            <span className="detail-label">Age:</span>
-                            <span className="detail-value">{voice.age}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {voice.description && (
-                        <p className="voice-description">{voice.description}</p>
-                      )}
-
-                      {voice.tags && (
-                        <div className="voice-tags">
-                          {voice.tags.map(tag => (
-                            <span key={tag} className="tag">{tag}</span>
-                          ))}
-                        </div>
-                      )}
-
-                      <button 
-                        type="button"
-                        onClick={() => playPreview(voice.id)}
-                        className="test-voice-btn"
-                      >
-                        ▶ Test Voice
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {selectedPreview && (
-              <div className="preview-modal-overlay" onClick={() => setSelectedPreview(null)}>
-                <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
-                  <button 
-                    className="close-preview"
-                    onClick={() => setSelectedPreview(null)}
-                  >
-                    ✕
-                  </button>
-                  <h3>Voice Preview</h3>
-                  <audio controls autoPlay className="preview-audio">
-                    <source src={selectedPreview} type="audio/mpeg" />
-                  </audio>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {currentPage === 'voice-browser' && (
           <VoiceBrowser onSelectVoice={handleSelectVoice} />
@@ -1004,10 +813,7 @@ function App() {
                   <span className="action-icon">🎵</span>
                   <span className="action-text">Choose Voice</span>
                 </button>
-                <button className="quick-action-btn" onClick={() => setCurrentPage('voice-library')}>
-                  <span className="action-icon">🎤</span>
-                  <span className="action-text">Voice Library</span>
-                </button>
+
                 <button className="quick-action-btn" onClick={() => setCurrentPage('projects')}>
                   <span className="action-icon">📁</span>
                   <span className="action-text">My Projects</span>

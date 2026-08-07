@@ -54,11 +54,13 @@ class ElevenLabsService {
       const voices = (data.voices || []).map(voice => {
         const voiceLower = voice.name.toLowerCase();
         const cartoonInfo = cartoonMapping[voiceLower] || null;
+        const isCloned = voice.category === 'cloned' || voice.category === 'generated' || voice.category === 'custom' || voice.category === 'family';
 
         return {
           id: voice.voice_id,
           name: voice.name,
-          category: cartoonInfo ? 'cartoon' : (voice.category || 'professional'),
+          category: isCloned ? 'family' : (cartoonInfo ? 'cartoon' : (voice.category || 'professional')),
+          isCloned: isCloned,
           description: voice.description || '',
           previewUrl: voice.preview_url || '',
           labels: voice.labels || {},
@@ -75,6 +77,28 @@ class ElevenLabsService {
     } catch (error) {
       console.error('Error fetching voices from ElevenLabs:', error);
       throw new Error('Failed to fetch voices from ElevenLabs');
+    }
+  }
+
+  async deleteVoice(voiceId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/voices/${voiceId}`, {
+        method: 'DELETE',
+        headers: {
+          'xi-api-key': this.apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`ElevenLabs delete remote voice returned status ${response.status}`);
+      } else {
+        console.log(`Deleted voice ${voiceId} from ElevenLabs`);
+      }
+      return true;
+    } catch (error) {
+      console.error(`Error deleting voice ${voiceId} from ElevenLabs:`, error);
+      return false;
     }
   }
 

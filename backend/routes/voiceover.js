@@ -15,15 +15,22 @@ const elevenLabsService = elevenLabsApiKey
   ? new ElevenLabsService(elevenLabsApiKey)
   : null;
 
+console.log(`[VoiceOver] ElevenLabs API configured: ${elevenLabsService ? 'YES' : 'NO'}`);
+if (elevenLabsService) {
+  console.log(`[VoiceOver] API Key: ${elevenLabsApiKey.substring(0, 10)}...`);
+}
+
 // GET available voices (with optional category filter)
 router.get('/voices', async (req, res) => {
   try {
-    const { category } = req.query; // 'professional', 'cartoon', or all
+    const { category } = req.query;
 
-    // If ElevenLabs is configured, fetch real voices
+    // ALWAYS try to fetch from ElevenLabs first if configured
     if (elevenLabsService && elevenLabsService.isConfigured()) {
       try {
+        console.log('[VoiceOver] Fetching voices from ElevenLabs API...');
         let voices = await elevenLabsService.getVoices();
+        console.log(`[VoiceOver] Successfully fetched ${voices.length} voices from ElevenLabs`);
 
         // Filter by category if requested
         if (category) {
@@ -32,40 +39,41 @@ router.get('/voices', async (req, res) => {
 
         return res.json(voices);
       } catch (err) {
-        console.error('Error fetching ElevenLabs voices:', err);
-        // Fall back to default voices
+        console.error('[VoiceOver] Error fetching ElevenLabs voices:', err.message);
+        // Fall through to default voices on error
       }
+    } else {
+      console.log('[VoiceOver] ElevenLabs not configured, using default voices');
     }
 
-    // Default voices (fallback if ElevenLabs not configured)
+    // Default voices (fallback if ElevenLabs not configured or errored)
     let defaultVoices = [
       { 
         id: 'default-male', 
         name: 'Default Male', 
         category: 'professional', 
         description: 'Standard male voice',
-        cartoonCharacter: null,
-        cartoonStyle: null
+        previewUrl: null,
+        labels: {
+          gender: 'Male',
+          accent: 'American',
+          descriptive: 'Professional'
+        }
       },
       { 
         id: 'default-female', 
         name: 'Default Female', 
         category: 'professional', 
         description: 'Standard female voice',
-        cartoonCharacter: null,
-        cartoonStyle: null
-      },
-      { 
-        id: 'cartoon-1', 
-        name: 'Cartoon Character 1', 
-        category: 'cartoon', 
-        description: 'Fun cartoon voice',
-        cartoonCharacter: 'character_1',
-        cartoonStyle: 'Energetic, playful'
+        previewUrl: null,
+        labels: {
+          gender: 'Female',
+          accent: 'American',
+          descriptive: 'Professional'
+        }
       }
     ];
 
-    // Filter by category if requested
     if (category) {
       defaultVoices = defaultVoices.filter(v => v.category === category);
     }
@@ -74,38 +82,6 @@ router.get('/voices', async (req, res) => {
   } catch (error) {
     console.error('Voice fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch voices' });
-  }
-});
-
-// GET voices by category
-router.get('/voices/category/:category', async (req, res) => {
-  try {
-    const { category } = req.params;
-
-    if (!elevenLabsService || !elevenLabsService.isConfigured()) {
-      return res.status(400).json({ error: 'ElevenLabs not configured' });
-    }
-
-    const voices = await elevenLabsService.getVoicesByCategory(category);
-    res.json(voices);
-  } catch (error) {
-    console.error('Category fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch voices by category' });
-  }
-});
-
-// GET all cartoon voices specifically
-router.get('/voices/cartoon/all', async (req, res) => {
-  try {
-    if (!elevenLabsService || !elevenLabsService.isConfigured()) {
-      return res.status(400).json({ error: 'ElevenLabs not configured' });
-    }
-
-    const cartoonVoices = await elevenLabsService.getVoices(true);
-    res.json(cartoonVoices);
-  } catch (error) {
-    console.error('Cartoon voices fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch cartoon voices' });
   }
 });
 
@@ -141,7 +117,7 @@ router.get('/emotions', (req, res) => {
   res.json(emotions);
 });
 
-// POST generate voiceover
+// POST generate voiceover with real audio file creation
 router.post('/generate', async (req, res) => {
   try {
     const { script, voice, emotion, format } = req.body;
@@ -150,60 +126,54 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'Script and voice are required' });
     }
 
-    // If ElevenLabs is configured, generate real audio
-    if (elevenLabsService && elevenLabsService.isConfigured()) {
-      try {
-        // Generate audio
-        const audioBuffer = await elevenLabsService.synthesize(script, voice, {
-          emotion: emotion || 'neutral',
-          modelId: 'eleven_turbo_v2_5'
-        });
-
-        // Save audio file
-        const uploadsDir = path.join(__dirname, '../../uploads');
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
-        const filename = `voiceover-${Date.now()}.mp3`;
-        const filepath = path.join(uploadsDir, filename);
-        fs.writeFileSync(filepath, audioBuffer);
-
-        return res.json({
-          id: `vo-${Date.now()}`,
-          filename,
-          url: `/uploads/${filename}`,
-          voice,
-          emotion: emotion || 'neutral',
-          script,
-          duration: Math.ceil(script.length / 15),
-          status: 'complete',
-          createdAt: new Date().toISOString()
-        });
-      } catch (err) {
-        console.error('ElevenLabs generation error:', err);
-        return res.status(500).json({ error: 'Audio generation failed', details: err.message });
-      }
+    if (!elevenLabsService || !elevenLabsService.isConfigured()) {
+      return res.status(400).json({ error: 'ElevenLabs API not configured' });
     }
 
-    // Fallback: placeholder response
-    res.json({
-      id: `vo-${Date.now()}`,
-      script,
-      voice,
-      emotion: emotion || 'neutral',
-      duration: Math.ceil(script.length / 15),
-      status: 'processing',
-      message: 'ElevenLabs not configured. Placeholder response.',
-      createdAt: new Date().toISOString()
-    });
+    console.log(`[VoiceOver] Generating audio: voice=${voice}, emotion=${emotion}, chars=${script.length}`);
+
+    try {
+      // Generate audio from ElevenLabs
+      const audioBuffer = await elevenLabsService.synthesize(script, voice, {
+        emotion: emotion || 'neutral',
+        modelId: 'eleven_turbo_v2_5'
+      });
+
+      // Save audio file
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const filename = `voiceover-${Date.now()}.mp3`;
+      const filepath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filepath, audioBuffer);
+
+      console.log(`[VoiceOver] Audio file saved: ${filename} (${audioBuffer.length} bytes)`);
+
+      return res.json({
+        id: `vo-${Date.now()}`,
+        filename,
+        url: `/uploads/${filename}`,
+        voice,
+        emotion: emotion || 'neutral',
+        script,
+        audioLength: audioBuffer.length,
+        duration: Math.ceil(script.length / 15),
+        status: 'complete',
+        createdAt: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('[VoiceOver] ElevenLabs generation error:', err);
+      return res.status(500).json({ error: 'Audio generation failed', details: err.message });
+    }
   } catch (error) {
     console.error('Generation error:', error);
     res.status(500).json({ error: 'Voiceover generation failed' });
   }
 });
 
-// POST text-to-speech conversion
+// POST text-to-speech conversion (streaming)
 router.post('/tts', async (req, res) => {
   try {
     const { text, voice, emotion } = req.body;
@@ -215,6 +185,8 @@ router.post('/tts', async (req, res) => {
     if (!elevenLabsService || !elevenLabsService.isConfigured()) {
       return res.status(400).json({ error: 'ElevenLabs API not configured' });
     }
+
+    console.log(`[VoiceOver] TTS request: voice=${voice}, chars=${text.length}`);
 
     const audioBuffer = await elevenLabsService.synthesize(text, voice, {
       emotion: emotion || 'neutral'
@@ -233,7 +205,7 @@ router.post('/tts', async (req, res) => {
 router.get('/status', (req, res) => {
   res.json({
     service: 'voiceover',
-    elevenLabsConfigured: elevenLabsService && elevenLabsService.isConfigured(),
+    elevenLabsConfigured: elevenLabsService ? elevenLabsService.isConfigured() : false,
     status: 'ready'
   });
 });
