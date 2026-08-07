@@ -37,9 +37,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [voiceSimilarity, setVoiceSimilarity] = useState(0.75);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
 
-  // 🌐 Multilingual 32+ Languages states
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  // 🌐 Multilingual & Hebrew states
+  const [selectedLanguage, setSelectedLanguage] = useState('he');
   const [supportedLanguages, setSupportedLanguages] = useState([
+    { code: 'he', name: 'Hebrew (עברית)', flag: '🇮🇱' },
     { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
     { code: 'es', name: 'Spanish (Español)', flag: '🇪🇸' },
     { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },
@@ -52,11 +53,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
     { code: 'hi', name: 'Hindi (हिन्दी)', flag: '🇮🇳' },
     { code: 'ar', name: 'Arabic (العربية)', flag: '🇸🇦' },
     { code: 'nl', name: 'Dutch (Nederlands)', flag: '🇳🇱' },
-    { code: 'ru', name: 'Russian (Русский)', flag: '🇷🇺' },
-    { code: 'he', name: 'Hebrew (עברית)', flag: '🇮🇱' },
-    { code: 'tr', name: 'Turkish (Türkçe)', flag: '🇹🇷' }
+    { code: 'ru', name: 'Russian (Русский)', flag: '🇷🇺' }
   ]);
-  const [multilingualPhrases, setMultilingualPhrases] = useState({});
+  const [multilingualPhrases, setMultilingualPhrases] = useState({
+    he: 'לילה טוב הגיבור הקטן שלי, שיהיו לך חלומות מתוקים, שינה ערבה ומלאת כוכבים ומזל.',
+    en: 'Goodnight my little hero, sleep tight and let the stars guide your dreams.'
+  });
 
   // 3. Multi-Sample Voice Quality Booster states
   const [sampleSlots, setSampleSlots] = useState([
@@ -73,7 +75,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
     name: '',
     relationship: 'Mother',
     gender: 'female',
-    accent: 'American',
+    accent: 'Hebrew & English',
     style: 'Warm & Caring Storyteller',
     description: '',
     sampleFile: null
@@ -84,15 +86,15 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [cloneLoading, setCloneLoading] = useState(false);
   const [cloneStatusMsg, setCloneStatusMsg] = useState({ type: '', text: '' });
 
-  // TTS Synthesis Test state
-  const [ttsText, setTtsText] = useState('Welcome to FableVoice Audio Studio. Active voice model calibrated with multilingual speech synthesis.');
+  // TTS Synthesis Test state (defaulting with Hebrew support)
+  const [ttsText, setTtsText] = useState('לילה טוב הגיבור הקטן שלי, שיהיו לך חלומות מתוקים, שינה ערבה ומלאת כוכבים ומזל.');
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesizedAudioUrl, setSynthesizedAudioUrl] = useState(null);
   const [deletingVoiceId, setDeletingVoiceId] = useState(null);
 
   // 4. Screenplay Workshop (Multi-Character Story Generator) states
   const [storyTheme, setStoryTheme] = useState('bedtime');
-  const [childName, setChildName] = useState('Leo');
+  const [childName, setChildName] = useState('דניאל');
   const [screenplayCharacters, setScreenplayCharacters] = useState({
     Narrator: '',
     Mother: '',
@@ -163,7 +165,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
         name: v.name,
         relationship: v.relationship || v.labels?.relationship || 'Family Member',
         gender: v.gender || v.labels?.gender || 'Custom',
-        accent: v.accent || v.labels?.accent || 'Multilingual',
+        accent: v.accent || v.labels?.accent || 'Hebrew & English',
         style: v.style || v.labels?.descriptive || 'Conversational',
         description: v.description || `${v.name}'s custom cloned family voice model.`,
         previewUrl: v.previewUrl || null,
@@ -182,7 +184,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
         description: v.description || 'ElevenLabs standard voice profile',
         previewUrl: v.previewUrl || null,
         gender: v.labels?.gender || 'neutral',
-        accent: v.labels?.accent || 'American',
+        accent: v.labels?.accent || 'Hebrew / English',
         date: '8/7/2026',
         source: 'elevenlabs',
         isCloned: false,
@@ -370,7 +372,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const formData = new FormData();
       formData.append('name', voiceModelLabel.trim());
       formData.append('relationship', 'Family Member');
-      formData.append('description', 'FableVoice Multilingual Calibrated Voice Model.');
+      formData.append('description', 'FableVoice Multilingual & Hebrew Calibrated Voice Model.');
       formData.append('sampleFile', audioBufferBlob, `${voiceModelLabel.trim().replace(/\s+/g, '-')}-sample.mp3`);
 
       const res = await fetch('/api/voice-library/clone', {
@@ -391,8 +393,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
         name: newModel.name,
         relationship: newModel.relationship || 'Family Member',
         gender: newModel.gender || 'Custom',
-        accent: newModel.accent || 'Multilingual',
-        description: 'FableVoice Cloned Family Voice Model (32+ Languages Supported)',
+        accent: newModel.accent || 'Hebrew & English',
+        description: 'FableVoice Cloned Family Voice Model (Hebrew & 32+ Languages Supported)',
         previewUrl: newModel.previewUrl || audioBufferUrl,
         date: new Date().toLocaleDateString(),
         source: 'cloned bucket',
@@ -402,7 +404,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
       setFamilyVoices(prev => [newFamVoice, ...prev]);
       setSelectedVoiceId(newFamVoice.id);
-      setCloneStatusMsg({ type: 'success', text: `✨ Voice "${voiceModelLabel}" cloned! Now speaks 32+ native languages!` });
+      setCloneStatusMsg({ type: 'success', text: `✨ Voice "${voiceModelLabel}" cloned! Now speaks Hebrew & 32+ native languages!` });
 
       setVoiceModelLabel('');
       setAudioBufferBlob(null);
@@ -439,7 +441,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       formData.append('gender', familyForm.gender);
       formData.append('accent', familyForm.accent);
       formData.append('style', familyForm.style);
-      formData.append('description', familyForm.description || `${familyForm.name} (${familyForm.relationship}) multilingual cloned family voice.`);
+      formData.append('description', familyForm.description || `${familyForm.name} (${familyForm.relationship}) Hebrew & multilingual cloned voice.`);
       formData.append('sampleFile', primarySample);
 
       const res = await fetch('/api/voice-library/clone', {
@@ -477,7 +479,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
         name: '',
         relationship: 'Mother',
         gender: 'female',
-        accent: 'American',
+        accent: 'Hebrew & English',
         style: 'Warm & Caring Storyteller',
         description: '',
         sampleFile: null
@@ -659,7 +661,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <span className="brand-text-main">FableVoice</span>
               <span className="brand-badge-yellow">AUDIO STUDIO</span>
             </div>
-            <div className="brand-text-sub">VOICE CLONING & MULTILINGUAL SOUNDTRACK CONSOLE</div>
+            <div className="brand-text-sub">HEBREW & MULTILINGUAL VOICE CLONING CONSOLE</div>
           </div>
         </div>
 
@@ -692,16 +694,16 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </header>
 
       {/* ==================================================================== */}
-      {/* TAB 1: VOICE STUDIO (CORE CLONING & MULTILINGUAL WORKFLOW)            */}
+      {/* TAB 1: VOICE STUDIO (CORE CLONING & HEBREW WORKFLOW)                 */}
       {/* ==================================================================== */}
       {activeNav === 'studio' && (
         <main className="studio-tab-content">
           {/* STUDIO RACK 01 BANNER */}
           <div className="studio-rack-banner">
             <div className="rack-info">
-              <div className="rack-label">STUDIO RACK 01 • MULTILINGUAL V2</div>
+              <div className="rack-label">STUDIO RACK 01 • HEBREW & MULTILINGUAL V2</div>
               <h1 className="rack-title">Voice Sample Recording & AI Multilingual Trainer</h1>
-              <p className="rack-subtitle">Capture a 15-second vocal sample to clone on ElevenLabs and speak in 32+ native languages.</p>
+              <p className="rack-subtitle">Capture a 15-second vocal sample to clone on ElevenLabs and speak in fluent Hebrew & 32+ languages.</p>
             </div>
 
             <div className="rack-actions">
@@ -747,7 +749,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
 
               <h2 className="box-title">Capture Audio Sample</h2>
-              <p className="box-subtitle">Speak clearly into your microphone for 15–30 seconds.</p>
+              <p className="box-subtitle">Speak clearly into your microphone for 15–30 seconds (Hebrew or English).</p>
 
               {/* 1. Live Canvas Audio Waveform Visualizer */}
               <div className="waveform-container">
@@ -775,7 +777,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             <div className="fable-box trainer-box">
               <div className="trainer-header-row">
                 <span className="calibrator-label">VOICE CALIBRATOR</span>
-                <span className="status-ready-label">STATUS: 32+ LANGUAGES READY</span>
+                <span className="status-ready-label">STATUS: HEBREW & 32+ LANGS READY</span>
               </div>
 
               <h2 className="box-title" style={{ marginTop: '4px', marginBottom: '16px' }}>
@@ -809,7 +811,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <input
                   type="text"
                   className="dark-input-field"
-                  placeholder='e.g. "Richard — Bedtime Reader"'
+                  placeholder='e.g. "Sarah — Bedtime Storyteller (עברית)"'
                   value={voiceModelLabel}
                   onChange={(e) => setVoiceModelLabel(e.target.value)}
                 />
@@ -1006,7 +1008,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             )}
           </section>
 
-          {/* 2. LIVE TTS PREVIEW CONSOLE WITH MULTILINGUAL SELECTOR & TUNING SLIDERS */}
+          {/* 2. LIVE TTS PREVIEW CONSOLE WITH HEBREW & MULTILINGUAL SELECTOR */}
           {activeVoiceObj && (
             <section className="fable-box tts-console-box">
               <div className="tts-console-header">
@@ -1014,10 +1016,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <span className="profile-id-tag">ID: {activeVoiceObj.voiceId || activeVoiceObj.id}</span>
               </div>
 
-              {/* 🌐 Multilingual Language Picker */}
+              {/* 🌐 Multilingual & Hebrew Language Picker */}
               <div className="language-selector-row">
                 <div className="lang-picker-group">
-                  <label className="input-label-uppercase">🌐 Target Spoken Language (32+ Native Supported)</label>
+                  <label className="input-label-uppercase">🌐 Target Spoken Language (Hebrew & 32+ Native Supported)</label>
                   <select 
                     className="dark-input-field lang-dropdown"
                     value={selectedLanguage}
@@ -1031,11 +1033,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   </select>
                 </div>
 
-                {/* Quick Bedtime Phrases in Selected Language */}
+                {/* Quick Bedtime Phrases with Hebrew */}
                 <div className="quick-phrases-bar">
                   <span className="quick-label">⚡ Quick Language Demo:</span>
                   <div className="quick-pill-buttons">
-                    {['en', 'es', 'fr', 'de', 'ja', 'it', 'pt', 'ar', 'zh'].map(code => {
+                    {['he', 'en', 'es', 'fr', 'de', 'ja', 'it', 'pt', 'ar'].map(code => {
                       const lObj = supportedLanguages.find(l => l.code === code);
                       if (!lObj) return null;
                       return (
@@ -1097,9 +1099,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <textarea
                 className="dark-textarea"
                 value={ttsText}
+                dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
                 onChange={(e) => setTtsText(e.target.value)}
                 rows={3}
-                placeholder="Enter text in any language to synthesize using selected voice profile..."
+                placeholder="Enter text in Hebrew, English or any language to synthesize..."
               />
 
               <div className="tts-action-row">
@@ -1108,13 +1111,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   onClick={handleSynthesize}
                   disabled={synthesizing || !ttsText.trim()}
                 >
-                  {synthesizing ? '⏳ SYNTHESIZING MULTILINGUAL AUDIO...' : '⚡ SYNTHESIZE SPEECH'}
+                  {synthesizing ? '⏳ SYNTHESIZING HEBREW SPEECH...' : '⚡ SYNTHESIZE SPEECH'}
                 </button>
 
                 {synthesizedAudioUrl && (
                   <div className="synthesized-player-group">
                     <audio controls autoPlay src={synthesizedAudioUrl} />
-                    <a href={synthesizedAudioUrl} download="fablevoice-audio.mp3" className="download-btn-blue">
+                    <a href={synthesizedAudioUrl} download="fablevoice-hebrew-audio.mp3" className="download-btn-blue">
                       ⬇ Download MP3
                     </a>
                   </div>
@@ -1126,14 +1129,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
       )}
 
       {/* ==================================================================== */}
-      {/* 4. 📖 TAB 2: SCREENPLAY WORKSHOP (MULTI-CHARACTER BEDTIME STORIES)   */}
+      {/* 4. 📖 TAB 2: SCREENPLAY WORKSHOP (WITH HEBREW SUPPORT)               */}
       {/* ==================================================================== */}
       {activeNav === 'screenplay' && (
         <main className="screenplay-tab-content fable-box">
           <div className="screenplay-header">
             <div>
               <h2 className="screenplay-title">📖 Screenplay Workshop & Multi-Voice Story Generator</h2>
-              <p className="screenplay-sub">Generate personalized stories in multiple languages with different family voices assigned to each character.</p>
+              <p className="screenplay-sub">Generate personalized stories in Hebrew & English with different family voices assigned to each character.</p>
             </div>
             <button 
               className="gold-studio-btn"
@@ -1154,9 +1157,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 value={storyTheme}
                 onChange={(e) => setStoryTheme(e.target.value)}
               >
-                <option value="bedtime">🌙 Bedtime Voyage to Island of Dreams</option>
-                <option value="fantasy">✨ The Enchanted Star-Dragon</option>
-                <option value="adventure">🚀 The Secret Cloud Castle Adventure</option>
+                <option value="bedtime">🌙 המסע לאי החלומות הקסום (Bedtime Dream Voyage)</option>
+                <option value="fantasy">✨ דרקון הכוכבים הזוהר (Enchanted Star-Dragon)</option>
+                <option value="adventure">🚀 טירת העננים הסודית (Secret Cloud Castle)</option>
               </select>
             </div>
 
@@ -1174,13 +1177,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
             </div>
 
             <div className="control-card" style={{ gridColumn: 'span 2' }}>
-              <label className="input-label-uppercase">Child's Name (Hero)</label>
+              <label className="input-label-uppercase">Child's Name (גיבור הסיפור / Hero)</label>
               <input 
                 type="text"
                 className="dark-input-field"
                 value={childName}
                 onChange={(e) => setChildName(e.target.value)}
-                placeholder="e.g. Leo, Emma, Maya"
+                placeholder="e.g. דניאל, יאיר, Leo, Emma"
               />
             </div>
           </div>
@@ -1229,7 +1232,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     <div className="scene-speaker-tag">
                       <strong>Scene {idx + 1}: {scene.character}</strong>
                     </div>
-                    <p className="scene-dialogue-text">"{scene.text}"</p>
+                    <p 
+                      className="scene-dialogue-text"
+                      dir={selectedLanguage === 'he' ? 'rtl' : 'ltr'}
+                    >
+                      "{scene.text}"
+                    </p>
                   </div>
                 ))}
               </div>
@@ -1327,14 +1335,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
       {/* TAB 4: SDK INTEGRATION */}
       {activeNav === 'sdk' && (
         <div className="fable-box placeholder-panel">
-          <h2>&lt;/&gt; Multilingual SDK Integration & ElevenLabs API Endpoints</h2>
-          <p>Stream real-time multilingual voice synthesis across 32+ native languages directly into your applications.</p>
+          <h2>&lt;/&gt; Hebrew & Multilingual SDK Integration</h2>
+          <p>Stream real-time Hebrew & multilingual voice synthesis directly into your applications.</p>
           <pre className="sdk-code-box">
 {`import { ElevenLabsClient } from "elevenlabs";
 
 const client = new ElevenLabsClient({ apiKey: "YOUR_API_KEY" });
 const audioStream = await client.textToSpeech.convert("${selectedVoiceId || '21m00Tcm4TlvDq8ikWAM'}", {
-  text: "Buenas noches mi pequeño héroe, que descanses bien.",
+  text: "לילה טוב הגיבור הקטן שלי, שיהיו לך חלומות מתוקים.",
   model_id: "eleven_multilingual_v2",
   voice_settings: { stability: 0.5, similarity_boost: 0.75 }
 });`}
@@ -1354,7 +1362,7 @@ const audioStream = await client.textToSpeech.convert("${selectedVoiceId || '21m
               <span className="modal-head-icon">👨‍👩‍👧‍👦</span>
               <div>
                 <h2>Clone New Family Member Voice</h2>
-                <p>Upload multi-sample vocal recordings to train a high-fidelity multilingual custom model.</p>
+                <p>Upload multi-sample vocal recordings to train a high-fidelity Hebrew & multilingual custom model.</p>
               </div>
             </div>
 
@@ -1383,12 +1391,12 @@ const audioStream = await client.textToSpeech.convert("${selectedVoiceId || '21m
                     value={familyForm.relationship}
                     onChange={(e) => setFamilyForm({ ...familyForm, relationship: e.target.value })}
                   >
-                    <option value="Mother">Mother</option>
-                    <option value="Father">Father</option>
-                    <option value="Sister">Sister</option>
-                    <option value="Brother">Brother</option>
-                    <option value="Child">Child</option>
-                    <option value="Grandparent">Grandparent</option>
+                    <option value="Mother">Mother (אמא)</option>
+                    <option value="Father">Father (אבא)</option>
+                    <option value="Sister">Sister (אחות)</option>
+                    <option value="Brother">Brother (אח)</option>
+                    <option value="Child">Child (ילד/ה)</option>
+                    <option value="Grandparent">Grandparent (סבא/סבתא)</option>
                     <option value="Family Member">Family Member</option>
                     <option value="Friend">Friend / Custom</option>
                   </select>
@@ -1401,8 +1409,8 @@ const audioStream = await client.textToSpeech.convert("${selectedVoiceId || '21m
                     value={familyForm.gender}
                     onChange={(e) => setFamilyForm({ ...familyForm, gender: e.target.value })}
                   >
-                    <option value="female">Female</option>
-                    <option value="male">Male</option>
+                    <option value="female">Female (נקבה)</option>
+                    <option value="male">Male (זכר)</option>
                     <option value="neutral">Neutral</option>
                   </select>
                 </div>
@@ -1410,7 +1418,7 @@ const audioStream = await client.textToSpeech.convert("${selectedVoiceId || '21m
 
               {/* 3. Multi-Sample Vocal Quality Booster Slots */}
               <div className="modal-form-group">
-                <label>🗂️ Multi-Sample Voice Booster (Upload 1–3 Audio Clips)</label>
+                <label>🗂️ Multi-Sample Voice Booster (Upload 1–3 Audio Clips in Hebrew or English)</label>
                 <div className="sample-slots-grid">
                   {sampleSlots.map((slot) => (
                     <div key={slot.id} className="sample-slot-card">
