@@ -24,6 +24,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [voiceFilter, setVoiceFilter] = useState('all');
   const [voiceSearch, setVoiceSearch] = useState('');
 
+  // 🔊 Instant Play & Stop state for all 30 voices
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const [loadingPreviewId, setLoadingPreviewId] = useState(null);
+  const [voicePreviewAudios, setVoicePreviewAudios] = useState({});
+  const previewAudioRef = useRef(new Audio());
+
   // Collapsible toggle for ElevenLabs library
   const [isElevenLabsExpanded, setIsElevenLabsExpanded] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -136,16 +142,28 @@ export default function VoiceBrowser({ onSelectVoice }) {
       setApiKeyInput(existingKey);
       setApiKeySaved(true);
     }
+
+    const currentAudio = previewAudioRef.current;
+    currentAudio.onended = () => {
+      setPlayingVoiceId(null);
+    };
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       if (audioContextRef.current) audioContextRef.current.close();
+      if (currentAudio) currentAudio.pause();
     };
   }, []);
 
   // Fetch 30-voice roster whenever language changes
   useEffect(() => {
     loadRosterForLanguage(selectedLanguage);
+    // Stop any playing preview when switching languages
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      setPlayingVoiceId(null);
+    }
   }, [selectedLanguage]);
 
   const loadLanguageData = async () => {
@@ -225,6 +243,60 @@ export default function VoiceBrowser({ onSelectVoice }) {
       }
     } catch (err) {
       console.error('Error loading soundtracks:', err);
+    }
+  };
+
+  // 🔊 Instant Play & Stop Toggle for any of the 30 voices
+  const handleToggleVoicePreview = async (voiceObj, e) => {
+    e.stopPropagation();
+
+    // If already playing this voice, stop it
+    if (playingVoiceId === voiceObj.id) {
+      previewAudioRef.current.pause();
+      setPlayingVoiceId(null);
+      return;
+    }
+
+    // If cached preview audio URL exists, play immediately
+    if (voicePreviewAudios[voiceObj.id]) {
+      previewAudioRef.current.src = voicePreviewAudios[voiceObj.id];
+      previewAudioRef.current.play().catch(e => console.log('Autoplay error', e));
+      setPlayingVoiceId(voiceObj.id);
+      return;
+    }
+
+    // Synthesize preview sample on-the-fly for this voice
+    setLoadingPreviewId(voiceObj.id);
+    try {
+      const demoPhrase = multilingualPhrases[selectedLanguage] || 
+        `Hello, this is ${voiceObj.name} speaking in ${selectedLangObj.name}. Wishing you wonderful dreams tonight.`;
+
+      const res = await fetch('/api/voiceover/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          script: demoPhrase,
+          voice: voiceObj.id,
+          language: selectedLanguage,
+          useClonedBridge: true
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Preview failed');
+      }
+
+      const data = await res.json();
+      setVoicePreviewAudios(prev => ({ ...prev, [voiceObj.id]: data.url }));
+
+      previewAudioRef.current.src = data.url;
+      previewAudioRef.current.play().catch(e => console.log('Autoplay error', e));
+      setPlayingVoiceId(voiceObj.id);
+    } catch (err) {
+      alert(`Preview error for ${voiceObj.name}: ${err.message}`);
+    } finally {
+      setLoadingPreviewId(null);
     }
   };
 
@@ -712,7 +784,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             <div className="rack-info">
               <div className="rack-label">STUDIO RACK 01</div>
               <h1 className="rack-title">Voice Sample Recording & AI Voice Cloner</h1>
-              <p className="rack-subtitle">Capture a 15–30 second vocal sample to clone family voices or synthesize with 30-voice multilingual personas.</p>
+              <p className="rack-subtitle">Capture a 15–30 second vocal sample to clone family voices or preview & synthesize with 30-voice multilingual personas.</p>
             </div>
 
             <div className="rack-actions">
@@ -1050,7 +1122,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           )}
 
           {/* ================================================================ */}
-          {/* 🌐 DYNAMIC 30-VOICE LIBRARY FOR CHOSEN LANGUAGE (AT BOTTOM)       */}
+          {/* 🌐 DYNAMIC 30-VOICE LIBRARY WITH PLAY & STOP ON EVERY CARD       */}
           {/* ================================================================ */}
           <section className="fable-box active-library-box collapsible-catalog-box" style={{ border: '1.5px solid #3b82f6', marginBottom: '20px' }}>
             <div 
@@ -1060,7 +1132,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <div className="library-title-group">
                 <span className="db-icon">{selectedLangObj.flag}</span>
                 <div>
-                  <h2 className="library-section-title">30 {selectedLangObj.name} Voice Library</h2>
+                  <h2 className="library-section-title">30 {selectedLangObj.name} Voice Library (With Play & Stop Controls)</h2>
                   <p className="catalog-subtitle-text">10 Adult Males • 10 Adult Females • 5 Female Children • 5 Male Children</p>
                 </div>
               </div>
@@ -1081,12 +1153,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 className="catalog-collapsed-banner"
                 onClick={() => setIsLibraryExpanded(true)}
               >
-                <span>{selectedLangObj.flag} 30 Curated {selectedLangObj.name} voices (10 Males, 10 Females, 5 Girls & 5 Boys) are ready.</span>
-                <strong className="click-to-expand-gold">Click to open 30 {selectedLangObj.name.split(' ')[0]} voice models →</strong>
+                <span>{selectedLangObj.flag} 30 Curated {selectedLangObj.name} voices with instant Play/Stop previews ready.</span>
+                <strong className="click-to-expand-gold">Click to open 30 {selectedLangObj.name.split(' ')[0]} voice models with audio controls →</strong>
               </div>
             )}
 
-            {/* Expanded 30-Voice Grid */}
+            {/* Expanded 30-Voice Grid with Play / Stop Buttons */}
             {isLibraryExpanded && (
               <div className="expanded-catalog-body">
                 {/* Category Filter Tabs */}
@@ -1142,6 +1214,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <div className="three-col-profile-grid">
                   {filteredRosterVoices.map((v) => {
                     const isSelected = v.id === selectedVoiceId;
+                    const isPlaying = playingVoiceId === v.id;
+                    const isLoadingPreview = loadingPreviewId === v.id;
+
                     return (
                       <div 
                         key={v.id}
@@ -1154,18 +1229,35 @@ export default function VoiceBrowser({ onSelectVoice }) {
                             <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
                           </div>
 
-                          {isSelected ? (
-                            <span className="badge-selected-green">
-                              <span className="green-dot"></span> SELECTED
-                            </span>
-                          ) : (
-                            <button className="btn-select-gold">SELECT</button>
-                          )}
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {isSelected && (
+                              <span className="badge-selected-green" style={{ padding: '3px 8px', fontSize: '10px' }}>
+                                <span className="green-dot"></span> ACTIVE
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         <p className="family-card-desc">{v.description}</p>
-                        <div className="profile-card-bottom">
+
+                        <div className="profile-card-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
                           <span className="meta-date-tag">{v.groupLabel || v.gender}</span>
+
+                          {/* 🔊 Play & Stop Preview Button for this voice */}
+                          <button
+                            className={`preview-play-stop-btn ${isPlaying ? 'btn-stop-preview' : 'btn-play-preview'}`}
+                            onClick={(e) => handleToggleVoicePreview(v, e)}
+                            disabled={isLoadingPreview}
+                            title={isPlaying ? "Stop Preview Audio" : "Play Voice Preview Audio"}
+                          >
+                            {isLoadingPreview ? (
+                              '⏳ Loading...'
+                            ) : isPlaying ? (
+                              '⏹️ Stop Preview'
+                            ) : (
+                              '▶️ Play Preview'
+                            )}
+                          </button>
                         </div>
                       </div>
                     );
