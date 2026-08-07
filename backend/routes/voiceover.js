@@ -92,7 +92,7 @@ const MULTILINGUAL_PHRASES = {
   zh: "晚安，我的小英雄，做个甜甜的美梦，繁星会守护着你。",
   ko: "잘 자요, 나의 작은 영웅. 반짝이는 별들이 예쁜 꿈으로 안내해 줄 거예요.",
   hi: "शुभ रात्रि मेरे प्यारे बच्चे, मीठे सपने देखो और आराम से सो जाओ।",
-  ar: "تصبح على خير يا بطלי الصغير، נוماً هניئاً ואחלאماً سعيدة.",
+  ar: "تصبح على خير يا بطلي الصغير، נוماً هניئاً ואחלאماً سعيدة.",
   nl: "Goedenacht mijn kleine held, slaap lekker en droom fijn.",
   ru: "Спокойной ночи, мой маленький герой, приятных снов под звёздным небом.",
   he: "שלום, לילה טוב והמשך ערב נעים. חלומות פז ושינה מתוקה."
@@ -305,13 +305,9 @@ router.post('/generate', async (req, res) => {
       console.log(`[VoiceOver] Hebrew Cloned Voice Bridge: "${script}" -> "${synthesizedText}"`);
     }
 
-    // Resolve voice ID if it's a composite ID
-    let targetVoiceId = voice;
-    if (!targetVoiceId || targetVoiceId.startsWith('he-IL')) {
-      targetVoiceId = '21m00Tcm4TlvDq8ikWAM';
-    }
-
-    console.log(`[VoiceOver] ElevenLabs synthesis: voice=${targetVoiceId}, chars=${synthesizedText.length}`);
+    // Resolve composite persona IDs (e.g. 'es-male-2' -> 'ErXwobaYiN019PkySvjV')
+    const targetVoiceId = multilingualRosterService.resolveVoiceId(voice);
+    console.log(`[VoiceOver] ElevenLabs synthesis: inputVoice=${voice} -> resolvedId=${targetVoiceId}, chars=${synthesizedText.length}`);
 
     try {
       const audioBuffer = await elevenLabsService.synthesize(synthesizedText, targetVoiceId, {
@@ -337,7 +333,7 @@ router.post('/generate', async (req, res) => {
         audioLength: audioBuffer.length,
         duration: Math.ceil(synthesizedText.length / 14),
         status: 'complete',
-        engine: usedBridge ? 'Hebrew Cloned Voice Bridge (ElevenLabs)' : 'ElevenLabs Multilingual V2 (30 Voices)',
+        engine: usedBridge ? 'Hebrew Cloned Voice Bridge (ElevenLabs)' : 'ElevenLabs Multilingual V2 (30 Personas)',
         createdAt: new Date().toISOString()
       });
     } catch (err) {

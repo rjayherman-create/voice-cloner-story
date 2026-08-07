@@ -49,6 +49,12 @@ class MultilingualRosterService {
       { idSuffix: 'boy-5', elId: 'yoZ06aMxZJJ28mfd3POQ', baseName: 'Noam / Charlie' }
     ];
 
+    // Fast mapping lookup from persona ID suffix -> valid ElevenLabs ID
+    this.voiceIdMap = {};
+    this.voiceBasePresets.forEach(p => {
+      this.voiceIdMap[p.idSuffix] = p.elId;
+    });
+
     this.languageRosters = {
       // 🇺🇸 English (US / UK)
       en: {
@@ -103,7 +109,7 @@ class MultilingualRosterService {
           { name: 'Santiago - Voz Paternal Cálida', rel: 'Papá Santiago', desc: 'Tono reconfortante y suave para dormir tranquilo' },
           { name: 'Alejandro - Guía de Aventuras', rel: 'Guía de Fantasía', desc: 'Voz dinámica para viajes mágicos a las estrellas' },
           { name: 'Diego - Voz Serena y Tranquila', rel: 'Voz Serena', desc: 'Ritmo pausado para una relajación profunda' },
-          { name: 'Javier - Padre Protector', rel: 'Papá Javier', desc: 'Tono cariñoso y seguro para toda la familia' },
+          { name: 'Javier - Padre Protector', rel: 'Padre Javier', desc: 'Tono cariñoso y seguro para toda la familia' },
           { name: 'Abuelo Manuel - Sabio Abuelo', rel: 'Abuelo Manuel', desc: 'Voz sabia y entrañable llena de ternura' },
           { name: 'Lucas - Narrador Alegre', rel: 'Cuentacuentos', desc: 'Voz expresiva que da vida a personajes mágicos' },
           { name: 'Carlos - Héroe Legendario', rel: 'Héroe Carlos', desc: 'Voz valiente para historias de caballeros y castillos' },
@@ -182,6 +188,30 @@ class MultilingualRosterService {
         ]
       }
     };
+  }
+
+  /**
+   * Resolves any composite persona ID (e.g. 'es-male-2', 'fr-fem-1') into a genuine ElevenLabs Voice ID
+   */
+  resolveVoiceId(rawId) {
+    if (!rawId) return '21m00Tcm4TlvDq8ikWAM';
+
+    // If it is already a 20-character ElevenLabs ID, return it directly
+    if (rawId.length >= 20 && !rawId.includes('-')) {
+      return rawId;
+    }
+
+    // If it matches pattern [lang]-[category]-[index] (e.g. 'es-male-2' or 'male-2')
+    const parts = rawId.split('-');
+    if (parts.length >= 2) {
+      const suffix = parts.slice(-2).join('-'); // e.g. 'male-2' or 'fem-1' or 'girl-3'
+      if (this.voiceIdMap[suffix]) {
+        return this.voiceIdMap[suffix];
+      }
+    }
+
+    // Default fallback to standard maternal storyteller
+    return '21m00Tcm4TlvDq8ikWAM';
   }
 
   /**
