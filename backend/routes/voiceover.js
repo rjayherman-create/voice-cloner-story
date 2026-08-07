@@ -53,10 +53,9 @@ const SOUNDTRACK_CATALOG = [
   }
 ];
 
-// Multilingual language catalog with Hebrew support
+// Multilingual language catalog with Hebrew placed at the very end of the list
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
-  { code: 'he', name: 'Hebrew (עברית)', flag: '🇮🇱' },
   { code: 'es', name: 'Spanish (Español)', flag: '🇪🇸' },
   { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },
   { code: 'de', name: 'German (Deutsch)', flag: '🇩🇪' },
@@ -72,13 +71,13 @@ const SUPPORTED_LANGUAGES = [
   { code: 'pl', name: 'Polish (Polski)', flag: '🇵🇱' },
   { code: 'sv', name: 'Swedish (Svenska)', flag: '🇸🇪' },
   { code: 'tr', name: 'Turkish (Türkçe)', flag: '🇹🇷' },
-  { code: 'el', name: 'Greek (Ελληνικά)', flag: '🇬🇷' }
+  { code: 'el', name: 'Greek (Ελληνικά)', flag: '🇬🇷' },
+  { code: 'he', name: 'Hebrew (עברית)', flag: '🇮🇱' }
 ];
 
-// Quick multilingual bedtime phrases with Hebrew
+// Quick multilingual bedtime phrases
 const MULTILINGUAL_PHRASES = {
   en: "Goodnight my little hero, sleep tight and let the stars guide your dreams.",
-  he: "לילה טוב הגיבור הקטן שלי, שיהיו לך חלומות מתוקים, שינה ערבה ומלאת כוכבים ומזל.",
   es: "Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.",
   fr: "Bonne nuit mon petit ange, dors bien et fais de très beaux rêves étoilés.",
   de: "Gute Nacht, mein kleiner Held, schlaf gut und träum etwas Wunderschönes.",
@@ -88,9 +87,10 @@ const MULTILINGUAL_PHRASES = {
   zh: "晚安，我的小英雄，做个甜甜的美梦，繁星会守护着你。",
   ko: "잘 자요, 나의 작은 영웅. 반짝이는 별들이 예쁜 꿈으로 안내해 줄 거예요.",
   hi: "शुभ रात्रि मेरे प्यारे बच्चे, मीठे सपने देखो और आराम से सो जाओ।",
-  ar: "تصبح على خير يا بطלי الصغير، نوماً هنيئاً وأحلاماً سعيدة.",
+  ar: "تصبح على خير يا بطلي الصغير، نوماً هنيئاً وأحلاماً سعيدة.",
   nl: "Goedenacht mijn kleine held, slaap lekker en droom fijn.",
-  ru: "Спокойной ночи, мой маленький герой, приятных снов под звёздным небом."
+  ru: "Спокойной ночи, мой маленький герой, приятных снов под звёздным небом.",
+  he: "לילה טוב הגיבור הקטן שלי, שיהיו לך חלומות מתוקים, שינה ערבה ומלאת כוכבים ומזל."
 };
 
 // GET available voices
@@ -118,7 +118,7 @@ router.get('/voices', async (req, res) => {
         category: 'family', 
         description: 'Warm, soothing maternal voice profile',
         previewUrl: null,
-        labels: { gender: 'Female', accent: 'Multilingual / Hebrew', descriptive: 'Maternal Storyteller' }
+        labels: { gender: 'Female', accent: 'American', descriptive: 'Maternal Storyteller' }
       },
       { 
         id: 'default-male', 
@@ -126,7 +126,7 @@ router.get('/voices', async (req, res) => {
         category: 'professional', 
         description: 'Deep, engaging fatherly voice profile',
         previewUrl: null,
-        labels: { gender: 'Male', accent: 'Multilingual / Hebrew', descriptive: 'Deep & Reassuring' }
+        labels: { gender: 'Male', accent: 'American', descriptive: 'Deep & Reassuring' }
       }
     ];
 
@@ -150,7 +150,7 @@ router.get('/languages', (req, res) => {
   });
 });
 
-// POST generate AI Screenplay Script (with Hebrew and Multilingual support)
+// POST generate AI Screenplay Script
 router.post('/screenplay/generate-script', (req, res) => {
   const { theme, characters, childName, language } = req.body;
   const name = childName || (language === 'he' ? 'דניאל' : 'Leo');
@@ -214,7 +214,7 @@ router.post('/screenplay/generate-script', (req, res) => {
   res.json(selectedStory);
 });
 
-// POST generate voiceover with multilingual V2 model & Hebrew support
+// POST generate voiceover with multilingual V2 model
 router.post('/generate', async (req, res) => {
   try {
     const { script, voice, emotion, stability, similarityBoost, style, speed, modelId } = req.body;
@@ -227,7 +227,7 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'ElevenLabs API not configured' });
     }
 
-    console.log(`[VoiceOver] Multilingual/Hebrew synthesis: voice=${voice}, chars=${script.length}`);
+    console.log(`[VoiceOver] Multilingual synthesis: voice=${voice}, chars=${script.length}`);
 
     try {
       const audioBuffer = await elevenLabsService.synthesize(script, voice, {
