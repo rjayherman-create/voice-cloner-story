@@ -15,18 +15,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
   // Dedicated Family Voices & Catalog presets
   const [familyVoices, setFamilyVoices] = useState([]);
   const [elevenLabsVoices, setElevenLabsVoices] = useState([]);
-  const [hebrewVoices, setHebrewVoices] = useState([]);
+  const [currentRosterVoices, setCurrentRosterVoices] = useState([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState('he-IL-HilaNeural');
   const [loading, setLoading] = useState(true);
 
-  // Collapsible toggle for Hebrew Library (at the bottom of the page)
-  const [isHebrewExpanded, setIsHebrewExpanded] = useState(false);
-  const [hebrewFilter, setHebrewFilter] = useState('all');
-  const [hebrewSearch, setHebrewSearch] = useState('');
-
-  // Collapsible toggle for ElevenLabs library
-  const [isElevenLabsExpanded, setIsElevenLabsExpanded] = useState(false);
-  const [catalogSearch, setCatalogSearch] = useState('');
+  // Collapsible toggle for Dynamic 30-Voice Library (at bottom)
+  const [isLibraryExpanded, setIsLibraryExpanded] = useState(false);
+  const [voiceFilter, setVoiceFilter] = useState('all');
+  const [voiceSearch, setVoiceSearch] = useState('');
 
   // 1. Live Audio Waveform Visualizer states & refs
   const [isRecording, setIsRecording] = useState(false);
@@ -143,6 +139,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
     };
   }, []);
 
+  // Fetch 30-voice roster whenever language changes
+  useEffect(() => {
+    loadRosterForLanguage(selectedLanguage);
+  }, [selectedLanguage]);
+
   const loadLanguageData = async () => {
     try {
       const res = await fetch('/api/voiceover/languages');
@@ -151,6 +152,18 @@ export default function VoiceBrowser({ onSelectVoice }) {
       if (data.phrases) setMultilingualPhrases(data.phrases);
     } catch (err) {
       console.error('Error loading languages:', err);
+    }
+  };
+
+  const loadRosterForLanguage = async (langCode) => {
+    try {
+      const res = await fetch(`/api/voiceover/roster/${langCode}`);
+      const data = await res.json();
+      if (data && Array.isArray(data.voices)) {
+        setCurrentRosterVoices(data.voices);
+      }
+    } catch (err) {
+      console.error('Error loading roster for language:', err);
     }
   };
 
@@ -182,12 +195,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
         category: 'family'
       })) : [];
 
-      // Process 30 Native Hebrew voices from server
       const heList = Array.isArray(elData) ? elData.filter(v => v.category === 'hebrew' || v.id.startsWith('he-IL')) : [];
       const elList = Array.isArray(elData) ? elData.filter(v => v.category !== 'hebrew' && !v.id.startsWith('he-IL')) : [];
 
       setFamilyVoices(famList);
-      if (heList.length > 0) setHebrewVoices(heList);
+      if (heList.length > 0) setCurrentRosterVoices(heList);
       setElevenLabsVoices(elList);
 
       const defaultId = heList[0]?.id || famList[0]?.id || elList[0]?.id || 'he-IL-HilaNeural';
@@ -510,7 +522,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 2. Synthesize Speech with Native Israeli Hebrew Neural Engine / Cloned Voice Bridge
+  // 2. Synthesize Speech with 30 Personas or Cloned Voice Bridge
   const handleSynthesize = async () => {
     if (!ttsText.trim()) return;
 
@@ -626,23 +638,18 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Filter 30 Hebrew Voices by Group (10 Males, 10 Females, 5 Girls, 5 Boys)
-  const filteredHebrewVoices = hebrewVoices.filter(v => {
-    const matchesFilter = hebrewFilter === 'all' || v.group === hebrewFilter;
-    const matchesSearch = !hebrewSearch.trim() || 
-      v.name.toLowerCase().includes(hebrewSearch.toLowerCase()) || 
-      v.description.toLowerCase().includes(hebrewSearch.toLowerCase());
+  // Filter 30 Personas by Group (10 Males, 10 Females, 5 Girls, 5 Boys)
+  const filteredRosterVoices = currentRosterVoices.filter(v => {
+    const matchesFilter = voiceFilter === 'all' || v.group === voiceFilter;
+    const matchesSearch = !voiceSearch.trim() || 
+      v.name.toLowerCase().includes(voiceSearch.toLowerCase()) || 
+      (v.description && v.description.toLowerCase().includes(voiceSearch.toLowerCase()));
     return matchesFilter && matchesSearch;
   });
 
-  const filteredElevenLabs = elevenLabsVoices.filter(v => {
-    if (!catalogSearch.trim()) return true;
-    const q = catalogSearch.toLowerCase();
-    return v.name.toLowerCase().includes(q) || v.description.toLowerCase().includes(q);
-  });
-
-  const activeVoiceObj = hebrewVoices.find(v => v.id === selectedVoiceId) || familyVoices.find(v => v.id === selectedVoiceId) || elevenLabsVoices.find(v => v.id === selectedVoiceId) || hebrewVoices[0];
-  const allAvailableVoices = [...familyVoices, ...hebrewVoices, ...elevenLabsVoices];
+  const selectedLangObj = supportedLanguages.find(l => l.code === selectedLanguage) || { name: 'Language', flag: '🌐' };
+  const activeVoiceObj = currentRosterVoices.find(v => v.id === selectedVoiceId) || familyVoices.find(v => v.id === selectedVoiceId) || elevenLabsVoices.find(v => v.id === selectedVoiceId) || currentRosterVoices[0];
+  const allAvailableVoices = [...familyVoices, ...currentRosterVoices, ...elevenLabsVoices];
 
   return (
     <div className="fable-studio-page">
@@ -659,7 +666,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <span className="brand-text-main">FableVoice</span>
               <span className="brand-badge-yellow">AUDIO STUDIO</span>
             </div>
-            <div className="brand-text-sub">HEBREW VOICE CLONING & MULTILINGUAL CONSOLE</div>
+            <div className="brand-text-sub">30-PERSONA MULTILINGUAL & HEBREW CLONING CONSOLE</div>
           </div>
         </div>
 
@@ -699,9 +706,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
           {/* STUDIO RACK 01 BANNER */}
           <div className="studio-rack-banner">
             <div className="rack-info">
-              <div className="rack-label">STUDIO RACK 01 • HEBREW CLONED VOICE BRIDGE</div>
-              <h1 className="rack-title">Hebrew Voice Cloner & Speech Synthesizer</h1>
-              <p className="rack-subtitle">Capture vocal samples to clone family members and synthesize authentic Israeli Hebrew with zero distortion.</p>
+              <div className="rack-label">STUDIO RACK 01 • 30-PERSONA MULTILINGUAL & CLONED VOICE SUITE</div>
+              <h1 className="rack-title">AI Voice Studio & 30-Voice Multilingual Library</h1>
+              <p className="rack-subtitle">Select any language to unlock 30 curated personas: 10 Adult Males, 10 Adult Females, 5 Female Children, and 5 Male Children.</p>
             </div>
 
             <div className="rack-actions">
@@ -715,7 +722,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 className={`rack-mode-btn ${mode === 'elevenlabs' ? 'active-gold-mode' : ''}`}
                 onClick={() => setMode('elevenlabs')}
               >
-                <span className="btn-key">🇮🇱</span> Hebrew Voice Cloner
+                <span className="btn-key">{selectedLangObj.flag}</span> 30 {selectedLangObj.name.split(' ')[0]} Voices
               </button>
             </div>
           </div>
@@ -747,7 +754,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
 
               <h2 className="box-title">Capture Audio Sample</h2>
-              <p className="box-subtitle">Speak Hebrew or English clearly into your microphone for 15–30 seconds.</p>
+              <p className="box-subtitle">Speak clearly into your microphone for 15–30 seconds in any language.</p>
 
               {/* 1. Live Canvas Audio Waveform Visualizer */}
               <div className="waveform-container">
@@ -775,7 +782,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             <div className="fable-box trainer-box">
               <div className="trainer-header-row">
                 <span className="calibrator-label">VOICE CALIBRATOR</span>
-                <span className="status-ready-label">STATUS: HEBREW CLONING READY</span>
+                <span className="status-ready-label">STATUS: 30-PERSONA ENGINE READY</span>
               </div>
 
               <h2 className="box-title" style={{ marginTop: '4px', marginBottom: '16px' }}>
@@ -809,7 +816,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <input
                   type="text"
                   className="dark-input-field"
-                  placeholder='e.g. "Sarah (Mom) — Hebrew Cloned Model"'
+                  placeholder='e.g. "Sarah (Mom) — Cloned Model"'
                   value={voiceModelLabel}
                   onChange={(e) => setVoiceModelLabel(e.target.value)}
                 />
@@ -820,7 +827,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 onClick={handleCloneFromPanel}
                 disabled={cloneLoading || !audioBufferBlob || !voiceModelLabel.trim()}
               >
-                {cloneLoading ? '✨ CLONING HEBREW VOICE MODEL...' : '✨ CLONE & SAVE HEBREW VOICE'}
+                {cloneLoading ? '✨ CLONING VOICE MODEL...' : '✨ CLONE & SAVE VOICE MODEL'}
               </button>
             </div>
           </div>
@@ -832,7 +839,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <span className="family-icon-glow">👨‍👩‍👧‍👦</span>
                 <div>
                   <h2 className="family-section-title">Dedicated Family Member Voice Library</h2>
-                  <p className="family-section-subtitle">Persistent cloned family voices that speak fluent Hebrew & English via the Hebrew Cloned Voice Bridge</p>
+                  <p className="family-section-subtitle">Persistent cloned family voices that speak fluent Hebrew & 32+ languages via the Hebrew Cloned Voice Bridge</p>
                 </div>
               </div>
 
@@ -854,14 +861,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <div className="empty-family-icon">🎙️</div>
                 <h3 className="empty-family-title">No Cloned Family Voices Saved Yet</h3>
                 <p className="empty-family-desc">
-                  Record a Hebrew or English vocal clip above to clone Mom, Dad, or Grandparents and hear them speak Hebrew!
+                  Record a vocal clip above to clone Mom, Dad, or Grandparents and hear them speak any language!
                 </p>
                 <button 
                   className="clone-family-gold-btn"
                   style={{ marginTop: '14px' }}
                   onClick={() => setShowFamilyCloneModal(true)}
                 >
-                  + Clone Your First Hebrew Voice
+                  + Clone Your First Voice
                 </button>
               </div>
             ) : (
@@ -892,7 +899,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                       <p className="family-card-desc">{v.description}</p>
 
                       <div className="profile-card-bottom">
-                        <span className="meta-date-tag">{v.date} (Hebrew Bridge Enabled)</span>
+                        <span className="meta-date-tag">{v.date} (Cloned Bucket)</span>
                         <button 
                           className="del-profile-btn"
                           onClick={(e) => handleDeleteProfile(e, v.id, v.name)}
@@ -926,7 +933,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               {/* 🌐 Multilingual & Hebrew Language Picker */}
               <div className="language-selector-row">
                 <div className="lang-picker-group">
-                  <label className="input-label-uppercase">🌐 Target Spoken Language</label>
+                  <label className="input-label-uppercase">🌐 Target Spoken Language (Selects 30 Personas)</label>
                   <select 
                     className="dark-input-field lang-dropdown"
                     value={selectedLanguage}
@@ -942,7 +949,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
                 {/* Quick Bedtime Phrases with Hebrew */}
                 <div className="quick-phrases-bar">
-                  <span className="quick-label">⚡ Quick Language Demo:</span>
+                  <span className="quick-label">⚡ Quick Language Switch:</span>
                   <div className="quick-pill-buttons">
                     {['he', 'en', 'es', 'fr', 'de', 'ja', 'it', 'pt', 'ar'].map(code => {
                       const lObj = supportedLanguages.find(l => l.code === code);
@@ -1009,7 +1016,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
                 onChange={(e) => setTtsText(e.target.value)}
                 rows={3}
-                placeholder="Enter text in Hebrew or English to synthesize..."
+                placeholder="Enter text to synthesize in chosen language..."
               />
 
               <div className="tts-action-row">
@@ -1018,7 +1025,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   onClick={handleSynthesize}
                   disabled={synthesizing || !ttsText.trim()}
                 >
-                  {synthesizing ? '⏳ SYNTHESIZING HEBREW AUDIO...' : '⚡ SYNTHESIZE SPEECH'}
+                  {synthesizing ? `⏳ SYNTHESIZING ${selectedLangObj.name.toUpperCase()} AUDIO...` : `⚡ SYNTHESIZE ${selectedLangObj.name.split(' ')[0].toUpperCase()} SPEECH`}
                 </button>
 
                 {synthesizedAudioUrl && (
@@ -1029,7 +1036,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                         ✨ {synthesizedEngineUsed}
                       </span>
                     )}
-                    <a href={synthesizedAudioUrl} download="fablevoice-hebrew-audio.mp3" className="download-btn-blue">
+                    <a href={synthesizedAudioUrl} download="fablevoice-audio.mp3" className="download-btn-blue">
                       ⬇ Download MP3
                     </a>
                   </div>
@@ -1039,79 +1046,79 @@ export default function VoiceBrowser({ onSelectVoice }) {
           )}
 
           {/* ================================================================ */}
-          {/* 🇮🇱 COLLAPSIBLE 30 NATIVE HEBREW VOICES LIBRARY (AT BOTTOM)       */}
+          {/* 🌐 DYNAMIC 30-VOICE LIBRARY FOR CHOSEN LANGUAGE (AT BOTTOM)       */}
           {/* ================================================================ */}
           <section className="fable-box active-library-box collapsible-catalog-box" style={{ border: '1.5px solid #3b82f6', marginBottom: '20px' }}>
             <div 
               className="active-library-header-row clickable-accordion-header"
-              onClick={() => setIsHebrewExpanded(!isHebrewExpanded)}
+              onClick={() => setIsLibraryExpanded(!isLibraryExpanded)}
             >
               <div className="library-title-group">
-                <span className="db-icon">🇮🇱</span>
+                <span className="db-icon">{selectedLangObj.flag}</span>
                 <div>
-                  <h2 className="library-section-title">30 Native Israeli Hebrew Voice Library (עברית ישראלית)</h2>
+                  <h2 className="library-section-title">30 {selectedLangObj.name} Voice Library</h2>
                   <p className="catalog-subtitle-text">10 Adult Males • 10 Adult Females • 5 Female Children • 5 Male Children</p>
                 </div>
               </div>
 
               <div className="catalog-header-right">
                 <span className="profiles-loaded-counter" style={{ background: '#1e3a8a', borderColor: '#3b82f6' }}>
-                  {hebrewVoices.length} ISRAELI VOICES
+                  {currentRosterVoices.length} {selectedLangObj.name.split(' ')[0].toUpperCase()} VOICES
                 </span>
                 <button className="accordion-toggle-pill-btn">
-                  {isHebrewExpanded ? '▲ Collapse Hebrew Library' : `▼ Expand Hebrew Library (${hebrewVoices.length} Voices)`}
+                  {isLibraryExpanded ? `▲ Collapse ${selectedLangObj.name.split(' ')[0]} Library` : `▼ Expand ${selectedLangObj.name.split(' ')[0]} Library (${currentRosterVoices.length} Voices)`}
                 </button>
               </div>
             </div>
 
             {/* Collapsed Preview Bar */}
-            {!isHebrewExpanded && (
+            {!isLibraryExpanded && (
               <div 
                 className="catalog-collapsed-banner"
-                onClick={() => setIsHebrewExpanded(true)}
+                onClick={() => setIsLibraryExpanded(true)}
               >
-                <span>🇮🇱 30 Native Israeli Hebrew voices (Males, Females, Girls & Boys) are ready.</span>
-                <strong className="click-to-expand-gold">Click to open 30 Hebrew voice models →</strong>
+                <span>{selectedLangObj.flag} 30 Curated {selectedLangObj.name} voices (10 Males, 10 Females, 5 Girls & 5 Boys) are ready.</span>
+                <strong className="click-to-expand-gold">Click to open 30 {selectedLangObj.name.split(' ')[0]} voice models →</strong>
               </div>
             )}
 
-            {/* Expanded Hebrew Grid */}
-            {isHebrewExpanded && (
+            {/* Expanded 30-Voice Grid */}
+            {isLibraryExpanded && (
               <div className="expanded-catalog-body">
-                {/* Hebrew Category Filter Tabs */}
+                {/* Category Filter Tabs */}
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px', alignItems: 'center' }}>
                   <button 
-                    className={`nav-pill-btn ${hebrewFilter === 'all' ? 'active-pill' : ''}`}
+                    className={`nav-pill-btn ${voiceFilter === 'all' ? 'active-pill' : ''}`}
                     style={{ fontSize: '11px', padding: '6px 12px' }}
-                    onClick={() => setHebrewFilter('all')}
+                    onClick={() => setVoiceFilter('all')}
                   >
                     🌟 All 30 Voices (הכל)
                   </button>
                   <button 
-                    className={`nav-pill-btn ${hebrewFilter === 'adult_male' ? 'active-pill' : ''}`}
+                    className={`nav-pill-btn ${voiceFilter === 'adult_male' ? 'active-pill' : ''}`}
                     style={{ fontSize: '11px', padding: '6px 12px' }}
-                    onClick={() => setHebrewFilter('adult_male')}
+                    onClick={() => setVoiceFilter('adult_male')}
                   >
                     👨 10 Adult Males (גברים)
                   </button>
                   <button 
-                    className={`nav-pill-btn ${hebrewFilter === 'adult_female' ? 'active-pill' : ''}`}
+                    className={`nav-pill-btn ${voiceFilter === 'adult_female' ? 'active-pill' : ''}`}
                     style={{ fontSize: '11px', padding: '6px 12px' }}
-                    onClick={() => setHebrewFilter('adult_female')}
+                    onClick={() => setVoiceFilter('adult_female')}
                   >
                     👩 10 Adult Females (נשים)
                   </button>
                   <button 
-                    className={`nav-pill-btn ${hebrewFilter === 'female_child' ? 'active-pill' : ''}`}
+                    className={`nav-pill-btn ${voiceFilter === 'female_child' ? 'active-pill' : ''}`}
                     style={{ fontSize: '11px', padding: '6px 12px' }}
-                    onClick={() => setHebrewFilter('female_child')}
+                    onClick={() => setVoiceFilter('female_child')}
                   >
                     👧 5 Female Children (ילדות)
                   </button>
                   <button 
-                    className={`nav-pill-btn ${hebrewFilter === 'male_child' ? 'active-pill' : ''}`}
+                    className={`nav-pill-btn ${voiceFilter === 'male_child' ? 'active-pill' : ''}`}
                     style={{ fontSize: '11px', padding: '6px 12px' }}
-                    onClick={() => setHebrewFilter('male_child')}
+                    onClick={() => setVoiceFilter('male_child')}
                   >
                     👦 5 Male Children (ילדים)
                   </button>
@@ -1119,17 +1126,17 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   <div style={{ marginLeft: 'auto', minWidth: '220px' }}>
                     <input
                       type="text"
-                      placeholder="🔍 Search Hebrew voices..."
+                      placeholder={`🔍 Search ${selectedLangObj.name.split(' ')[0]} voices...`}
                       className="dark-input-field"
                       style={{ padding: '6px 10px', fontSize: '11px' }}
-                      value={hebrewSearch}
-                      onChange={(e) => setHebrewSearch(e.target.value)}
+                      value={voiceSearch}
+                      onChange={(e) => setVoiceSearch(e.target.value)}
                     />
                   </div>
                 </div>
 
                 <div className="three-col-profile-grid">
-                  {filteredHebrewVoices.map((v) => {
+                  {filteredRosterVoices.map((v) => {
                     const isSelected = v.id === selectedVoiceId;
                     return (
                       <div 
@@ -1139,7 +1146,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                       >
                         <div className="profile-card-top">
                           <div>
-                            <span className="relationship-tag-pill" style={{ background: '#1d4ed8' }}>🇮🇱 {v.relationship}</span>
+                            <span className="relationship-tag-pill" style={{ background: '#1d4ed8' }}>{selectedLangObj.flag} {v.relationship}</span>
                             <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
                           </div>
 
@@ -1154,103 +1161,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
                         <p className="family-card-desc">{v.description}</p>
                         <div className="profile-card-bottom">
-                          <span className="meta-date-tag">{v.groupLabel}</span>
+                          <span className="meta-date-tag">{v.groupLabel || v.gender}</span>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            )}
-          </section>
-
-          {/* COLLAPSIBLE ELEVENLABS PRESET CATALOG (AT BOTTOM) */}
-          <section className="fable-box active-library-box collapsible-catalog-box">
-            <div 
-              className="active-library-header-row clickable-accordion-header"
-              onClick={() => setIsElevenLabsExpanded(!isElevenLabsExpanded)}
-            >
-              <div className="library-title-group">
-                <span className="db-icon">🗃️</span>
-                <div>
-                  <h2 className="library-section-title">Active Voice Model Library</h2>
-                  <p className="catalog-subtitle-text">Standard ElevenLabs preset voice catalog</p>
-                </div>
-              </div>
-
-              <div className="catalog-header-right">
-                <span className="profiles-loaded-counter">
-                  {elevenLabsVoices.length} PROFILES LOADED
-                </span>
-                <button className="accordion-toggle-pill-btn">
-                  {isElevenLabsExpanded ? '▲ Collapse Library' : `▼ Expand Library (${elevenLabsVoices.length} Voices)`}
-                </button>
-              </div>
-            </div>
-
-            {/* Collapsed Preview Bar */}
-            {!isElevenLabsExpanded && (
-              <div 
-                className="catalog-collapsed-banner"
-                onClick={() => setIsElevenLabsExpanded(true)}
-              >
-                <span>📁 ElevenLabs library is collapsed to keep your workspace clear.</span>
-                <strong className="click-to-expand-gold">Click to open all {elevenLabsVoices.length} profiles →</strong>
-              </div>
-            )}
-
-            {/* Expanded Grid */}
-            {isElevenLabsExpanded && (
-              <div className="expanded-catalog-body">
-                <div className="catalog-search-row">
-                  <input
-                    type="text"
-                    placeholder="🔍 Search ElevenLabs profiles by name or attribute..."
-                    className="dark-input-field"
-                    value={catalogSearch}
-                    onChange={(e) => setCatalogSearch(e.target.value)}
-                    style={{ maxWidth: '450px' }}
-                  />
-                </div>
-
-                {loading ? (
-                  <div className="loading-profiles-state">Loading ElevenLabs Voice Models...</div>
-                ) : (
-                  <div className="three-col-profile-grid">
-                    {filteredElevenLabs.map((p) => {
-                      const isSelected = p.id === selectedVoiceId;
-                      return (
-                        <div 
-                          key={p.id}
-                          className={`profile-card-item ${isSelected ? 'selected-gold-card' : ''}`}
-                          onClick={() => handleSelectModel(p)}
-                        >
-                          <div className="profile-card-top">
-                            <h3 className="profile-title-text">{p.name}</h3>
-
-                            {isSelected ? (
-                              <span className="badge-selected-green">
-                                <span className="green-dot"></span> SELECTED
-                              </span>
-                            ) : (
-                              <button className="btn-select-gold">SELECT</button>
-                            )}
-                          </div>
-
-                          <div className="profile-card-bottom">
-                            <span className="meta-date-tag">{p.date} ({p.source})</span>
-                          </div>
-
-                          {p.previewUrl && (
-                            <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
-                              <audio controls src={p.previewUrl} className="profile-audio" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             )}
           </section>
@@ -1265,7 +1181,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           <div className="screenplay-header">
             <div>
               <h2 className="screenplay-title">📖 Screenplay Workshop & Multi-Voice Story Generator</h2>
-              <p className="screenplay-sub">Generate personalized stories in Hebrew & English with different family voices assigned to each character.</p>
+              <p className="screenplay-sub">Generate personalized stories in any language with different voices assigned to each character.</p>
             </div>
             <button 
               className="gold-studio-btn"
@@ -1318,7 +1234,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
           {/* Character Voice Assignment Matrix */}
           <div className="character-matrix-section">
-            <h3 className="section-small-title">🎭 Character Voice Assignment (Select from 30 Hebrew Voices & Cloned Voices)</h3>
+            <h3 className="section-small-title">🎭 Character Voice Assignment (Choose from 30 {selectedLangObj.name.split(' ')[0]} Personas & Cloned Voices)</h3>
             <div className="character-cards-grid">
               {['Narrator', 'Mother', 'Father', 'Child', 'Wise Elder'].map((charName) => (
                 <div key={charName} className="character-assign-card">
@@ -1399,7 +1315,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           <div className="soundtrack-header">
             <div>
               <h2 className="screenplay-title">🎼 Soundtrack Console & Background Ambience Mixer</h2>
-              <p className="screenplay-sub">Mix calming lullabies and enchanted background tracks with your Hebrew voiceovers.</p>
+              <p className="screenplay-sub">Mix calming lullabies and enchanted background tracks with your voiceovers.</p>
             </div>
           </div>
 
@@ -1461,17 +1377,17 @@ export default function VoiceBrowser({ onSelectVoice }) {
       {/* TAB 4: SDK INTEGRATION */}
       {activeNav === 'sdk' && (
         <div className="fable-box placeholder-panel">
-          <h2>&lt;/&gt; Hebrew Voice Cloning & 30 Israeli Models SDK Integration</h2>
-          <p>Stream real-time cloned voice and 30 native Israeli Hebrew voice models directly into your applications.</p>
+          <h2>&lt;/&gt; 30-Persona Multilingual & Hebrew Neural SDK Integration</h2>
+          <p>Stream real-time cloned voice and 30-voice multilingual rosters directly into your applications.</p>
           <pre className="sdk-code-box">
-{`// Synthesize using 30 Native Israeli Hebrew Models
+{`// Synthesize in any of the 30 language personas
 const response = await fetch("/api/voiceover/generate", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    script: "שלום ילד שלי, לילה טוב וחלומות פז.",
-    voice: "he-IL-HilaNeural",
-    language: "he"
+    script: "Goodnight little star, sweet dreams and rest well.",
+    voice: "en-fem-1", // 10 Adult Males, 10 Adult Females, 5 Girls, 5 Boys
+    language: "en"
   })
 });
 const { url, engine } = await response.json();`}
@@ -1490,8 +1406,8 @@ const { url, engine } = await response.json();`}
             <div className="modal-head">
               <span className="modal-head-icon">👨‍👩‍👧‍👦</span>
               <div>
-                <h2>Clone New Family Member Voice (Hebrew & English)</h2>
-                <p>Upload multi-sample vocal recordings to train a custom voice model that speaks Hebrew.</p>
+                <h2>Clone New Family Member Voice</h2>
+                <p>Upload multi-sample vocal recordings to train a custom voice model.</p>
               </div>
             </div>
 
@@ -1545,7 +1461,7 @@ const { url, engine } = await response.json();`}
               </div>
 
               <div className="modal-form-group">
-                <label>🗂️ Multi-Sample Voice Booster (Upload 1–3 Audio Clips in Hebrew or English)</label>
+                <label>🗂️ Multi-Sample Voice Booster (Upload 1–3 Audio Clips)</label>
                 <div className="sample-slots-grid">
                   {sampleSlots.map((slot) => (
                     <div key={slot.id} className="sample-slot-card">
