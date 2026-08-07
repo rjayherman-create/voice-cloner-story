@@ -280,10 +280,10 @@ function App() {
               🎙️ Quick Voice
             </button>
             <button 
-              className={`nav-item ${currentPage === 'voice-browser' ? 'active' : ''}`}
+              className={`nav-item ${currentPage === 'voice-browser' || currentPage === 'choose-voice' ? 'active' : ''}`}
               onClick={() => setCurrentPage('voice-browser')}
             >
-              🎤 Browse Voices
+              🎤 Voice & Family Library
             </button>
             <button 
               className={`nav-item ${currentPage === 'projects' ? 'active' : ''}`}
@@ -575,7 +575,7 @@ function App() {
                     />
                     <button 
                       type="button"
-                      onClick={loadAllVoices}
+                      onClick={() => setCurrentPage('voice-browser')}
                       className="change-voice-btn"
                     >
                       Change Voice
@@ -616,101 +616,8 @@ function App() {
 
 
 
-        {currentPage === 'voice-browser' && (
+        {(currentPage === 'voice-browser' || currentPage === 'choose-voice') && (
           <VoiceBrowser onSelectVoice={handleSelectVoice} />
-        )}
-
-        {currentPage === 'choose-voice' && (
-          <div className="page-choose-voice">
-            <div className="voice-chooser-header">
-              <div>
-                <h1>🎵 Choose Voice from ElevenLabs</h1>
-                <p>Select a professional voice to use for text-to-speech generation</p>
-              </div>
-            </div>
-
-            <div className="voice-chooser-search">
-              <input
-                type="text"
-                placeholder="🔍 Search voices by name..."
-                value={voiceFilter}
-                onChange={(e) => setVoiceFilter(e.target.value)}
-                className="voice-filter-input"
-              />
-              {voiceFilter && (
-                <button 
-                  className="clear-filter"
-                  onClick={() => setVoiceFilter('')}
-                >
-                  ✕
-                </button>
-              )}
-              <div className="voice-count-badge">{filteredVoices.length} voices</div>
-            </div>
-
-            {voicesLoading ? (
-              <div className="loading-spinner">Loading voices from ElevenLabs...</div>
-            ) : filteredVoices.length === 0 ? (
-              <div className="no-voices">
-                {voiceFilter ? 'No voices match your search' : 'No voices available'}
-              </div>
-            ) : (
-              <div className="voices-selection-grid">
-                {filteredVoices.map((voice) => (
-                  <div 
-                    key={voice.id} 
-                    className={`voice-selection-card ${selectedVoice === voice.id ? 'selected' : ''}`}
-                  >
-                    <div className="voice-selection-header">
-                      <h3>{voice.name}</h3>
-                      {voice.accent && <span className="accent-badge">{voice.accent}</span>}
-                    </div>
-
-                    {voice.description && (
-                      <p className="voice-selection-desc">{voice.description}</p>
-                    )}
-
-                    <div className="voice-selection-actions">
-                      {voice.preview_url && (
-                        <button 
-                          type="button"
-                          onClick={() => playPreview(voice.id)}
-                          disabled={previewPlaying === voice.id}
-                          className="preview-btn"
-                        >
-                          {previewPlaying === voice.id ? '⏳ Loading...' : '🔊 Preview'}
-                        </button>
-                      )}
-                      <button 
-                        type="button"
-                        onClick={() => handleSelectVoice(voice)}
-                        className={`select-btn ${selectedVoice === voice.id ? 'selected' : ''}`}
-                      >
-                        {selectedVoice === voice.id ? '✓ Selected' : 'Select'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {selectedPreview && (
-              <div className="preview-modal-overlay" onClick={() => setSelectedPreview(null)}>
-                <div className="preview-modal" onClick={(e) => e.stopPropagation()}>
-                  <button 
-                    className="close-preview"
-                    onClick={() => setSelectedPreview(null)}
-                  >
-                    ✕
-                  </button>
-                  <h3>Voice Preview</h3>
-                  <audio controls autoPlay className="preview-audio">
-                    <source src={selectedPreview} type="audio/mpeg" />
-                  </audio>
-                </div>
-              </div>
-            )}
-          </div>
         )}
 
         {currentPage === 'dashboard' && (
