@@ -24,6 +24,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [voiceFilter, setVoiceFilter] = useState('all');
   const [voiceSearch, setVoiceSearch] = useState('');
 
+  // Collapsible toggle for ElevenLabs library
+  const [isElevenLabsExpanded, setIsElevenLabsExpanded] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
+
   // 1. Live Audio Waveform Visualizer states & refs
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -666,7 +670,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <span className="brand-text-main">FableVoice</span>
               <span className="brand-badge-yellow">AUDIO STUDIO</span>
             </div>
-            <div className="brand-text-sub">30-PERSONA MULTILINGUAL & HEBREW CLONING CONSOLE</div>
+            <div className="brand-text-sub">VOICE CLONING & 30-PERSONA MULTILINGUAL STUDIO</div>
           </div>
         </div>
 
@@ -706,9 +710,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
           {/* STUDIO RACK 01 BANNER */}
           <div className="studio-rack-banner">
             <div className="rack-info">
-              <div className="rack-label">STUDIO RACK 01 • 30-PERSONA MULTILINGUAL & CLONED VOICE SUITE</div>
-              <h1 className="rack-title">AI Voice Studio & 30-Voice Multilingual Library</h1>
-              <p className="rack-subtitle">Select any language to unlock 30 curated personas: 10 Adult Males, 10 Adult Females, 5 Female Children, and 5 Male Children.</p>
+              <div className="rack-label">STUDIO RACK 01</div>
+              <h1 className="rack-title">Voice Sample Recording & AI Voice Cloner</h1>
+              <p className="rack-subtitle">Capture a 15–30 second vocal sample to clone family voices or synthesize with 30-voice multilingual personas.</p>
             </div>
 
             <div className="rack-actions">
@@ -1491,7 +1495,6 @@ const { url, engine } = await response.json();`}
                   type="button" 
                   className="cancel-gray-btn"
                   onClick={() => setShowFamilyCloneModal(false)}
-                  style={{ flex: 1 }}
                 >
                   Cancel
                 </button>
