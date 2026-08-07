@@ -2,27 +2,25 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy root and frontend package files
 COPY package*.json ./
+COPY frontend/package*.json ./frontend/
 
-# Install dependencies
-RUN npm ci
+# Install root & frontend dependencies
+RUN npm install
+RUN cd frontend && npm install --include=dev
 
-# Copy backend
+# Copy source code
 COPY backend ./backend
+COPY frontend ./frontend
 
-# Copy frontend build
-COPY frontend/dist ./frontend/dist
-
-# Copy environment file
-COPY .env .env
-
-# Expose port
-EXPOSE 5001
+# Build React frontend
+RUN npm run build
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=5001
 
-# Start server
+EXPOSE 5001
+
 CMD ["npm", "start"]
