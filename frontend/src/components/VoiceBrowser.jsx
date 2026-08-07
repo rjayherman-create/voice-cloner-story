@@ -18,6 +18,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [selectedVoiceId, setSelectedVoiceId] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Collapsible toggle for ElevenLabs library
+  const [isElevenLabsExpanded, setIsElevenLabsExpanded] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
+
   // Modal for "+ Clone New Family Voice"
   const [showFamilyCloneModal, setShowFamilyCloneModal] = useState(false);
   const [familyCloneLoading, setFamilyCloneLoading] = useState(false);
@@ -393,6 +397,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
+  const filteredElevenLabs = elevenLabsVoices.filter(v => {
+    if (!catalogSearch.trim()) return true;
+    const q = catalogSearch.toLowerCase();
+    return v.name.toLowerCase().includes(q) || v.description.toLowerCase().includes(q);
+  });
+
   const activeVoiceObj = familyVoices.find(v => v.id === selectedVoiceId) || elevenLabsVoices.find(v => v.id === selectedVoiceId) || familyVoices[0] || elevenLabsVoices[0];
 
   return (
@@ -665,55 +675,95 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </div>
 
       {/* ==================================================================== */}
-      {/* 🗃️ ACTIVE VOICE MODEL LIBRARY GRID (ELEVENLABS PRESETS)              */}
+      {/* 🗃️ COLLAPSIBLE ACTIVE VOICE MODEL LIBRARY GRID (ELEVENLABS)           */}
       {/* ==================================================================== */}
-      <section className="fable-box active-library-box">
-        <div className="active-library-header-row">
+      <section className="fable-box active-library-box collapsible-catalog-box">
+        <div 
+          className="active-library-header-row clickable-accordion-header"
+          onClick={() => setIsElevenLabsExpanded(!isElevenLabsExpanded)}
+        >
           <div className="library-title-group">
             <span className="db-icon">🗃️</span>
-            <h2 className="library-section-title">Active Voice Model Library</h2>
+            <div>
+              <h2 className="library-section-title">Active Voice Model Library</h2>
+              <p className="catalog-subtitle-text">Standard ElevenLabs preset voice catalog</p>
+            </div>
           </div>
-          <span className="profiles-loaded-counter">
-            {elevenLabsVoices.length} PROFILES LOADED
-          </span>
+
+          <div className="catalog-header-right">
+            <span className="profiles-loaded-counter">
+              {elevenLabsVoices.length} PROFILES LOADED
+            </span>
+            <button className="accordion-toggle-pill-btn">
+              {isElevenLabsExpanded ? '▲ Collapse Library' : `▼ Expand Library (${elevenLabsVoices.length} Voices)`}
+            </button>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="loading-profiles-state">Loading ElevenLabs Voice Models...</div>
-        ) : (
-          <div className="three-col-profile-grid">
-            {elevenLabsVoices.map((p) => {
-              const isSelected = p.id === selectedVoiceId;
-              return (
-                <div 
-                  key={p.id}
-                  className={`profile-card-item ${isSelected ? 'selected-gold-card' : ''}`}
-                  onClick={() => handleSelectModel(p)}
-                >
-                  <div className="profile-card-top">
-                    <h3 className="profile-title-text">{p.name}</h3>
+        {/* Collapsed Preview Bar */}
+        {!isElevenLabsExpanded && (
+          <div 
+            className="catalog-collapsed-banner"
+            onClick={() => setIsElevenLabsExpanded(true)}
+          >
+            <span>📁 ElevenLabs library is collapsed to keep your workspace clear.</span>
+            <strong className="click-to-expand-gold">Click to open all {elevenLabsVoices.length} profiles →</strong>
+          </div>
+        )}
 
-                    {isSelected ? (
-                      <span className="badge-selected-green">
-                        <span className="green-dot"></span> SELECTED
-                      </span>
-                    ) : (
-                      <button className="btn-select-gold">SELECT</button>
-                    )}
-                  </div>
+        {/* Expanded Grid */}
+        {isElevenLabsExpanded && (
+          <div className="expanded-catalog-body">
+            {/* Search Filter */}
+            <div className="catalog-search-row">
+              <input
+                type="text"
+                placeholder="🔍 Search ElevenLabs profiles by name or attribute..."
+                className="dark-input-field"
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                style={{ maxWidth: '450px' }}
+              />
+            </div>
 
-                  <div className="profile-card-bottom">
-                    <span className="meta-date-tag">{p.date} ({p.source})</span>
-                  </div>
+            {loading ? (
+              <div className="loading-profiles-state">Loading ElevenLabs Voice Models...</div>
+            ) : (
+              <div className="three-col-profile-grid">
+                {filteredElevenLabs.map((p) => {
+                  const isSelected = p.id === selectedVoiceId;
+                  return (
+                    <div 
+                      key={p.id}
+                      className={`profile-card-item ${isSelected ? 'selected-gold-card' : ''}`}
+                      onClick={() => handleSelectModel(p)}
+                    >
+                      <div className="profile-card-top">
+                        <h3 className="profile-title-text">{p.name}</h3>
 
-                  {p.previewUrl && (
-                    <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
-                      <audio controls src={p.previewUrl} className="profile-audio" />
+                        {isSelected ? (
+                          <span className="badge-selected-green">
+                            <span className="green-dot"></span> SELECTED
+                          </span>
+                        ) : (
+                          <button className="btn-select-gold">SELECT</button>
+                        )}
+                      </div>
+
+                      <div className="profile-card-bottom">
+                        <span className="meta-date-tag">{p.date} ({p.source})</span>
+                      </div>
+
+                      {p.previewUrl && (
+                        <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
+                          <audio controls src={p.previewUrl} className="profile-audio" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </section>
