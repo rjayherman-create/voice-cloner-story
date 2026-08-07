@@ -1,5 +1,5 @@
 /* ========================================================================== */
-/* 🎨 FABLEVOICE AUDIO STUDIO - COMPLETE 5-FEATURE SUITE STYLES              */
+/* 🎨 FABLEVOICE AUDIO STUDIO - COMPLETE 5-FEATURE & MULTILINGUAL STYLES     */
 /* ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
@@ -828,7 +828,7 @@
 }
 
 /* ========================================================================== */
-/* 2. 🎚️ LIVE TTS PREVIEW CONSOLE WITH TUNING SLIDERS                          */
+/* 2. 🎚️ LIVE TTS PREVIEW CONSOLE WITH MULTILINGUAL & TUNING SLIDERS           */
 /* ========================================================================== */
 .tts-console-box {
   background: #111827;
@@ -852,6 +852,73 @@
   font-size: 11px;
   font-weight: 700;
   color: #f59e0b;
+}
+
+/* 🌐 Language Selector & Phrases Bar */
+.language-selector-row {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lang-picker-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lang-dropdown {
+  background: #111827;
+  border-color: #334155;
+  font-weight: 600;
+}
+
+.quick-phrases-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.quick-pill-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quick-lang-pill {
+  background: #111827;
+  color: #94a3b8;
+  border: 1px solid #1e293b;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-lang-pill:hover {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.active-lang-pill {
+  background: #f59e0b !important;
+  color: #0b0e17 !important;
+  border-color: #f59e0b !important;
+  font-weight: 700 !important;
 }
 
 .tuning-sliders-grid {

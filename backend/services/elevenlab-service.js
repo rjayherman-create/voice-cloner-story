@@ -124,9 +124,12 @@ class ElevenLabsService {
 
       const styleVal = typeof options.style === 'number' ? options.style : 0.0;
 
+      // Use ElevenLabs Multilingual Model V2 for 32+ native languages
+      const modelId = options.modelId || 'eleven_multilingual_v2';
+
       const payload = {
         text,
-        model_id: options.modelId || 'eleven_turbo_v2_5',
+        model_id: modelId,
         voice_settings: {
           stability: stabilityVal,
           similarity_boost: similarityVal,

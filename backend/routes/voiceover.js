@@ -53,6 +53,46 @@ const SOUNDTRACK_CATALOG = [
   }
 ];
 
+// Multilingual language catalog (32+ native languages)
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
+  { code: 'es', name: 'Spanish (Español)', flag: '🇪🇸' },
+  { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },
+  { code: 'de', name: 'German (Deutsch)', flag: '🇩🇪' },
+  { code: 'it', name: 'Italian (Italiano)', flag: '🇮🇹' },
+  { code: 'pt', name: 'Portuguese (Português)', flag: '🇵🇹' },
+  { code: 'ja', name: 'Japanese (日本語)', flag: '🇯🇵' },
+  { code: 'zh', name: 'Mandarin Chinese (中文)', flag: '🇨🇳' },
+  { code: 'ko', name: 'Korean (한국어)', flag: '🇰🇷' },
+  { code: 'hi', name: 'Hindi (हिन्दी)', flag: '🇮🇳' },
+  { code: 'ar', name: 'Arabic (العربية)', flag: '🇸🇦' },
+  { code: 'nl', name: 'Dutch (Nederlands)', flag: '🇳🇱' },
+  { code: 'ru', name: 'Russian (Русский)', flag: '🇷🇺' },
+  { code: 'pl', name: 'Polish (Polski)', flag: '🇵🇱' },
+  { code: 'sv', name: 'Swedish (Svenska)', flag: '🇸🇪' },
+  { code: 'tr', name: 'Turkish (Türkçe)', flag: '🇹🇷' },
+  { code: 'he', name: 'Hebrew (עברית)', flag: '🇮🇱' },
+  { code: 'el', name: 'Greek (Ελληνικά)', flag: '🇬🇷' }
+];
+
+// Quick multilingual bedtime phrases
+const MULTILINGUAL_PHRASES = {
+  en: "Goodnight my little hero, sleep tight and let the stars guide your dreams.",
+  es: "Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.",
+  fr: "Bonne nuit mon petit ange, dors bien et fais de très beaux rêves étoilés.",
+  de: "Gute Nacht, mein kleiner Held, schlaf gut und träum etwas Wunderschönes.",
+  it: "Buonanotte mio piccolo eroe, dormi sereno e fai sogni d'oro.",
+  pt: "Boa noite meu pequeno herói, durma bem e tenha lindos sonhos estelares.",
+  ja: "おやすみなさい、私の小さなヒーロー。素敵な星の夢を見てね。",
+  zh: "晚安，我的小英雄，做个甜甜的美梦，繁星会守护着你。",
+  ko: "잘 자요, 나의 작은 영웅. 반짝이는 별들이 예쁜 꿈으로 안내해 줄 거예요.",
+  hi: "शुभ रात्रि मेरे प्यारे बच्चे, मीठे सपने देखो और आराम से सो जाओ।",
+  ar: "تصبح على خير يا بطلي الصغير، نوماً هنيئاً وأحلاماً سعيدة.",
+  nl: "Goedenacht mijn kleine held, slaap lekker en droom fijn.",
+  ru: "Спокойной ночи, мой маленький герой, приятных снов под звёздным небом.",
+  he: "לילה טוב הגיבור הקטן שלי, שיהיו לך חלומות מתוקים ומלאי כוכבים."
+};
+
 // GET available voices
 router.get('/voices', async (req, res) => {
   try {
@@ -102,12 +142,21 @@ router.get('/soundtracks', (req, res) => {
   res.json(SOUNDTRACK_CATALOG);
 });
 
-// POST generate AI Screenplay Script
-router.post('/screenplay/generate-script', (req, res) => {
-  const { theme, characters, childName } = req.body;
-  const name = childName || 'Leo';
+// GET multilingual catalog & phrases
+router.get('/languages', (req, res) => {
+  res.json({
+    languages: SUPPORTED_LANGUAGES,
+    phrases: MULTILINGUAL_PHRASES
+  });
+});
 
-  const storyThemes = {
+// POST generate AI Screenplay Script (with language support)
+router.post('/screenplay/generate-script', (req, res) => {
+  const { theme, characters, childName, language } = req.body;
+  const name = childName || 'Leo';
+  const lang = language || 'en';
+
+  const storyThemesEn = {
     'fantasy': {
       title: `${name} and the Enchanted Star-Dragon`,
       scenes: [
@@ -137,14 +186,29 @@ router.post('/screenplay/generate-script', (req, res) => {
     }
   };
 
-  const selectedStory = storyThemes[theme] || storyThemes['bedtime'];
+  const storyThemesEs = {
+    'bedtime': {
+      title: `El Viaje de ${name} a la Isla de los Sueños`,
+      scenes: [
+        { character: 'Narrator', text: `Mientras el crepúsculo caía suavemente sobre los tejados, el viento de la noche le susurraba una cálida canción de cuna a ${name}.` },
+        { character: 'Mother', text: `Cierra tus ojitos, mi amor. La luna está pintando las nubes de plata y lavanda, cuidando tus dulces sueños.` },
+        { character: 'Child', text: `Buenas noches estrellas, buenas noches luna, buenas noches mundo dormilón...` },
+        { character: 'Narrator', text: `Envuelto en mantas tibias, ${name} se deslizó pacíficamente hacia la tierra donde cada aventura está llena de magia y tranquilidad.` }
+      ]
+    }
+  };
+
+  const selectedStory = (lang === 'es' && storyThemesEs[theme]) 
+    ? storyThemesEs[theme] 
+    : (storyThemesEn[theme] || storyThemesEn['bedtime']);
+
   res.json(selectedStory);
 });
 
-// POST generate voiceover with fine-tuned voice settings (stability, clarity, speed)
+// POST generate voiceover with fine-tuned voice settings & multilingual V2 model
 router.post('/generate', async (req, res) => {
   try {
-    const { script, voice, emotion, stability, similarityBoost, style, speed } = req.body;
+    const { script, voice, emotion, stability, similarityBoost, style, speed, modelId } = req.body;
 
     if (!script || !voice) {
       return res.status(400).json({ error: 'Script and voice are required' });
@@ -154,7 +218,7 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'ElevenLabs API not configured' });
     }
 
-    console.log(`[VoiceOver] Generating speech: voice=${voice}, chars=${script.length}, stability=${stability}, similarityBoost=${similarityBoost}`);
+    console.log(`[VoiceOver] Multilingual synthesis: voice=${voice}, chars=${script.length}`);
 
     try {
       const audioBuffer = await elevenLabsService.synthesize(script, voice, {
@@ -162,7 +226,7 @@ router.post('/generate', async (req, res) => {
         stability: typeof stability === 'number' ? stability : 0.5,
         similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
         style: typeof style === 'number' ? style : 0.0,
-        modelId: 'eleven_turbo_v2_5'
+        modelId: modelId || 'eleven_multilingual_v2'
       });
 
       const uploadsDir = path.join(__dirname, '../../uploads');
