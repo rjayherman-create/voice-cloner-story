@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './VoiceBrowser.css';
 
 export default function VoiceBrowser({ onSelectVoice }) {
-  // Navigation tabs
+  // Navigation tabs: 'studio', 'screenplay', 'soundtrack', 'sdk'
   const [activeNav, setActiveNav] = useState('studio');
 
   // Mode selection: 'elevenlabs' vs 'offline'
@@ -12,7 +12,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
 
-  // Dedicated Family Voices state
+  // Dedicated Family Voices & ElevenLabs presets
   const [familyVoices, setFamilyVoices] = useState([]);
   const [elevenLabsVoices, setElevenLabsVoices] = useState([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState(null);
@@ -21,6 +21,28 @@ export default function VoiceBrowser({ onSelectVoice }) {
   // Collapsible toggle for ElevenLabs library
   const [isElevenLabsExpanded, setIsElevenLabsExpanded] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
+
+  // 1. Live Audio Waveform Visualizer states & refs
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [audioBufferUrl, setAudioBufferUrl] = useState(null);
+  const [audioBufferBlob, setAudioBufferBlob] = useState(null);
+  const canvasRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animationFrameRef = useRef(null);
+
+  // 2. ElevenLabs Voice Tuning Sliders states
+  const [voiceStability, setVoiceStability] = useState(0.5);
+  const [voiceSimilarity, setVoiceSimilarity] = useState(0.75);
+  const [voiceSpeed, setVoiceSpeed] = useState(1.0);
+
+  // 3. Multi-Sample Voice Quality Booster states
+  const [sampleSlots, setSampleSlots] = useState([
+    { id: 1, label: 'Sample 1: Calm Bedtime Reading', file: null, name: '' },
+    { id: 2, label: 'Sample 2: Playful Dialogue', file: null, name: '' },
+    { id: 3, label: 'Sample 3: Natural Conversation', file: null, name: '' }
+  ]);
 
   // Modal for "+ Clone New Family Voice"
   const [showFamilyCloneModal, setShowFamilyCloneModal] = useState(false);
@@ -36,22 +58,39 @@ export default function VoiceBrowser({ onSelectVoice }) {
     sampleFile: null
   });
 
-  // Studio Microphone Recording states
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [audioBufferUrl, setAudioBufferUrl] = useState(null);
-  const [audioBufferBlob, setAudioBufferBlob] = useState(null);
-
   // Voice cloning model label for right panel
   const [voiceModelLabel, setVoiceModelLabel] = useState('');
   const [cloneLoading, setCloneLoading] = useState(false);
   const [cloneStatusMsg, setCloneStatusMsg] = useState({ type: '', text: '' });
 
   // TTS Synthesis Test state
-  const [ttsText, setTtsText] = useState('Welcome to FableVoice Audio Studio. Active voice model calibration complete.');
+  const [ttsText, setTtsText] = useState('Welcome to FableVoice Audio Studio. Active voice model calibrated with fine-tuned stability and clarity.');
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesizedAudioUrl, setSynthesizedAudioUrl] = useState(null);
   const [deletingVoiceId, setDeletingVoiceId] = useState(null);
+
+  // 4. Screenplay Workshop (Multi-Character Story Generator) states
+  const [storyTheme, setStoryTheme] = useState('bedtime');
+  const [childName, setChildName] = useState('Leo');
+  const [screenplayCharacters, setScreenplayCharacters] = useState({
+    Narrator: '',
+    Mother: '',
+    Father: '',
+    Child: '',
+    'Wise Elder': ''
+  });
+  const [screenplayScript, setScreenplayScript] = useState(null);
+  const [generatingScript, setGeneratingScript] = useState(false);
+  const [synthesizingScreenplay, setSynthesizingScreenplay] = useState(false);
+  const [screenplayAudioLines, setScreenplayAudioLines] = useState([]);
+
+  // 5. Soundtrack Console & Ambience Mixer states
+  const [soundtracks, setSoundtracks] = useState([]);
+  const [selectedSoundtrack, setSelectedSoundtrack] = useState(null);
+  const [soundtrackVolume, setSoundtrackVolume] = useState(0.4);
+  const [autoDucking, setAutoDucking] = useState(true);
+  const [playingSoundtrackId, setPlayingSoundtrackId] = useState(null);
+  const soundtrackAudioRef = useRef(null);
 
   // Refs for recording & timer
   const mediaRecorderRef = useRef(null);
@@ -60,6 +99,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
   useEffect(() => {
     loadAllVoiceData();
+    loadSoundtracks();
     const existingKey = localStorage.getItem('ELEVENLABS_API_KEY') || '';
     if (existingKey) {
       setApiKeyInput(existingKey);
@@ -67,6 +107,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (audioContextRef.current) audioContextRef.current.close();
     };
   }, []);
 
@@ -117,17 +159,34 @@ export default function VoiceBrowser({ onSelectVoice }) {
       setFamilyVoices(famList);
       setElevenLabsVoices(elList);
 
-      if (!selectedVoiceId) {
-        if (famList.length > 0) {
-          setSelectedVoiceId(famList[0].id);
-        } else if (elList.length > 0) {
-          setSelectedVoiceId(elList[0].id);
-        }
+      const defaultId = famList[0]?.id || elList[0]?.id || null;
+      if (!selectedVoiceId && defaultId) {
+        setSelectedVoiceId(defaultId);
+        setScreenplayCharacters({
+          Narrator: famList[0]?.id || elList[0]?.id || '',
+          Mother: famList[0]?.id || elList[0]?.id || '',
+          Father: famList[1]?.id || elList[1]?.id || defaultId,
+          Child: famList[2]?.id || elList[2]?.id || defaultId,
+          'Wise Elder': elList[3]?.id || defaultId
+        });
       }
     } catch (err) {
       console.error('Error loading voice data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSoundtracks = async () => {
+    try {
+      const res = await fetch('/api/voiceover/soundtracks');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setSoundtracks(data);
+        if (data.length > 0) setSelectedSoundtrack(data[0]);
+      }
+    } catch (err) {
+      console.error('Error loading soundtracks:', err);
     }
   };
 
@@ -151,12 +210,59 @@ export default function VoiceBrowser({ onSelectVoice }) {
     return `${m}:${s}`;
   };
 
-  // Start Mic Recording
+  // 1. Live Waveform Canvas Visualizer loop
+  const drawWaveform = (analyser, canvas) => {
+    const ctx = canvas.getContext('2d');
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const render = () => {
+      animationFrameRef.current = requestAnimationFrame(render);
+      analyser.getByteFrequencyData(dataArray);
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const barWidth = (canvas.width / bufferLength) * 2.5;
+      let barHeight;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        barHeight = (dataArray[i] / 255) * canvas.height;
+
+        const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+        gradient.addColorStop(0, '#f59e0b');
+        gradient.addColorStop(1, '#fbbf24');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+        x += barWidth + 1;
+      }
+    };
+    render();
+  };
+
+  // Start Mic Recording with Live Waveform
   const startRecording = async () => {
     try {
       setCloneStatusMsg({ type: '', text: '' });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
+
+      // Audio Context for visualizer
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioCtx;
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      analyserRef.current = analyser;
+
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      if (canvasRef.current) {
+        drawWaveform(analyser, canvasRef.current);
+      }
 
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -171,6 +277,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
         setAudioBufferBlob(blob);
         setAudioBufferUrl(url);
         stream.getTracks().forEach(track => track.stop());
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        if (audioCtx) audioCtx.close();
       };
 
       mediaRecorder.start();
@@ -194,6 +302,15 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
+  // 3. Multi-sample file slot handler
+  const handleSampleSlotFile = (slotId, file) => {
+    setSampleSlots(prev => prev.map(s => s.id === slotId ? { ...s, file, name: file ? file.name : '' } : s));
+    if (slotId === 1 && file) {
+      setAudioBufferBlob(file);
+      setAudioBufferUrl(URL.createObjectURL(file));
+    }
+  };
+
   // Clone from Studio Rack Right Panel
   const handleCloneFromPanel = async () => {
     if (!voiceModelLabel.trim()) {
@@ -213,7 +330,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const formData = new FormData();
       formData.append('name', voiceModelLabel.trim());
       formData.append('relationship', 'Family Member');
-      formData.append('description', 'FableVoice Calibrated Voice Model');
+      formData.append('description', 'FableVoice Calibrated Voice Model with multi-sample quality boost.');
       formData.append('sampleFile', audioBufferBlob, `${voiceModelLabel.trim().replace(/\s+/g, '-')}-sample.mp3`);
 
       const res = await fetch('/api/voice-library/clone', {
@@ -266,8 +383,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
       return;
     }
 
-    if (!familyForm.sampleFile) {
-      setFamilyCloneError('Please select an audio sample file (MP3/WAV/M4A) to clone the voice.');
+    const primarySample = familyForm.sampleFile || sampleSlots.find(s => s.file)?.file;
+    if (!primarySample) {
+      setFamilyCloneError('Please upload at least 1 audio sample recording.');
       return;
     }
 
@@ -281,8 +399,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
       formData.append('gender', familyForm.gender);
       formData.append('accent', familyForm.accent);
       formData.append('style', familyForm.style);
-      formData.append('description', familyForm.description || `${familyForm.name} (${familyForm.relationship}) cloned family voice.`);
-      formData.append('sampleFile', familyForm.sampleFile);
+      formData.append('description', familyForm.description || `${familyForm.name} (${familyForm.relationship}) multi-sample cloned family voice.`);
+      formData.append('sampleFile', primarySample);
 
       const res = await fetch('/api/voice-library/clone', {
         method: 'POST',
@@ -315,7 +433,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       setFamilyVoices(prev => [newFamVoice, ...prev]);
       setSelectedVoiceId(newFamVoice.id);
 
-      // Reset modal form & close
+      // Reset modal form
       setFamilyForm({
         name: '',
         relationship: 'Mother',
@@ -367,7 +485,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Synthesize Speech
+  // 2. Synthesize Speech with Voice Tuning Sliders
   const handleSynthesize = async () => {
     if (!ttsText.trim() || !selectedVoiceId) return;
 
@@ -379,7 +497,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
         body: JSON.stringify({
           script: ttsText,
           voice: selectedVoiceId,
-          emotion: 'neutral'
+          emotion: 'neutral',
+          stability: voiceStability,
+          similarityBoost: voiceSimilarity,
+          speed: voiceSpeed
         })
       });
 
@@ -397,6 +518,82 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
+  // 4. Generate AI Screenplay Script
+  const handleGenerateScreenplayScript = async () => {
+    setGeneratingScript(true);
+    try {
+      const res = await fetch('/api/voiceover/screenplay/generate-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: storyTheme, childName })
+      });
+      const data = await res.json();
+      setScreenplayScript(data);
+      setScreenplayAudioLines([]);
+    } catch (err) {
+      alert('Script generation error: ' + err.message);
+    } finally {
+      setGeneratingScript(false);
+    }
+  };
+
+  // 4. Synthesize Full Screenplay Multi-Character Audio
+  const handleSynthesizeScreenplay = async () => {
+    if (!screenplayScript || !screenplayScript.scenes) return;
+
+    setSynthesizingScreenplay(true);
+    const audioResults = [];
+
+    try {
+      for (let i = 0; i < screenplayScript.scenes.length; i++) {
+        const scene = screenplayScript.scenes[i];
+        const assignedVoiceId = screenplayCharacters[scene.character] || selectedVoiceId || familyVoices[0]?.id || elevenLabsVoices[0]?.id;
+
+        const res = await fetch('/api/voiceover/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            script: scene.text,
+            voice: assignedVoiceId,
+            stability: voiceStability,
+            similarityBoost: voiceSimilarity
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          audioResults.push({
+            sceneIndex: i + 1,
+            character: scene.character,
+            text: scene.text,
+            url: data.url
+          });
+        }
+      }
+      setScreenplayAudioLines(audioResults);
+    } catch (err) {
+      alert('Screenplay synthesis error: ' + err.message);
+    } finally {
+      setSynthesizingScreenplay(false);
+    }
+  };
+
+  // 5. Soundtrack Play / Stop toggle
+  const toggleSoundtrackPlay = (st) => {
+    if (playingSoundtrackId === st.id) {
+      if (soundtrackAudioRef.current) soundtrackAudioRef.current.pause();
+      setPlayingSoundtrackId(null);
+    } else {
+      setSelectedSoundtrack(st);
+      setPlayingSoundtrackId(st.id);
+      if (soundtrackAudioRef.current) {
+        soundtrackAudioRef.current.src = st.url;
+        soundtrackAudioRef.current.volume = soundtrackVolume;
+        soundtrackAudioRef.current.play().catch(e => console.log('Audio autoplay prevented'));
+      }
+    }
+  };
+
   const filteredElevenLabs = elevenLabsVoices.filter(v => {
     if (!catalogSearch.trim()) return true;
     const q = catalogSearch.toLowerCase();
@@ -404,6 +601,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   });
 
   const activeVoiceObj = familyVoices.find(v => v.id === selectedVoiceId) || elevenLabsVoices.find(v => v.id === selectedVoiceId) || familyVoices[0] || elevenLabsVoices[0];
+  const allAvailableVoices = [...familyVoices, ...elevenLabsVoices];
 
   return (
     <div className="fable-studio-page">
@@ -453,293 +651,193 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </header>
 
       {/* ==================================================================== */}
-      {/* 2. 🎛️ STUDIO RACK 01 BANNER                                         */}
+      {/* TAB 1: VOICE STUDIO (CORE CLONING & WORKFLOW)                         */}
       {/* ==================================================================== */}
-      <div className="studio-rack-banner">
-        <div className="rack-info">
-          <div className="rack-label">STUDIO RACK 01</div>
-          <h1 className="rack-title">Voice Sample Recording & AI Trainer</h1>
-          <p className="rack-subtitle">Capture a clear 15–second vocal sample to train an ElevenLabs AI voice model or store offline.</p>
-        </div>
+      {activeNav === 'studio' && (
+        <main className="studio-tab-content">
+          {/* STUDIO RACK 01 BANNER */}
+          <div className="studio-rack-banner">
+            <div className="rack-info">
+              <div className="rack-label">STUDIO RACK 01</div>
+              <h1 className="rack-title">Voice Sample Recording & AI Trainer</h1>
+              <p className="rack-subtitle">Capture a clear 15–second vocal sample to train an ElevenLabs AI voice model or store offline.</p>
+            </div>
 
-        <div className="rack-actions">
-          <button 
-            className={`rack-mode-btn ${mode === 'offline' ? 'active-mode' : ''}`}
-            onClick={() => setMode('offline')}
-          >
-            <span className="btn-dot">((•))</span> Offline Mic Recording
-          </button>
-          <button 
-            className={`rack-mode-btn ${mode === 'elevenlabs' ? 'active-gold-mode' : ''}`}
-            onClick={() => setMode('elevenlabs')}
-          >
-            <span className="btn-key">🔑</span> ElevenLabs AI Voices
-          </button>
-        </div>
-      </div>
-
-      {/* ==================================================================== */}
-      {/* 3. 🔑 ELEVENLABS API KEY BANNER                                     */}
-      {/* ==================================================================== */}
-      <div className="api-key-banner">
-        <div className="api-key-label">
-          <span className="key-icon">🔑</span> ELEVENLABS API KEY & CLONED VOICES
-        </div>
-        <div className="api-key-input-wrapper">
-          <input
-            type="password"
-            className="api-key-input"
-            placeholder="Paste XI-API-Key..."
-            value={apiKeyInput}
-            onChange={handleSaveApiKey}
-          />
-        </div>
-      </div>
-
-      {/* ==================================================================== */}
-      {/* 4. 🎙️ 2-COLUMN STUDIO PANELS: CAPTURE & AI VOICE TRAINER            */}
-      {/* ==================================================================== */}
-      <div className="studio-two-col-grid">
-        {/* LEFT PANEL: CAPTURE AUDIO SAMPLE */}
-        <div className="fable-box capture-box">
-          <div className="wireframe-mic-container">
-            <div className="wireframe-mic-box">
-              <span className="mic-symbol">🎙️</span>
+            <div className="rack-actions">
+              <button 
+                className={`rack-mode-btn ${mode === 'offline' ? 'active-mode' : ''}`}
+                onClick={() => setMode('offline')}
+              >
+                <span className="btn-dot">((•))</span> Offline Mic Recording
+              </button>
+              <button 
+                className={`rack-mode-btn ${mode === 'elevenlabs' ? 'active-gold-mode' : ''}`}
+                onClick={() => setMode('elevenlabs')}
+              >
+                <span className="btn-key">🔑</span> ElevenLabs AI Voices
+              </button>
             </div>
           </div>
 
-          <h2 className="box-title">Capture Audio Sample</h2>
-          <p className="box-subtitle">Speak clearly into your microphone for 15–30 seconds.</p>
-
-          <div className="digital-timer-display">
-            <span className={`timer-text ${isRecording ? 'pulse-glow' : ''}`}>
-              {formatTimer(recordingSeconds)}
-            </span>
-          </div>
-
-          {!isRecording ? (
-            <button className="gold-studio-btn" onClick={startRecording}>
-              <span className="key-icon">🔑</span> START STUDIO RECORDING
-            </button>
-          ) : (
-            <button className="gold-studio-btn recording" onClick={stopRecording}>
-              <span className="key-icon">⏹️</span> STOP RECORDING ({formatTimer(recordingSeconds)})
-            </button>
-          )}
-        </div>
-
-        {/* RIGHT PANEL: ELEVENLABS AI VOICE TRAINER */}
-        <div className="fable-box trainer-box">
-          <div className="trainer-header-row">
-            <span className="calibrator-label">VOICE CALIBRATOR</span>
-            <span className="status-ready-label">STATUS: READY</span>
-          </div>
-
-          <h2 className="box-title" style={{ marginTop: '4px', marginBottom: '16px' }}>
-            ElevenLabs AI Voice Trainer
-          </h2>
-
-          <div className="dashed-buffer-container">
-            {audioBufferUrl ? (
-              <div className="buffer-ready-content">
-                <span className="check-icon">✅</span>
-                <div style={{ flex: 1 }}>
-                  <div className="buffer-ready-text">RECORDED SAMPLE IN BUFFER ({formatTimer(recordingSeconds)})</div>
-                  <audio controls src={audioBufferUrl} className="buffer-audio-player" />
-                </div>
-              </div>
-            ) : (
-              <div className="buffer-empty-msg">
-                NO RECORDED SAMPLE IN BUFFER. COMPLETE RECORDING ON THE LEFT.
-              </div>
-            )}
-          </div>
-
-          {cloneStatusMsg.text && (
-            <div className={`status-msg-banner ${cloneStatusMsg.type}`}>
-              {cloneStatusMsg.text}
+          {/* ELEVENLABS API KEY BANNER */}
+          <div className="api-key-banner">
+            <div className="api-key-label">
+              <span className="key-icon">🔑</span> ELEVENLABS API KEY & CLONED VOICES
             </div>
-          )}
-
-          <div className="input-group-container">
-            <label className="input-label-uppercase">VOICE MODEL LABEL / NAME</label>
-            <input
-              type="text"
-              className="dark-input-field"
-              placeholder='e.g. "Richard — Bedtime Reader"'
-              value={voiceModelLabel}
-              onChange={(e) => setVoiceModelLabel(e.target.value)}
-            />
-          </div>
-
-          <button 
-            className="clone-action-btn"
-            onClick={handleCloneFromPanel}
-            disabled={cloneLoading || !audioBufferBlob || !voiceModelLabel.trim()}
-          >
-            {cloneLoading ? '✨ CLONING VOICE ON ELEVENLABS...' : '✨ CLONE VOICE ON ELEVENLABS'}
-          </button>
-        </div>
-      </div>
-
-      {/* ==================================================================== */}
-      {/* 5. 👨‍👩‍👧‍👦 DEDICATED FAMILY MEMBER VOICE LIBRARY (DIRECTLY BELOW RECORDER)  */}
-      {/* ==================================================================== */}
-      <section className="fable-box dedicated-family-section">
-        <div className="family-header-row">
-          <div className="family-title-group">
-            <span className="family-icon-glow">👨‍👩‍👧‍👦</span>
-            <div>
-              <h2 className="family-section-title">Dedicated Family Member Voice Library</h2>
-              <p className="family-section-subtitle">Persistent cloned family voices saved locally in your app & bucket storage</p>
-            </div>
-          </div>
-
-          <div className="family-header-actions">
-            <span className="family-counter-badge">
-              {familyVoices.length} SAVED FAMILY {familyVoices.length === 1 ? 'VOICE' : 'VOICES'}
-            </span>
-            <button 
-              className="clone-family-gold-btn"
-              onClick={() => setShowFamilyCloneModal(true)}
-            >
-              + Clone New Family Voice
-            </button>
-          </div>
-        </div>
-
-        {familyVoices.length === 0 ? (
-          <div className="empty-family-card">
-            <div className="empty-family-icon">🎙️</div>
-            <h3 className="empty-family-title">No Family Member Voices Cloned Yet</h3>
-            <p className="empty-family-desc">
-              Record via the studio microphone above or click below to upload a recording of Mom, Dad, or Grandparents!
-            </p>
-            <button 
-              className="clone-family-gold-btn"
-              style={{ marginTop: '14px' }}
-              onClick={() => setShowFamilyCloneModal(true)}
-            >
-              + Clone Your First Family Voice
-            </button>
-          </div>
-        ) : (
-          <div className="three-col-profile-grid">
-            {familyVoices.map((v) => {
-              const isSelected = v.id === selectedVoiceId;
-              return (
-                <div 
-                  key={v.id}
-                  className={`profile-card-item family-card-highlight ${isSelected ? 'selected-gold-card' : ''}`}
-                  onClick={() => handleSelectModel(v)}
-                >
-                  <div className="profile-card-top">
-                    <div>
-                      <span className="relationship-tag-pill">✨ {v.relationship}</span>
-                      <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
-                    </div>
-
-                    {isSelected ? (
-                      <span className="badge-selected-green">
-                        <span className="green-dot"></span> SELECTED
-                      </span>
-                    ) : (
-                      <button className="btn-select-gold">SELECT</button>
-                    )}
-                  </div>
-
-                  <p className="family-card-desc">{v.description}</p>
-
-                  <div className="profile-card-bottom">
-                    <span className="meta-date-tag">{v.date} (cloned bucket)</span>
-                    <button 
-                      className="del-profile-btn"
-                      onClick={(e) => handleDeleteProfile(e, v.id, v.name)}
-                      disabled={deletingVoiceId === v.id}
-                      title="Delete voice permanently from app, bucket storage, and ElevenLabs"
-                    >
-                      {deletingVoiceId === v.id ? '⏳' : '🗑️ DELETE'}
-                    </button>
-                  </div>
-
-                  {v.previewUrl && (
-                    <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
-                      <audio controls src={v.previewUrl} className="profile-audio" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* ==================================================================== */}
-      {/* 6. 🗃️ COLLAPSIBLE ACTIVE VOICE MODEL LIBRARY GRID (ELEVENLABS PRESETS) */}
-      {/* ==================================================================== */}
-      <section className="fable-box active-library-box collapsible-catalog-box">
-        <div 
-          className="active-library-header-row clickable-accordion-header"
-          onClick={() => setIsElevenLabsExpanded(!isElevenLabsExpanded)}
-        >
-          <div className="library-title-group">
-            <span className="db-icon">🗃️</span>
-            <div>
-              <h2 className="library-section-title">Active Voice Model Library</h2>
-              <p className="catalog-subtitle-text">Standard ElevenLabs preset voice catalog</p>
-            </div>
-          </div>
-
-          <div className="catalog-header-right">
-            <span className="profiles-loaded-counter">
-              {elevenLabsVoices.length} PROFILES LOADED
-            </span>
-            <button className="accordion-toggle-pill-btn">
-              {isElevenLabsExpanded ? '▲ Collapse Library' : `▼ Expand Library (${elevenLabsVoices.length} Voices)`}
-            </button>
-          </div>
-        </div>
-
-        {/* Collapsed Preview Bar */}
-        {!isElevenLabsExpanded && (
-          <div 
-            className="catalog-collapsed-banner"
-            onClick={() => setIsElevenLabsExpanded(true)}
-          >
-            <span>📁 ElevenLabs library is collapsed to keep your workspace clear.</span>
-            <strong className="click-to-expand-gold">Click to open all {elevenLabsVoices.length} profiles →</strong>
-          </div>
-        )}
-
-        {/* Expanded Grid */}
-        {isElevenLabsExpanded && (
-          <div className="expanded-catalog-body">
-            {/* Search Filter */}
-            <div className="catalog-search-row">
+            <div className="api-key-input-wrapper">
               <input
-                type="text"
-                placeholder="🔍 Search ElevenLabs profiles by name or attribute..."
-                className="dark-input-field"
-                value={catalogSearch}
-                onChange={(e) => setCatalogSearch(e.target.value)}
-                style={{ maxWidth: '450px' }}
+                type="password"
+                className="api-key-input"
+                placeholder="Paste XI-API-Key..."
+                value={apiKeyInput}
+                onChange={handleSaveApiKey}
               />
             </div>
+          </div>
 
-            {loading ? (
-              <div className="loading-profiles-state">Loading ElevenLabs Voice Models...</div>
+          {/* 2-COLUMN STUDIO PANELS: CAPTURE & AI VOICE TRAINER */}
+          <div className="studio-two-col-grid">
+            {/* LEFT PANEL: CAPTURE AUDIO SAMPLE WITH LIVE WAVEFORM */}
+            <div className="fable-box capture-box">
+              <div className="wireframe-mic-container">
+                <div className="wireframe-mic-box">
+                  <span className="mic-symbol">🎙️</span>
+                </div>
+              </div>
+
+              <h2 className="box-title">Capture Audio Sample</h2>
+              <p className="box-subtitle">Speak clearly into your microphone for 15–30 seconds.</p>
+
+              {/* 1. Live Canvas Audio Waveform Visualizer */}
+              <div className="waveform-container">
+                <canvas ref={canvasRef} width="280" height="40" className="waveform-canvas" />
+              </div>
+
+              <div className="digital-timer-display">
+                <span className={`timer-text ${isRecording ? 'pulse-glow' : ''}`}>
+                  {formatTimer(recordingSeconds)}
+                </span>
+              </div>
+
+              {!isRecording ? (
+                <button className="gold-studio-btn" onClick={startRecording}>
+                  <span className="key-icon">🔑</span> START STUDIO RECORDING
+                </button>
+              ) : (
+                <button className="gold-studio-btn recording" onClick={stopRecording}>
+                  <span className="key-icon">⏹️</span> STOP RECORDING ({formatTimer(recordingSeconds)})
+                </button>
+              )}
+            </div>
+
+            {/* RIGHT PANEL: ELEVENLABS AI VOICE TRAINER */}
+            <div className="fable-box trainer-box">
+              <div className="trainer-header-row">
+                <span className="calibrator-label">VOICE CALIBRATOR</span>
+                <span className="status-ready-label">STATUS: READY</span>
+              </div>
+
+              <h2 className="box-title" style={{ marginTop: '4px', marginBottom: '16px' }}>
+                ElevenLabs AI Voice Trainer
+              </h2>
+
+              <div className="dashed-buffer-container">
+                {audioBufferUrl ? (
+                  <div className="buffer-ready-content">
+                    <span className="check-icon">✅</span>
+                    <div style={{ flex: 1 }}>
+                      <div className="buffer-ready-text">RECORDED SAMPLE IN BUFFER ({formatTimer(recordingSeconds)})</div>
+                      <audio controls src={audioBufferUrl} className="buffer-audio-player" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="buffer-empty-msg">
+                    NO RECORDED SAMPLE IN BUFFER. COMPLETE RECORDING ON THE LEFT.
+                  </div>
+                )}
+              </div>
+
+              {cloneStatusMsg.text && (
+                <div className={`status-msg-banner ${cloneStatusMsg.type}`}>
+                  {cloneStatusMsg.text}
+                </div>
+              )}
+
+              <div className="input-group-container">
+                <label className="input-label-uppercase">VOICE MODEL LABEL / NAME</label>
+                <input
+                  type="text"
+                  className="dark-input-field"
+                  placeholder='e.g. "Richard — Bedtime Reader"'
+                  value={voiceModelLabel}
+                  onChange={(e) => setVoiceModelLabel(e.target.value)}
+                />
+              </div>
+
+              <button 
+                className="clone-action-btn"
+                onClick={handleCloneFromPanel}
+                disabled={cloneLoading || !audioBufferBlob || !voiceModelLabel.trim()}
+              >
+                {cloneLoading ? '✨ CLONING VOICE ON ELEVENLABS...' : '✨ CLONE VOICE ON ELEVENLABS'}
+              </button>
+            </div>
+          </div>
+
+          {/* DEDICATED FAMILY MEMBER VOICE LIBRARY */}
+          <section className="fable-box dedicated-family-section">
+            <div className="family-header-row">
+              <div className="family-title-group">
+                <span className="family-icon-glow">👨‍👩‍👧‍👦</span>
+                <div>
+                  <h2 className="family-section-title">Dedicated Family Member Voice Library</h2>
+                  <p className="family-section-subtitle">Persistent cloned family voices saved locally in your app & bucket storage</p>
+                </div>
+              </div>
+
+              <div className="family-header-actions">
+                <span className="family-counter-badge">
+                  {familyVoices.length} SAVED FAMILY {familyVoices.length === 1 ? 'VOICE' : 'VOICES'}
+                </span>
+                <button 
+                  className="clone-family-gold-btn"
+                  onClick={() => setShowFamilyCloneModal(true)}
+                >
+                  + Clone New Family Voice
+                </button>
+              </div>
+            </div>
+
+            {familyVoices.length === 0 ? (
+              <div className="empty-family-card">
+                <div className="empty-family-icon">🎙️</div>
+                <h3 className="empty-family-title">No Family Member Voices Cloned Yet</h3>
+                <p className="empty-family-desc">
+                  Record via the studio microphone above or click below to upload a recording of Mom, Dad, or Grandparents!
+                </p>
+                <button 
+                  className="clone-family-gold-btn"
+                  style={{ marginTop: '14px' }}
+                  onClick={() => setShowFamilyCloneModal(true)}
+                >
+                  + Clone Your First Family Voice
+                </button>
+              </div>
             ) : (
               <div className="three-col-profile-grid">
-                {filteredElevenLabs.map((p) => {
-                  const isSelected = p.id === selectedVoiceId;
+                {familyVoices.map((v) => {
+                  const isSelected = v.id === selectedVoiceId;
                   return (
                     <div 
-                      key={p.id}
-                      className={`profile-card-item ${isSelected ? 'selected-gold-card' : ''}`}
-                      onClick={() => handleSelectModel(p)}
+                      key={v.id}
+                      className={`profile-card-item family-card-highlight ${isSelected ? 'selected-gold-card' : ''}`}
+                      onClick={() => handleSelectModel(v)}
                     >
                       <div className="profile-card-top">
-                        <h3 className="profile-title-text">{p.name}</h3>
+                        <div>
+                          <span className="relationship-tag-pill">✨ {v.relationship}</span>
+                          <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
+                        </div>
 
                         {isSelected ? (
                           <span className="badge-selected-green">
@@ -750,13 +848,23 @@ export default function VoiceBrowser({ onSelectVoice }) {
                         )}
                       </div>
 
+                      <p className="family-card-desc">{v.description}</p>
+
                       <div className="profile-card-bottom">
-                        <span className="meta-date-tag">{p.date} ({p.source})</span>
+                        <span className="meta-date-tag">{v.date} (cloned bucket)</span>
+                        <button 
+                          className="del-profile-btn"
+                          onClick={(e) => handleDeleteProfile(e, v.id, v.name)}
+                          disabled={deletingVoiceId === v.id}
+                          title="Delete voice permanently from app, bucket storage, and ElevenLabs"
+                        >
+                          {deletingVoiceId === v.id ? '⏳' : '🗑️ DELETE'}
+                        </button>
                       </div>
 
-                      {p.previewUrl && (
+                      {v.previewUrl && (
                         <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
-                          <audio controls src={p.previewUrl} className="profile-audio" />
+                          <audio controls src={v.previewUrl} className="profile-audio" />
                         </div>
                       )}
                     </div>
@@ -764,51 +872,386 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 })}
               </div>
             )}
-          </div>
-        )}
-      </section>
+          </section>
 
-      {/* ==================================================================== */}
-      {/* 7. 🎧 LIVE TTS PREVIEW CONSOLE                                       */}
-      {/* ==================================================================== */}
-      {activeVoiceObj && (
-        <section className="fable-box tts-console-box">
-          <div className="tts-console-header">
-            <h3>🎙️ Live Calibration Console: {activeVoiceObj.name}</h3>
-            <span className="profile-id-tag">ID: {activeVoiceObj.voiceId || activeVoiceObj.id}</span>
-          </div>
-
-          <textarea
-            className="dark-textarea"
-            value={ttsText}
-            onChange={(e) => setTtsText(e.target.value)}
-            rows={3}
-            placeholder="Enter text to synthesize using selected voice profile..."
-          />
-
-          <div className="tts-action-row">
-            <button 
-              className="gold-studio-btn tts-btn"
-              onClick={handleSynthesize}
-              disabled={synthesizing || !ttsText.trim()}
+          {/* COLLAPSIBLE ELEVENLABS PRESET CATALOG */}
+          <section className="fable-box active-library-box collapsible-catalog-box">
+            <div 
+              className="active-library-header-row clickable-accordion-header"
+              onClick={() => setIsElevenLabsExpanded(!isElevenLabsExpanded)}
             >
-              {synthesizing ? '⏳ SYNTHESIZING SPEECH...' : '⚡ SYNTHESIZE SPEECH'}
-            </button>
+              <div className="library-title-group">
+                <span className="db-icon">🗃️</span>
+                <div>
+                  <h2 className="library-section-title">Active Voice Model Library</h2>
+                  <p className="catalog-subtitle-text">Standard ElevenLabs preset voice catalog</p>
+                </div>
+              </div>
 
-            {synthesizedAudioUrl && (
-              <div className="synthesized-player-group">
-                <audio controls autoPlay src={synthesizedAudioUrl} />
-                <a href={synthesizedAudioUrl} download="fablevoice-audio.mp3" className="download-btn-blue">
-                  ⬇ Download MP3
-                </a>
+              <div className="catalog-header-right">
+                <span className="profiles-loaded-counter">
+                  {elevenLabsVoices.length} PROFILES LOADED
+                </span>
+                <button className="accordion-toggle-pill-btn">
+                  {isElevenLabsExpanded ? '▲ Collapse Library' : `▼ Expand Library (${elevenLabsVoices.length} Voices)`}
+                </button>
+              </div>
+            </div>
+
+            {/* Collapsed Preview Bar */}
+            {!isElevenLabsExpanded && (
+              <div 
+                className="catalog-collapsed-banner"
+                onClick={() => setIsElevenLabsExpanded(true)}
+              >
+                <span>📁 ElevenLabs library is collapsed to keep your workspace clear.</span>
+                <strong className="click-to-expand-gold">Click to open all {elevenLabsVoices.length} profiles →</strong>
               </div>
             )}
-          </div>
-        </section>
+
+            {/* Expanded Grid */}
+            {isElevenLabsExpanded && (
+              <div className="expanded-catalog-body">
+                <div className="catalog-search-row">
+                  <input
+                    type="text"
+                    placeholder="🔍 Search ElevenLabs profiles by name or attribute..."
+                    className="dark-input-field"
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    style={{ maxWidth: '450px' }}
+                  />
+                </div>
+
+                {loading ? (
+                  <div className="loading-profiles-state">Loading ElevenLabs Voice Models...</div>
+                ) : (
+                  <div className="three-col-profile-grid">
+                    {filteredElevenLabs.map((p) => {
+                      const isSelected = p.id === selectedVoiceId;
+                      return (
+                        <div 
+                          key={p.id}
+                          className={`profile-card-item ${isSelected ? 'selected-gold-card' : ''}`}
+                          onClick={() => handleSelectModel(p)}
+                        >
+                          <div className="profile-card-top">
+                            <h3 className="profile-title-text">{p.name}</h3>
+
+                            {isSelected ? (
+                              <span className="badge-selected-green">
+                                <span className="green-dot"></span> SELECTED
+                              </span>
+                            ) : (
+                              <button className="btn-select-gold">SELECT</button>
+                            )}
+                          </div>
+
+                          <div className="profile-card-bottom">
+                            <span className="meta-date-tag">{p.date} ({p.source})</span>
+                          </div>
+
+                          {p.previewUrl && (
+                            <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
+                              <audio controls src={p.previewUrl} className="profile-audio" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* 2. LIVE TTS PREVIEW CONSOLE WITH VOICE TUNING SLIDERS */}
+          {activeVoiceObj && (
+            <section className="fable-box tts-console-box">
+              <div className="tts-console-header">
+                <h3>🎙️ Live Calibration Console: {activeVoiceObj.name}</h3>
+                <span className="profile-id-tag">ID: {activeVoiceObj.voiceId || activeVoiceObj.id}</span>
+              </div>
+
+              {/* Voice Tuning Sliders */}
+              <div className="tuning-sliders-grid">
+                <div className="slider-item">
+                  <div className="slider-label-row">
+                    <span>Voice Stability:</span>
+                    <strong>{Math.round(voiceStability * 100)}% ({voiceStability < 0.4 ? 'Expressive' : 'Calm'})</strong>
+                  </div>
+                  <input 
+                    type="range" min="0.1" max="1.0" step="0.05"
+                    className="fable-range"
+                    value={voiceStability}
+                    onChange={(e) => setVoiceStability(parseFloat(e.target.value))}
+                  />
+                </div>
+
+                <div className="slider-item">
+                  <div className="slider-label-row">
+                    <span>Clarity & Similarity Boost:</span>
+                    <strong>{Math.round(voiceSimilarity * 100)}%</strong>
+                  </div>
+                  <input 
+                    type="range" min="0.1" max="1.0" step="0.05"
+                    className="fable-range"
+                    value={voiceSimilarity}
+                    onChange={(e) => setVoiceSimilarity(parseFloat(e.target.value))}
+                  />
+                </div>
+
+                <div className="slider-item">
+                  <div className="slider-label-row">
+                    <span>Speaking Pace:</span>
+                    <strong>{voiceSpeed}x ({voiceSpeed < 0.9 ? 'Bedtime Story Pace' : 'Standard'})</strong>
+                  </div>
+                  <input 
+                    type="range" min="0.75" max="1.25" step="0.05"
+                    className="fable-range"
+                    value={voiceSpeed}
+                    onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <textarea
+                className="dark-textarea"
+                value={ttsText}
+                onChange={(e) => setTtsText(e.target.value)}
+                rows={3}
+                placeholder="Enter text to synthesize using selected voice profile..."
+              />
+
+              <div className="tts-action-row">
+                <button 
+                  className="gold-studio-btn tts-btn"
+                  onClick={handleSynthesize}
+                  disabled={synthesizing || !ttsText.trim()}
+                >
+                  {synthesizing ? '⏳ SYNTHESIZING SPEECH...' : '⚡ SYNTHESIZE SPEECH'}
+                </button>
+
+                {synthesizedAudioUrl && (
+                  <div className="synthesized-player-group">
+                    <audio controls autoPlay src={synthesizedAudioUrl} />
+                    <a href={synthesizedAudioUrl} download="fablevoice-audio.mp3" className="download-btn-blue">
+                      ⬇ Download MP3
+                    </a>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </main>
       )}
 
       {/* ==================================================================== */}
-      {/* 8. 🚀 MODAL: "+ CLONE NEW FAMILY VOICE"                              */}
+      {/* 4. 📖 TAB 2: SCREENPLAY WORKSHOP (MULTI-CHARACTER BEDTIME STORIES)   */}
+      {/* ==================================================================== */}
+      {activeNav === 'screenplay' && (
+        <main className="screenplay-tab-content fable-box">
+          <div className="screenplay-header">
+            <div>
+              <h2 className="screenplay-title">📖 Screenplay Workshop & Multi-Voice Story Generator</h2>
+              <p className="screenplay-sub">Generate personalized children's stories with different family voices assigned to each character.</p>
+            </div>
+            <button 
+              className="gold-studio-btn"
+              onClick={handleGenerateScreenplayScript}
+              disabled={generatingScript}
+              style={{ maxWidth: '240px' }}
+            >
+              {generatingScript ? '⏳ Generating Story...' : '✨ Generate Story Script'}
+            </button>
+          </div>
+
+          {/* Story Theme & Child Name Controls */}
+          <div className="story-controls-grid">
+            <div className="control-card">
+              <label className="input-label-uppercase">Story Theme</label>
+              <select 
+                className="dark-input-field"
+                value={storyTheme}
+                onChange={(e) => setStoryTheme(e.target.value)}
+              >
+                <option value="bedtime">🌙 Bedtime Voyage to Island of Dreams</option>
+                <option value="fantasy">✨ The Enchanted Star-Dragon</option>
+                <option value="adventure">🚀 The Secret Cloud Castle Adventure</option>
+              </select>
+            </div>
+
+            <div className="control-card">
+              <label className="input-label-uppercase">Child's Name (Hero)</label>
+              <input 
+                type="text"
+                className="dark-input-field"
+                value={childName}
+                onChange={(e) => setChildName(e.target.value)}
+                placeholder="e.g. Leo, Emma, Maya"
+              />
+            </div>
+          </div>
+
+          {/* Character Voice Assignment Matrix */}
+          <div className="character-matrix-section">
+            <h3 className="section-small-title">🎭 Character Voice Assignment</h3>
+            <div className="character-cards-grid">
+              {['Narrator', 'Mother', 'Father', 'Child', 'Wise Elder'].map((charName) => (
+                <div key={charName} className="character-assign-card">
+                  <div className="char-role-badge">{charName}</div>
+                  <select
+                    className="dark-input-field"
+                    value={screenplayCharacters[charName] || ''}
+                    onChange={(e) => setScreenplayCharacters({ ...screenplayCharacters, [charName]: e.target.value })}
+                  >
+                    {allAvailableVoices.map(v => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} ({v.relationship || v.category})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Generated Script Display & Synthesis Action */}
+          {screenplayScript && (
+            <div className="script-editor-container">
+              <div className="script-title-row">
+                <h3 className="story-title-highlight">📜 {screenplayScript.title}</h3>
+                <button 
+                  className="gold-studio-btn"
+                  onClick={handleSynthesizeScreenplay}
+                  disabled={synthesizingScreenplay}
+                  style={{ maxWidth: '280px' }}
+                >
+                  {synthesizingScreenplay ? '⏳ Synthesizing Multi-Voice Story...' : '⚡ Synthesize Full Screenplay Audio'}
+                </button>
+              </div>
+
+              <div className="dialogue-scenes-list">
+                {screenplayScript.scenes.map((scene, idx) => (
+                  <div key={idx} className="dialogue-scene-card">
+                    <div className="scene-speaker-tag">
+                      <strong>Scene {idx + 1}: {scene.character}</strong>
+                    </div>
+                    <p className="scene-dialogue-text">"{scene.text}"</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Synthesized Multi-Voice Audio Results */}
+              {screenplayAudioLines.length > 0 && (
+                <div className="synthesized-scenes-results">
+                  <h4 className="audio-results-header">🎧 Multi-Voice Generated Audio Clips ({screenplayAudioLines.length} Scenes Ready)</h4>
+                  <div className="scenes-audio-grid">
+                    {screenplayAudioLines.map((line, i) => (
+                      <div key={i} className="scene-audio-card">
+                        <span className="scene-num-badge">Scene {line.sceneIndex}: {line.character}</span>
+                        <audio controls src={line.url} style={{ width: '100%', marginTop: '6px' }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+      )}
+
+      {/* ==================================================================== */}
+      {/* 5. 🎼 TAB 3: SOUNDTRACK CONSOLE & AMBIENCE MIXER                    */}
+      {/* ==================================================================== */}
+      {activeNav === 'soundtrack' && (
+        <main className="soundtrack-tab-content fable-box">
+          <audio ref={soundtrackAudioRef} loop />
+
+          <div className="soundtrack-header">
+            <div>
+              <h2 className="screenplay-title">🎼 Soundtrack Console & Background Ambience Mixer</h2>
+              <p className="screenplay-sub">Mix calming lullabies and enchanted fairy-tale background tracks with your bedtime voiceover.</p>
+            </div>
+          </div>
+
+          {/* Ambience Mixer Controls */}
+          <div className="ambience-mixer-bar">
+            <div className="mixer-control-group">
+              <label>Background Ambience Volume: {Math.round(soundtrackVolume * 100)}%</label>
+              <input 
+                type="range" min="0.05" max="1.0" step="0.05"
+                className="fable-range"
+                value={soundtrackVolume}
+                onChange={(e) => {
+                  const vol = parseFloat(e.target.value);
+                  setSoundtrackVolume(vol);
+                  if (soundtrackAudioRef.current) soundtrackAudioRef.current.volume = vol;
+                }}
+              />
+            </div>
+
+            <div className="mixer-control-group auto-duck-toggle">
+              <label className="toggle-label">
+                <input 
+                  type="checkbox" 
+                  checked={autoDucking}
+                  onChange={(e) => setAutoDucking(e.target.checked)}
+                />
+                <span>✨ Voiceover Auto-Ducking (Ducks music 75% when voice speaks)</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Curated Soundtracks Grid */}
+          <div className="soundtracks-grid">
+            {soundtracks.map((st) => {
+              const isPlaying = playingSoundtrackId === st.id;
+              const isSelected = selectedSoundtrack?.id === st.id;
+              return (
+                <div key={st.id} className={`soundtrack-card ${isSelected ? 'selected-st-card' : ''}`}>
+                  <div className="st-info">
+                    <span className="st-cat-badge">{st.category}</span>
+                    <h3 className="st-title">{st.title}</h3>
+                    <p className="st-tempo">{st.tempo}</p>
+                    <p className="st-note">{st.previewNote}</p>
+                  </div>
+
+                  <div className="st-actions">
+                    <button 
+                      className={`st-play-btn ${isPlaying ? 'st-playing' : ''}`}
+                      onClick={() => toggleSoundtrackPlay(st)}
+                    >
+                      {isPlaying ? '⏹️ Pause Ambience' : '▶️ Play Preview'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+      )}
+
+      {/* TAB 4: SDK INTEGRATION */}
+      {activeNav === 'sdk' && (
+        <div className="fable-box placeholder-panel">
+          <h2>&lt;/&gt; SDK Integration & ElevenLabs API Endpoints</h2>
+          <p>Stream real-time voice synthesis directly into your mobile and web applications.</p>
+          <pre className="sdk-code-box">
+{`import { ElevenLabsClient } from "elevenlabs";
+
+const client = new ElevenLabsClient({ apiKey: "YOUR_API_KEY" });
+const audioStream = await client.textToSpeech.convert("${selectedVoiceId || '21m00Tcm4TlvDq8ikWAM'}", {
+  text: "Goodnight little one, sleep tight.",
+  model_id: "eleven_turbo_v2_5",
+  voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+});`}
+          </pre>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* 3. 🚀 MODAL: "+ CLONE NEW FAMILY VOICE" (WITH MULTI-SAMPLE BOOSTER) */}
       {/* ==================================================================== */}
       {showFamilyCloneModal && (
         <div className="modal-dark-overlay" onClick={() => setShowFamilyCloneModal(false)}>
@@ -819,7 +1262,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <span className="modal-head-icon">👨‍👩‍👧‍👦</span>
               <div>
                 <h2>Clone New Family Member Voice</h2>
-                <p>Upload a clear vocal recording to train a custom model and save to app & bucket storage.</p>
+                <p>Upload multi-sample vocal recordings to train a high-fidelity custom model.</p>
               </div>
             </div>
 
@@ -873,40 +1316,23 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              <div className="modal-two-col">
-                <div className="modal-form-group">
-                  <label>Accent</label>
-                  <input 
-                    type="text"
-                    placeholder="e.g. American, British, Australian"
-                    className="dark-input-field"
-                    value={familyForm.accent}
-                    onChange={(e) => setFamilyForm({ ...familyForm, accent: e.target.value })}
-                  />
-                </div>
-
-                <div className="modal-form-group">
-                  <label>Speaking Style</label>
-                  <input 
-                    type="text"
-                    placeholder="e.g. Warm Storyteller, Cheerful"
-                    className="dark-input-field"
-                    value={familyForm.style}
-                    onChange={(e) => setFamilyForm({ ...familyForm, style: e.target.value })}
-                  />
-                </div>
-              </div>
-
+              {/* 3. Multi-Sample Vocal Quality Booster Slots */}
               <div className="modal-form-group">
-                <label>📁 Vocal Sample File (MP3 / WAV / M4A) *</label>
-                <input 
-                  type="file"
-                  accept="audio/*"
-                  className="dark-file-input"
-                  onChange={(e) => setFamilyForm({ ...familyForm, sampleFile: e.target.files[0] || null })}
-                  required
-                />
-                <small className="file-hint-text">Upload 15–60 seconds of clean speech for best cloning quality.</small>
+                <label>🗂️ Multi-Sample Voice Booster (Upload 1–3 Audio Clips)</label>
+                <div className="sample-slots-grid">
+                  {sampleSlots.map((slot) => (
+                    <div key={slot.id} className="sample-slot-card">
+                      <span className="slot-title">{slot.label}</span>
+                      <input 
+                        type="file"
+                        accept="audio/*"
+                        className="slot-file-input"
+                        onChange={(e) => handleSampleSlotFile(slot.id, e.target.files[0] || null)}
+                      />
+                      {slot.name && <span className="slot-filename">✅ {slot.name}</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="modal-actions-row">

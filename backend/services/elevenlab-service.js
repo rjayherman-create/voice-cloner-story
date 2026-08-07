@@ -33,7 +33,6 @@ class ElevenLabsService {
   }
 
   async getVoices(includeCartoonOnly = false) {
-    // Fetch from API - always get fresh data to include user's custom voices
     try {
       const response = await fetch(`${this.baseUrl}/voices`, {
         method: 'GET',
@@ -50,7 +49,6 @@ class ElevenLabsService {
       const data = await response.json();
       const cartoonMapping = this.getCartoonVoiceMapping();
 
-      // Include ALL voices - premade, professional, and user-created
       const voices = (data.voices || []).map(voice => {
         const voiceLower = voice.name.toLowerCase();
         const cartoonInfo = cartoonMapping[voiceLower] || null;
@@ -59,43 +57,46 @@ class ElevenLabsService {
         return {
           id: voice.voice_id,
           name: voice.name,
-          category: isCloned ? 'family' : (cartoonInfo ? 'cartoon' : (voice.category || 'professional')),
+          category: isCloned ? 'family' : (cartoonInfo ? 'cartoon' : 'professional'),
+          description: voice.description || (cartoonInfo ? cartoonInfo.style : 'High quality voice model'),
+          previewUrl: voice.preview_url,
           isCloned: isCloned,
-          description: voice.description || '',
-          previewUrl: voice.preview_url || '',
-          labels: voice.labels || {},
-          cartoonStyle: cartoonInfo ? cartoonInfo.style : null,
-          cartoonCharacter: cartoonInfo ? cartoonInfo.cartoon : null,
-          cartoonName: cartoonInfo ? cartoonInfo.name : null
+          cartoonStyle: cartoonInfo ? cartoonInfo.cartoon : null,
+          labels: voice.labels || {
+            gender: voice.name.toLowerCase().includes('girl') || voice.name.toLowerCase().includes('woman') ? 'Female' : 'Male',
+            accent: 'American',
+            descriptive: cartoonInfo ? cartoonInfo.style : 'Professional'
+          },
+          samples: voice.samples || []
         };
       });
 
-      console.log(`Loaded ${voices.length} voices from ElevenLabs`);
-      return includeCartoonOnly 
-        ? this.filterCartoonVoices(voices)
-        : voices;
+      return includeCartoonOnly ? this.filterCartoonVoices(voices) : voices;
     } catch (error) {
-      console.error('Error fetching voices from ElevenLabs:', error);
-      throw new Error('Failed to fetch voices from ElevenLabs');
+      console.error('Error fetching voices from ElevenLabs API:', error);
+      throw error;
     }
   }
 
   async deleteVoice(voiceId) {
     try {
+      if (!this.apiKey) return false;
+
       const response = await fetch(`${this.baseUrl}/voices/${voiceId}`, {
         method: 'DELETE',
         headers: {
-          'xi-api-key': this.apiKey,
-          'Content-Type': 'application/json'
+          'xi-api-key': this.apiKey
         }
       });
 
-      if (!response.ok) {
-        console.warn(`ElevenLabs delete remote voice returned status ${response.status}`);
+      if (response.ok) {
+        console.log(`Successfully deleted voice ${voiceId} from ElevenLabs.`);
+        return true;
       } else {
-        console.log(`Deleted voice ${voiceId} from ElevenLabs`);
+        const err = await response.text();
+        console.warn(`ElevenLabs delete voice response (${response.status}): ${err}`);
+        return false;
       }
-      return true;
     } catch (error) {
       console.error(`Error deleting voice ${voiceId} from ElevenLabs:`, error);
       return false;
@@ -113,12 +114,24 @@ class ElevenLabsService {
 
   async synthesize(text, voiceId, options = {}) {
     try {
+      const stabilityVal = typeof options.stability === 'number' 
+        ? options.stability 
+        : this.mapEmotionToStability(options.emotion || 'neutral');
+
+      const similarityVal = typeof options.similarityBoost === 'number' 
+        ? options.similarityBoost 
+        : this.mapEmotionToSimilarity(options.emotion || 'neutral');
+
+      const styleVal = typeof options.style === 'number' ? options.style : 0.0;
+
       const payload = {
         text,
         model_id: options.modelId || 'eleven_turbo_v2_5',
         voice_settings: {
-          stability: this.mapEmotionToStability(options.emotion || 'neutral'),
-          similarity_boost: this.mapEmotionToSimilarity(options.emotion || 'neutral')
+          stability: stabilityVal,
+          similarity_boost: similarityVal,
+          style: styleVal,
+          use_speaker_boost: true
         }
       };
 
@@ -143,7 +156,6 @@ class ElevenLabsService {
         throw new Error(`ElevenLabs API error: ${errorMsg}`);
       }
 
-      // Get audio as buffer
       const audioBuffer = await response.arrayBuffer();
       return Buffer.from(audioBuffer);
     } catch (error) {
@@ -180,20 +192,9 @@ class ElevenLabsService {
 
   async getVoicePreview(voiceId) {
     try {
-      const response = await fetch(`${this.baseUrl}/voices/${voiceId}`, {
-        method: 'GET',
-        headers: {
-          'xi-api-key': this.apiKey,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get voice preview: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.preview_url || null;
+      const voices = await this.getVoices();
+      const voice = voices.find(v => v.id === voiceId);
+      return voice ? voice.previewUrl : null;
     } catch (error) {
       console.error('Error getting voice preview:', error);
       return null;
@@ -201,7 +202,7 @@ class ElevenLabsService {
   }
 
   isConfigured() {
-    return !!this.apiKey;
+    return Boolean(this.apiKey && this.apiKey.length > 5);
   }
 }
 

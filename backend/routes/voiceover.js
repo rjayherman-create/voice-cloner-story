@@ -16,67 +16,79 @@ const elevenLabsService = elevenLabsApiKey
   : null;
 
 console.log(`[VoiceOver] ElevenLabs API configured: ${elevenLabsService ? 'YES' : 'NO'}`);
-if (elevenLabsService) {
-  console.log(`[VoiceOver] API Key: ${elevenLabsApiKey.substring(0, 10)}...`);
-}
 
-// GET available voices (with optional category filter)
+// Curated Ambient Soundtracks for Bedtime & Children Stories
+const SOUNDTRACK_CATALOG = [
+  {
+    id: 'lullaby-harp',
+    title: 'Lullaby Harp & Celestial Strings',
+    category: 'Bedtime',
+    tempo: 'Slow & Gentle (60 BPM)',
+    previewNote: 'Soft soothing harp notes for restful bedtime sleep',
+    url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=soft-lullaby-piano-112199.mp3'
+  },
+  {
+    id: 'enchanted-forest',
+    title: 'Enchanted Forest Whispers',
+    category: 'Fantasy',
+    tempo: 'Atmospheric (72 BPM)',
+    previewNote: 'Gentle night breeze, twinkling chimes, and distant magical flutes',
+    url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8bbf73301.mp3?filename=magical-story-10339.mp3'
+  },
+  {
+    id: 'cosmic-wonder',
+    title: 'Starlight Music Box & Dreams',
+    category: 'Wonder',
+    tempo: 'Calm & Dreamy (64 BPM)',
+    previewNote: 'Delicate music box bells floating through starry skies',
+    url: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f792cb.mp3?filename=lullaby-music-box-12345.mp3'
+  },
+  {
+    id: 'gentle-rain-piano',
+    title: 'Gentle Rain & Cozy Piano',
+    category: 'Relaxation',
+    tempo: 'Serene (55 BPM)',
+    previewNote: 'Warm piano chords accompanied by soft rainfall',
+    url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_b287518596.mp3?filename=peaceful-piano-10707.mp3'
+  }
+];
+
+// GET available voices
 router.get('/voices', async (req, res) => {
   try {
     const { category } = req.query;
 
-    // ALWAYS try to fetch from ElevenLabs first if configured
     if (elevenLabsService && elevenLabsService.isConfigured()) {
       try {
-        console.log('[VoiceOver] Fetching voices from ElevenLabs API...');
         let voices = await elevenLabsService.getVoices();
-        console.log(`[VoiceOver] Successfully fetched ${voices.length} voices from ElevenLabs`);
-
-        // Filter by category if requested
         if (category) {
           voices = voices.filter(v => v.category === category);
         }
-
         return res.json(voices);
       } catch (err) {
         console.error('[VoiceOver] Error fetching ElevenLabs voices:', err.message);
-        // Fall through to default voices on error
       }
-    } else {
-      console.log('[VoiceOver] ElevenLabs not configured, using default voices');
     }
 
-    // Default voices (fallback if ElevenLabs not configured or errored)
+    // Default fallback voices
     let defaultVoices = [
       { 
-        id: 'default-male', 
-        name: 'Default Male', 
-        category: 'professional', 
-        description: 'Standard male voice',
+        id: 'default-female', 
+        name: 'Sarah - Bedtime Storyteller', 
+        category: 'family', 
+        description: 'Warm, soothing maternal voice profile',
         previewUrl: null,
-        labels: {
-          gender: 'Male',
-          accent: 'American',
-          descriptive: 'Professional'
-        }
+        labels: { gender: 'Female', accent: 'American', descriptive: 'Maternal Storyteller' }
       },
       { 
-        id: 'default-female', 
-        name: 'Default Female', 
+        id: 'default-male', 
+        name: 'Roger - Adventure Narrator', 
         category: 'professional', 
-        description: 'Standard female voice',
+        description: 'Deep, engaging fatherly voice profile',
         previewUrl: null,
-        labels: {
-          gender: 'Female',
-          accent: 'American',
-          descriptive: 'Professional'
-        }
+        labels: { gender: 'Male', accent: 'American', descriptive: 'Deep & Reassuring' }
       }
     ];
-
-    if (category) {
-      defaultVoices = defaultVoices.filter(v => v.category === category);
-    }
 
     res.json(defaultVoices);
   } catch (error) {
@@ -85,42 +97,54 @@ router.get('/voices', async (req, res) => {
   }
 });
 
-// GET voice preview URL
-router.get('/voices/:voiceId/preview', async (req, res) => {
-  try {
-    const { voiceId } = req.params;
+// GET soundtrack catalog
+router.get('/soundtracks', (req, res) => {
+  res.json(SOUNDTRACK_CATALOG);
+});
 
-    if (!elevenLabsService || !elevenLabsService.isConfigured()) {
-      return res.status(400).json({ error: 'ElevenLabs not configured' });
+// POST generate AI Screenplay Script
+router.post('/screenplay/generate-script', (req, res) => {
+  const { theme, characters, childName } = req.body;
+  const name = childName || 'Leo';
+
+  const storyThemes = {
+    'fantasy': {
+      title: `${name} and the Enchanted Star-Dragon`,
+      scenes: [
+        { character: 'Narrator', text: `Deep within the whispering sapphire woods, where fireflies glowed like little suns, young ${name} found a shimmering golden key tucked under a sleeping acorn.` },
+        { character: 'Child', text: `Look! It’s glowing! I wonder what magical door this key opens tonight...` },
+        { character: 'Wise Elder', text: `Hold tight to your courage, little traveler. The Star-Dragon only shares his light with those who have a kind and gentle heart.` },
+        { character: 'Narrator', text: `With a deep breath and a joyful smile, ${name} turned the key in the ancient oak tree, and the sky burst into a magnificent shower of peaceful starlight.` }
+      ]
+    },
+    'bedtime': {
+      title: `${name}’s Voyage to the Island of Dreams`,
+      scenes: [
+        { character: 'Narrator', text: `As twilight settled softly over the rooftops, the gentle night wind whispered a cozy lullaby to ${name}.` },
+        { character: 'Mother', text: `Close your eyes, my dear. The moon is painting the clouds in shades of silver and lavender, watching over your sweet dreams.` },
+        { character: 'Child', text: `Goodnight stars, goodnight moon, goodnight sleepy world...` },
+        { character: 'Narrator', text: `Wrapped in warm blankets, ${name} drifted peacefully off into the land where every adventure is filled with wonder, safe and sound.` }
+      ]
+    },
+    'adventure': {
+      title: `${name} and the Secret Cloud Castle`,
+      scenes: [
+        { character: 'Narrator', text: `High above the velvet mountains, a castle woven entirely of marshmallow clouds floated across the twilight sky.` },
+        { character: 'Father', text: `Ready for liftoff, captain? Grab your compass, tonight we chart a course for the Northern Constellations!` },
+        { character: 'Child', text: `Full speed ahead! I can already see the glowing rainbow bridge!` },
+        { character: 'Narrator', text: `Together, hand in hand, they soared through the sparkling clouds, laughing all the way home to bed.` }
+      ]
     }
+  };
 
-    const previewUrl = await elevenLabsService.getVoicePreview(voiceId);
-    res.json({ previewUrl });
-  } catch (error) {
-    console.error('Preview fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch preview' });
-  }
+  const selectedStory = storyThemes[theme] || storyThemes['bedtime'];
+  res.json(selectedStory);
 });
 
-// GET available emotions
-router.get('/emotions', (req, res) => {
-  const emotions = [
-    'neutral',
-    'happy',
-    'sad',
-    'angry',
-    'excited',
-    'calm',
-    'serious'
-  ];
-
-  res.json(emotions);
-});
-
-// POST generate voiceover with real audio file creation
+// POST generate voiceover with fine-tuned voice settings (stability, clarity, speed)
 router.post('/generate', async (req, res) => {
   try {
-    const { script, voice, emotion, format } = req.body;
+    const { script, voice, emotion, stability, similarityBoost, style, speed } = req.body;
 
     if (!script || !voice) {
       return res.status(400).json({ error: 'Script and voice are required' });
@@ -130,16 +154,17 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'ElevenLabs API not configured' });
     }
 
-    console.log(`[VoiceOver] Generating audio: voice=${voice}, emotion=${emotion}, chars=${script.length}`);
+    console.log(`[VoiceOver] Generating speech: voice=${voice}, chars=${script.length}, stability=${stability}, similarityBoost=${similarityBoost}`);
 
     try {
-      // Generate audio from ElevenLabs
       const audioBuffer = await elevenLabsService.synthesize(script, voice, {
         emotion: emotion || 'neutral',
+        stability: typeof stability === 'number' ? stability : 0.5,
+        similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
+        style: typeof style === 'number' ? style : 0.0,
         modelId: 'eleven_turbo_v2_5'
       });
 
-      // Save audio file
       const uploadsDir = path.join(__dirname, '../../uploads');
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
@@ -149,55 +174,24 @@ router.post('/generate', async (req, res) => {
       const filepath = path.join(uploadsDir, filename);
       fs.writeFileSync(filepath, audioBuffer);
 
-      console.log(`[VoiceOver] Audio file saved: ${filename} (${audioBuffer.length} bytes)`);
-
       return res.json({
         id: `vo-${Date.now()}`,
         filename,
         url: `/uploads/${filename}`,
         voice,
-        emotion: emotion || 'neutral',
         script,
         audioLength: audioBuffer.length,
-        duration: Math.ceil(script.length / 15),
+        duration: Math.ceil(script.length / 14),
         status: 'complete',
         createdAt: new Date().toISOString()
       });
     } catch (err) {
-      console.error('[VoiceOver] ElevenLabs generation error:', err);
-      return res.status(500).json({ error: 'Audio generation failed', details: err.message });
+      console.error('[VoiceOver] ElevenLabs synthesis error:', err);
+      return res.status(500).json({ error: 'Audio synthesis failed', details: err.message });
     }
   } catch (error) {
     console.error('Generation error:', error);
     res.status(500).json({ error: 'Voiceover generation failed' });
-  }
-});
-
-// POST text-to-speech conversion (streaming)
-router.post('/tts', async (req, res) => {
-  try {
-    const { text, voice, emotion } = req.body;
-
-    if (!text || !voice) {
-      return res.status(400).json({ error: 'Text and voice are required' });
-    }
-
-    if (!elevenLabsService || !elevenLabsService.isConfigured()) {
-      return res.status(400).json({ error: 'ElevenLabs API not configured' });
-    }
-
-    console.log(`[VoiceOver] TTS request: voice=${voice}, chars=${text.length}`);
-
-    const audioBuffer = await elevenLabsService.synthesize(text, voice, {
-      emotion: emotion || 'neutral'
-    });
-
-    res.set('Content-Type', 'audio/mpeg');
-    res.set('Content-Length', audioBuffer.length);
-    res.send(audioBuffer);
-  } catch (error) {
-    console.error('TTS error:', error);
-    res.status(500).json({ error: 'TTS conversion failed' });
   }
 });
 
