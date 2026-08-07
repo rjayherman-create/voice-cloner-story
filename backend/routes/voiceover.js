@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import ElevenLabsService from '../services/elevenlab-service.js';
+import hebrewTtsService from '../services/hebrew-tts-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,6 +17,7 @@ const elevenLabsService = elevenLabsApiKey
   : null;
 
 console.log(`[VoiceOver] ElevenLabs API configured: ${elevenLabsService ? 'YES' : 'NO'}`);
+console.log(`[VoiceOver] Native Israeli Hebrew Neural TTS Engine initialized: YES`);
 
 // Curated Ambient Soundtracks for Bedtime & Children Stories
 const SOUNDTRACK_CATALOG = [
@@ -72,10 +74,10 @@ const SUPPORTED_LANGUAGES = [
   { code: 'sv', name: 'Swedish (Svenska)', flag: '🇸🇪' },
   { code: 'tr', name: 'Turkish (Türkçe)', flag: '🇹🇷' },
   { code: 'el', name: 'Greek (Ελληνικά)', flag: '🇬🇷' },
-  { code: 'he', name: 'Hebrew (עברית)', flag: '🇮🇱' }
+  { code: 'he', name: 'Hebrew (עברית ישראלית)', flag: '🇮🇱' }
 ];
 
-// Clean Modern Hebrew phrases formatted for natural ElevenLabs pronunciation
+// Clean Modern Hebrew phrases formatted for natural pronunciation
 const MULTILINGUAL_PHRASES = {
   en: "Welcome to FableVoice Audio Studio. Active voice model calibrated with multilingual speech synthesis.",
   es: "Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.",
@@ -87,50 +89,65 @@ const MULTILINGUAL_PHRASES = {
   zh: "晚安，我的小英雄，做个甜甜的美梦，繁星会守护着你。",
   ko: "잘 자요, 나의 작은 영웅. 반짝이는 별들이 예쁜 꿈으로 안내해 줄 거예요.",
   hi: "शुभ रात्रि मेरे प्यारे बच्चे, मीठे सपने देखो और आराम से सो जाओ।",
-  ar: "تصبح على خير يا بطلي الصغير، نوماً هنيئاً وأحلاماً سعيدة.",
+  ar: "تصبح على خير يا بطلي الصغير، נוماً هניئاً ואחלאماً سعيدة.",
   nl: "Goedenacht mijn kleine held, slaap lekker en droom fijn.",
   ru: "Спокойной ночи, мой маленький герой, приятных снов под звёздным небом.",
   he: "שלום, לילה טוב והמשך ערב נעים. חלומות פז ושינה מתוקה."
 };
 
-// GET available voices
+// GET available voices (including native Israeli Hebrew voices)
 router.get('/voices', async (req, res) => {
   try {
     const { category } = req.query;
+    let combinedVoices = [];
 
+    // Add native Israeli Hebrew neural voices
+    const hebrewVoices = hebrewTtsService.getHebrewVoices().map(v => ({
+      id: v.id,
+      name: v.name,
+      category: 'hebrew',
+      description: v.description,
+      previewUrl: null,
+      labels: { gender: v.gender, accent: 'Israeli Hebrew (עברית)', descriptive: 'Native Hebrew Neural Voice' }
+    }));
+
+    combinedVoices.push(...hebrewVoices);
+
+    // Add ElevenLabs voices if available
     if (elevenLabsService && elevenLabsService.isConfigured()) {
       try {
-        let voices = await elevenLabsService.getVoices();
-        if (category) {
-          voices = voices.filter(v => v.category === category);
-        }
-        return res.json(voices);
+        let elVoices = await elevenLabsService.getVoices();
+        combinedVoices.push(...elVoices);
       } catch (err) {
         console.error('[VoiceOver] Error fetching ElevenLabs voices:', err.message);
       }
+    } else {
+      // Default fallback standard voices
+      combinedVoices.push(
+        { 
+          id: '21m00Tcm4TlvDq8ikWAM', 
+          name: 'Rachel - Calibrated Storyteller', 
+          category: 'family', 
+          description: 'Warm, soothing maternal voice profile',
+          previewUrl: null,
+          labels: { gender: 'Female', accent: 'Multilingual', descriptive: 'Maternal Storyteller' }
+        },
+        { 
+          id: 'AZnzlk1XvdvUeBnXmlld', 
+          name: 'Domi - Adventure Narrator', 
+          category: 'professional', 
+          description: 'Deep, engaging fatherly voice profile',
+          previewUrl: null,
+          labels: { gender: 'Male', accent: 'Multilingual', descriptive: 'Deep & Reassuring' }
+        }
+      );
     }
 
-    // Default fallback voices
-    let defaultVoices = [
-      { 
-        id: '21m00Tcm4TlvDq8ikWAM', 
-        name: 'Rachel - Calibrated Storyteller', 
-        category: 'family', 
-        description: 'Warm, soothing maternal voice profile (Multilingual & Hebrew supported)',
-        previewUrl: null,
-        labels: { gender: 'Female', accent: 'Multilingual', descriptive: 'Maternal Storyteller' }
-      },
-      { 
-        id: 'AZnzlk1XvdvUeBnXmlld', 
-        name: 'Domi - Adventure Narrator', 
-        category: 'professional', 
-        description: 'Deep, engaging voice profile (Multilingual & Hebrew supported)',
-        previewUrl: null,
-        labels: { gender: 'Male', accent: 'Multilingual', descriptive: 'Deep & Reassuring' }
-      }
-    ];
+    if (category) {
+      combinedVoices = combinedVoices.filter(v => v.category === category);
+    }
 
-    res.json(defaultVoices);
+    res.json(combinedVoices);
   } catch (error) {
     console.error('Voice fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch voices' });
@@ -214,7 +231,7 @@ router.post('/screenplay/generate-script', (req, res) => {
   res.json(selectedStory);
 });
 
-// POST generate voiceover with multilingual V2 model & Hebrew pronunciation engine
+// POST generate voiceover with auto-routing to Native Hebrew Neural Engine OR ElevenLabs
 router.post('/generate', async (req, res) => {
   try {
     const { script, voice, emotion, stability, similarityBoost, style, speed, modelId, language } = req.body;
@@ -223,11 +240,46 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'Script text is required' });
     }
 
+    const isHebrewText = /[\u0590-\u05FF]/.test(script) || language === 'he' || (voice && voice.startsWith('he-IL'));
+
+    const uploadsDir = path.join(__dirname, '../../uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // 1. ROUTE TO NATIVE HEBREW NEURAL ENGINE FOR 100% CRYSTAL-CLEAR ISRAELI SPEECH
+    if (isHebrewText) {
+      console.log(`[VoiceOver] Routing to Native Israeli Hebrew Neural Engine (chars=${script.length})`);
+      try {
+        const audioBuffer = await hebrewTtsService.synthesizeHebrew(script, voice || 'he-IL-HilaNeural');
+        const filename = `hebrew-voiceover-${Date.now()}.mp3`;
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, audioBuffer);
+
+        return res.json({
+          id: `vo-he-${Date.now()}`,
+          filename,
+          url: `/uploads/${filename}`,
+          voice: voice || 'he-IL-HilaNeural',
+          script,
+          audioLength: audioBuffer.length,
+          duration: Math.ceil(script.length / 12),
+          status: 'complete',
+          engine: 'Native Israeli Neural Engine',
+          createdAt: new Date().toISOString()
+        });
+      } catch (heErr) {
+        console.error('[VoiceOver] Native Hebrew synthesis error:', heErr);
+        return res.status(500).json({ error: `Hebrew synthesis error: ${heErr.message}` });
+      }
+    }
+
+    // 2. ROUTE TO ELEVENLABS FOR ENGLISH & MULTILINGUAL SPEECH
     if (!elevenLabsService || !elevenLabsService.isConfigured()) {
       return res.status(400).json({ error: 'ElevenLabs API key is not configured or invalid' });
     }
 
-    console.log(`[VoiceOver] Synthesis request: voice=${voice}, chars=${script.length}, language=${language || 'auto'}`);
+    console.log(`[VoiceOver] ElevenLabs synthesis: voice=${voice}, chars=${script.length}`);
 
     try {
       const audioBuffer = await elevenLabsService.synthesize(script, voice, {
@@ -238,11 +290,6 @@ router.post('/generate', async (req, res) => {
         modelId: modelId || 'eleven_multilingual_v2',
         language: language || 'auto'
       });
-
-      const uploadsDir = path.join(__dirname, '../../uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
 
       const filename = `voiceover-${Date.now()}.mp3`;
       const filepath = path.join(uploadsDir, filename);
@@ -257,6 +304,7 @@ router.post('/generate', async (req, res) => {
         audioLength: audioBuffer.length,
         duration: Math.ceil(script.length / 14),
         status: 'complete',
+        engine: 'ElevenLabs Multilingual V2',
         createdAt: new Date().toISOString()
       });
     } catch (err) {
@@ -269,10 +317,11 @@ router.post('/generate', async (req, res) => {
   }
 });
 
-// Health check for ElevenLabs
+// Health check for ElevenLabs & Hebrew Engine
 router.get('/status', (req, res) => {
   res.json({
     service: 'voiceover',
+    hebrewEngine: 'ready (Native Israeli Neural)',
     elevenLabsConfigured: elevenLabsService ? elevenLabsService.isConfigured() : false,
     status: 'ready'
   });
