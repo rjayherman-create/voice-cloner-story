@@ -19,11 +19,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [selectedVoiceId, setSelectedVoiceId] = useState('he-IL-HilaNeural');
   const [loading, setLoading] = useState(true);
 
-  // Hebrew Category Filter: 'all', 'adult_male', 'adult_female', 'female_child', 'male_child'
+  // Collapsible toggle for Hebrew Library (at the bottom of the page)
+  const [isHebrewExpanded, setIsHebrewExpanded] = useState(false);
   const [hebrewFilter, setHebrewFilter] = useState('all');
   const [hebrewSearch, setHebrewSearch] = useState('');
 
-  // Collapsible toggle for voice library
+  // Collapsible toggle for ElevenLabs library
   const [isElevenLabsExpanded, setIsElevenLabsExpanded] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
 
@@ -42,7 +43,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [voiceSimilarity, setVoiceSimilarity] = useState(0.75);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
 
-  // 🌐 Multilingual & Hebrew states (Hebrew positioned last)
+  // 🌐 Multilingual states (Hebrew positioned last)
   const [selectedLanguage, setSelectedLanguage] = useState('he');
   const [supportedLanguages, setSupportedLanguages] = useState([
     { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
@@ -641,7 +642,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   });
 
   const activeVoiceObj = hebrewVoices.find(v => v.id === selectedVoiceId) || familyVoices.find(v => v.id === selectedVoiceId) || elevenLabsVoices.find(v => v.id === selectedVoiceId) || hebrewVoices[0];
-  const allAvailableVoices = [...hebrewVoices, ...familyVoices, ...elevenLabsVoices];
+  const allAvailableVoices = [...familyVoices, ...hebrewVoices, ...elevenLabsVoices];
 
   return (
     <div className="fable-studio-page">
@@ -658,7 +659,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <span className="brand-text-main">FableVoice</span>
               <span className="brand-badge-yellow">AUDIO STUDIO</span>
             </div>
-            <div className="brand-text-sub">30 NATIVE ISRAELI HEBREW VOICES & CLONING CONSOLE</div>
+            <div className="brand-text-sub">HEBREW VOICE CLONING & MULTILINGUAL CONSOLE</div>
           </div>
         </div>
 
@@ -691,16 +692,16 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </header>
 
       {/* ==================================================================== */}
-      {/* TAB 1: VOICE STUDIO                                                  */}
+      {/* TAB 1: VOICE STUDIO (TOP: RECORDER & DEDICATED FAMILY LIBRARY)       */}
       {/* ==================================================================== */}
       {activeNav === 'studio' && (
         <main className="studio-tab-content">
           {/* STUDIO RACK 01 BANNER */}
           <div className="studio-rack-banner">
             <div className="rack-info">
-              <div className="rack-label">STUDIO RACK 01 • 30 NATIVE HEBREW VOICES & CLONING SUITE</div>
-              <h1 className="rack-title">30 Israeli Hebrew Voice Models & AI Voice Cloner</h1>
-              <p className="rack-subtitle">10 Adult Males, 10 Adult Females, 5 Female Children, and 5 Male Children with 100% authentic Israeli pronunciation.</p>
+              <div className="rack-label">STUDIO RACK 01 • HEBREW CLONED VOICE BRIDGE</div>
+              <h1 className="rack-title">Hebrew Voice Cloner & Speech Synthesizer</h1>
+              <p className="rack-subtitle">Capture vocal samples to clone family members and synthesize authentic Israeli Hebrew with zero distortion.</p>
             </div>
 
             <div className="rack-actions">
@@ -714,112 +715,26 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 className={`rack-mode-btn ${mode === 'elevenlabs' ? 'active-gold-mode' : ''}`}
                 onClick={() => setMode('elevenlabs')}
               >
-                <span className="btn-key">🇮🇱</span> 30 Israeli Hebrew Voices
+                <span className="btn-key">🇮🇱</span> Hebrew Voice Cloner
               </button>
             </div>
           </div>
 
-          {/* 🇮🇱 30 NATIVE ISRAELI HEBREW VOICE MODELS (10 MALE, 10 FEMALE, 5 GIRLS, 5 BOYS) */}
-          <section className="fable-box dedicated-family-section" style={{ border: '1.5px solid #3b82f6', marginBottom: '24px' }}>
-            <div className="family-header-row">
-              <div className="family-title-group">
-                <span className="family-icon-glow">🇮🇱</span>
-                <div>
-                  <h2 className="family-section-title">30 Native Israeli Hebrew Voice Models (עברית ישראלית)</h2>
-                  <p className="family-section-subtitle">10 Adult Males • 10 Adult Females • 5 Female Children • 5 Male Children</p>
-                </div>
-              </div>
-
-              <div className="family-header-actions">
-                <span className="family-counter-badge" style={{ background: '#1e3a8a', borderColor: '#3b82f6' }}>
-                  {hebrewVoices.length} ISRAELI VOICES ACTIVE
-                </span>
-              </div>
+          {/* ELEVENLABS API KEY BANNER */}
+          <div className="api-key-banner">
+            <div className="api-key-label">
+              <span className="key-icon">🔑</span> ELEVENLABS API KEY & CLONED VOICES
             </div>
-
-            {/* Hebrew Category Filter Tabs */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px', alignItems: 'center' }}>
-              <button 
-                className={`nav-pill-btn ${hebrewFilter === 'all' ? 'active-pill' : ''}`}
-                style={{ fontSize: '11px', padding: '6px 12px' }}
-                onClick={() => setHebrewFilter('all')}
-              >
-                🌟 All 30 Voices (הכל)
-              </button>
-              <button 
-                className={`nav-pill-btn ${hebrewFilter === 'adult_male' ? 'active-pill' : ''}`}
-                style={{ fontSize: '11px', padding: '6px 12px' }}
-                onClick={() => setHebrewFilter('adult_male')}
-              >
-                👨 10 Adult Males (גברים / אבות)
-              </button>
-              <button 
-                className={`nav-pill-btn ${hebrewFilter === 'adult_female' ? 'active-pill' : ''}`}
-                style={{ fontSize: '11px', padding: '6px 12px' }}
-                onClick={() => setHebrewFilter('adult_female')}
-              >
-                👩 10 Adult Females (נשים / אמהות)
-              </button>
-              <button 
-                className={`nav-pill-btn ${hebrewFilter === 'female_child' ? 'active-pill' : ''}`}
-                style={{ fontSize: '11px', padding: '6px 12px' }}
-                onClick={() => setHebrewFilter('female_child')}
-              >
-                👧 5 Female Children (ילדות / בנות)
-              </button>
-              <button 
-                className={`nav-pill-btn ${hebrewFilter === 'male_child' ? 'active-pill' : ''}`}
-                style={{ fontSize: '11px', padding: '6px 12px' }}
-                onClick={() => setHebrewFilter('male_child')}
-              >
-                👦 5 Male Children (ילדים / בנים)
-              </button>
-
-              <div style={{ marginLeft: 'auto', minWidth: '220px' }}>
-                <input
-                  type="text"
-                  placeholder="🔍 Search 30 Hebrew voices..."
-                  className="dark-input-field"
-                  style={{ padding: '6px 10px', fontSize: '11px' }}
-                  value={hebrewSearch}
-                  onChange={(e) => setHebrewSearch(e.target.value)}
-                />
-              </div>
+            <div className="api-key-input-wrapper">
+              <input
+                type="password"
+                className="api-key-input"
+                placeholder="Paste XI-API-Key (Optional for English/Multi)..."
+                value={apiKeyInput}
+                onChange={handleSaveApiKey}
+              />
             </div>
-
-            <div className="three-col-profile-grid">
-              {filteredHebrewVoices.map((v) => {
-                const isSelected = v.id === selectedVoiceId;
-                return (
-                  <div 
-                    key={v.id}
-                    className={`profile-card-item family-card-highlight ${isSelected ? 'selected-gold-card' : ''}`}
-                    onClick={() => handleSelectModel(v)}
-                  >
-                    <div className="profile-card-top">
-                      <div>
-                        <span className="relationship-tag-pill" style={{ background: '#1d4ed8' }}>🇮🇱 {v.relationship}</span>
-                        <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
-                      </div>
-
-                      {isSelected ? (
-                        <span className="badge-selected-green">
-                          <span className="green-dot"></span> SELECTED
-                        </span>
-                      ) : (
-                        <button className="btn-select-gold">SELECT</button>
-                      )}
-                    </div>
-
-                    <p className="family-card-desc">{v.description}</p>
-                    <div className="profile-card-bottom">
-                      <span className="meta-date-tag">{v.groupLabel}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          </div>
 
           {/* 2-COLUMN STUDIO PANELS: CAPTURE & AI VOICE TRAINER */}
           <div className="studio-two-col-grid">
@@ -860,7 +775,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             <div className="fable-box trainer-box">
               <div className="trainer-header-row">
                 <span className="calibrator-label">VOICE CALIBRATOR</span>
-                <span className="status-ready-label">STATUS: 30 HEBREW VOICES READY</span>
+                <span className="status-ready-label">STATUS: HEBREW CLONING READY</span>
               </div>
 
               <h2 className="box-title" style={{ marginTop: '4px', marginBottom: '16px' }}>
@@ -910,14 +825,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
             </div>
           </div>
 
-          {/* DEDICATED FAMILY MEMBER VOICE LIBRARY */}
+          {/* DEDICATED FAMILY MEMBER VOICE LIBRARY (ALWAYS VISIBLE AT TOP) */}
           <section className="fable-box dedicated-family-section">
             <div className="family-header-row">
               <div className="family-title-group">
                 <span className="family-icon-glow">👨‍👩‍👧‍👦</span>
                 <div>
                   <h2 className="family-section-title">Dedicated Family Member Voice Library</h2>
-                  <p className="family-section-subtitle">Persistent cloned family voices that can speak fluent Hebrew & English via the Hebrew Cloned Voice Bridge</p>
+                  <p className="family-section-subtitle">Persistent cloned family voices that speak fluent Hebrew & English via the Hebrew Cloned Voice Bridge</p>
                 </div>
               </div>
 
@@ -1002,7 +917,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
           {/* 2. LIVE TTS PREVIEW CONSOLE */}
           {activeVoiceObj && (
-            <section className="fable-box tts-console-box">
+            <section className="fable-box tts-console-box" style={{ marginBottom: '24px' }}>
               <div className="tts-console-header">
                 <h3>🎙️ Live Calibration Console: {activeVoiceObj.name}</h3>
                 <span className="profile-id-tag">ID: {activeVoiceObj.voiceId || activeVoiceObj.id}</span>
@@ -1122,6 +1037,223 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
             </section>
           )}
+
+          {/* ================================================================ */}
+          {/* 🇮🇱 COLLAPSIBLE 30 NATIVE HEBREW VOICES LIBRARY (AT BOTTOM)       */}
+          {/* ================================================================ */}
+          <section className="fable-box active-library-box collapsible-catalog-box" style={{ border: '1.5px solid #3b82f6', marginBottom: '20px' }}>
+            <div 
+              className="active-library-header-row clickable-accordion-header"
+              onClick={() => setIsHebrewExpanded(!isHebrewExpanded)}
+            >
+              <div className="library-title-group">
+                <span className="db-icon">🇮🇱</span>
+                <div>
+                  <h2 className="library-section-title">30 Native Israeli Hebrew Voice Library (עברית ישראלית)</h2>
+                  <p className="catalog-subtitle-text">10 Adult Males • 10 Adult Females • 5 Female Children • 5 Male Children</p>
+                </div>
+              </div>
+
+              <div className="catalog-header-right">
+                <span className="profiles-loaded-counter" style={{ background: '#1e3a8a', borderColor: '#3b82f6' }}>
+                  {hebrewVoices.length} ISRAELI VOICES
+                </span>
+                <button className="accordion-toggle-pill-btn">
+                  {isHebrewExpanded ? '▲ Collapse Hebrew Library' : `▼ Expand Hebrew Library (${hebrewVoices.length} Voices)`}
+                </button>
+              </div>
+            </div>
+
+            {/* Collapsed Preview Bar */}
+            {!isHebrewExpanded && (
+              <div 
+                className="catalog-collapsed-banner"
+                onClick={() => setIsHebrewExpanded(true)}
+              >
+                <span>🇮🇱 30 Native Israeli Hebrew voices (Males, Females, Girls & Boys) are ready.</span>
+                <strong className="click-to-expand-gold">Click to open 30 Hebrew voice models →</strong>
+              </div>
+            )}
+
+            {/* Expanded Hebrew Grid */}
+            {isHebrewExpanded && (
+              <div className="expanded-catalog-body">
+                {/* Hebrew Category Filter Tabs */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px', alignItems: 'center' }}>
+                  <button 
+                    className={`nav-pill-btn ${hebrewFilter === 'all' ? 'active-pill' : ''}`}
+                    style={{ fontSize: '11px', padding: '6px 12px' }}
+                    onClick={() => setHebrewFilter('all')}
+                  >
+                    🌟 All 30 Voices (הכל)
+                  </button>
+                  <button 
+                    className={`nav-pill-btn ${hebrewFilter === 'adult_male' ? 'active-pill' : ''}`}
+                    style={{ fontSize: '11px', padding: '6px 12px' }}
+                    onClick={() => setHebrewFilter('adult_male')}
+                  >
+                    👨 10 Adult Males (גברים)
+                  </button>
+                  <button 
+                    className={`nav-pill-btn ${hebrewFilter === 'adult_female' ? 'active-pill' : ''}`}
+                    style={{ fontSize: '11px', padding: '6px 12px' }}
+                    onClick={() => setHebrewFilter('adult_female')}
+                  >
+                    👩 10 Adult Females (נשים)
+                  </button>
+                  <button 
+                    className={`nav-pill-btn ${hebrewFilter === 'female_child' ? 'active-pill' : ''}`}
+                    style={{ fontSize: '11px', padding: '6px 12px' }}
+                    onClick={() => setHebrewFilter('female_child')}
+                  >
+                    👧 5 Female Children (ילדות)
+                  </button>
+                  <button 
+                    className={`nav-pill-btn ${hebrewFilter === 'male_child' ? 'active-pill' : ''}`}
+                    style={{ fontSize: '11px', padding: '6px 12px' }}
+                    onClick={() => setHebrewFilter('male_child')}
+                  >
+                    👦 5 Male Children (ילדים)
+                  </button>
+
+                  <div style={{ marginLeft: 'auto', minWidth: '220px' }}>
+                    <input
+                      type="text"
+                      placeholder="🔍 Search Hebrew voices..."
+                      className="dark-input-field"
+                      style={{ padding: '6px 10px', fontSize: '11px' }}
+                      value={hebrewSearch}
+                      onChange={(e) => setHebrewSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="three-col-profile-grid">
+                  {filteredHebrewVoices.map((v) => {
+                    const isSelected = v.id === selectedVoiceId;
+                    return (
+                      <div 
+                        key={v.id}
+                        className={`profile-card-item family-card-highlight ${isSelected ? 'selected-gold-card' : ''}`}
+                        onClick={() => handleSelectModel(v)}
+                      >
+                        <div className="profile-card-top">
+                          <div>
+                            <span className="relationship-tag-pill" style={{ background: '#1d4ed8' }}>🇮🇱 {v.relationship}</span>
+                            <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
+                          </div>
+
+                          {isSelected ? (
+                            <span className="badge-selected-green">
+                              <span className="green-dot"></span> SELECTED
+                            </span>
+                          ) : (
+                            <button className="btn-select-gold">SELECT</button>
+                          )}
+                        </div>
+
+                        <p className="family-card-desc">{v.description}</p>
+                        <div className="profile-card-bottom">
+                          <span className="meta-date-tag">{v.groupLabel}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* COLLAPSIBLE ELEVENLABS PRESET CATALOG (AT BOTTOM) */}
+          <section className="fable-box active-library-box collapsible-catalog-box">
+            <div 
+              className="active-library-header-row clickable-accordion-header"
+              onClick={() => setIsElevenLabsExpanded(!isElevenLabsExpanded)}
+            >
+              <div className="library-title-group">
+                <span className="db-icon">🗃️</span>
+                <div>
+                  <h2 className="library-section-title">Active Voice Model Library</h2>
+                  <p className="catalog-subtitle-text">Standard ElevenLabs preset voice catalog</p>
+                </div>
+              </div>
+
+              <div className="catalog-header-right">
+                <span className="profiles-loaded-counter">
+                  {elevenLabsVoices.length} PROFILES LOADED
+                </span>
+                <button className="accordion-toggle-pill-btn">
+                  {isElevenLabsExpanded ? '▲ Collapse Library' : `▼ Expand Library (${elevenLabsVoices.length} Voices)`}
+                </button>
+              </div>
+            </div>
+
+            {/* Collapsed Preview Bar */}
+            {!isElevenLabsExpanded && (
+              <div 
+                className="catalog-collapsed-banner"
+                onClick={() => setIsElevenLabsExpanded(true)}
+              >
+                <span>📁 ElevenLabs library is collapsed to keep your workspace clear.</span>
+                <strong className="click-to-expand-gold">Click to open all {elevenLabsVoices.length} profiles →</strong>
+              </div>
+            )}
+
+            {/* Expanded Grid */}
+            {isElevenLabsExpanded && (
+              <div className="expanded-catalog-body">
+                <div className="catalog-search-row">
+                  <input
+                    type="text"
+                    placeholder="🔍 Search ElevenLabs profiles by name or attribute..."
+                    className="dark-input-field"
+                    value={catalogSearch}
+                    onChange={(e) => setCatalogSearch(e.target.value)}
+                    style={{ maxWidth: '450px' }}
+                  />
+                </div>
+
+                {loading ? (
+                  <div className="loading-profiles-state">Loading ElevenLabs Voice Models...</div>
+                ) : (
+                  <div className="three-col-profile-grid">
+                    {filteredElevenLabs.map((p) => {
+                      const isSelected = p.id === selectedVoiceId;
+                      return (
+                        <div 
+                          key={p.id}
+                          className={`profile-card-item ${isSelected ? 'selected-gold-card' : ''}`}
+                          onClick={() => handleSelectModel(p)}
+                        >
+                          <div className="profile-card-top">
+                            <h3 className="profile-title-text">{p.name}</h3>
+
+                            {isSelected ? (
+                              <span className="badge-selected-green">
+                                <span className="green-dot"></span> SELECTED
+                              </span>
+                            ) : (
+                              <button className="btn-select-gold">SELECT</button>
+                            )}
+                          </div>
+
+                          <div className="profile-card-bottom">
+                            <span className="meta-date-tag">{p.date} ({p.source})</span>
+                          </div>
+
+                          {p.previewUrl && (
+                            <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
+                              <audio controls src={p.previewUrl} className="profile-audio" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
         </main>
       )}
 
@@ -1186,7 +1318,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
           {/* Character Voice Assignment Matrix */}
           <div className="character-matrix-section">
-            <h3 className="section-small-title">🎭 Character Voice Assignment (Select from 30 Hebrew Voices)</h3>
+            <h3 className="section-small-title">🎭 Character Voice Assignment (Select from 30 Hebrew Voices & Cloned Voices)</h3>
             <div className="character-cards-grid">
               {['Narrator', 'Mother', 'Father', 'Child', 'Wise Elder'].map((charName) => (
                 <div key={charName} className="character-assign-card">
@@ -1338,7 +1470,7 @@ const response = await fetch("/api/voiceover/generate", {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     script: "שלום ילד שלי, לילה טוב וחלומות פז.",
-    voice: "he-IL-HilaNeural", // or he-IL-AvriNeural, he-IL-DanielChild, etc.
+    voice: "he-IL-HilaNeural",
     language: "he"
   })
 });
