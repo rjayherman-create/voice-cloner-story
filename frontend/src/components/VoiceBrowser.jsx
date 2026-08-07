@@ -15,38 +15,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
   // Dedicated Family Voices & Catalog presets
   const [familyVoices, setFamilyVoices] = useState([]);
   const [elevenLabsVoices, setElevenLabsVoices] = useState([]);
-  const [hebrewVoices, setHebrewVoices] = useState([
-    {
-      id: 'he-IL-HilaNeural',
-      voiceId: 'he-IL-HilaNeural',
-      name: 'הילה (Hila) - Israeli Maternal Voice',
-      relationship: 'Mother (אמא)',
-      gender: 'Female',
-      accent: 'Israeli Hebrew (עברית ישראלית)',
-      description: 'Warm, authentic native Israeli motherly bedtime reading voice',
-      previewUrl: null,
-      date: '8/7/2026',
-      source: 'native hebrew',
-      isCloned: false,
-      category: 'hebrew'
-    },
-    {
-      id: 'he-IL-AvriNeural',
-      voiceId: 'he-IL-AvriNeural',
-      name: 'אברי (Avri) - Israeli Father & Narrator',
-      relationship: 'Father (אבא)',
-      gender: 'Male',
-      accent: 'Israeli Hebrew (עברית ישראלית)',
-      description: 'Deep, engaging native Israeli narrator and storyteller',
-      previewUrl: null,
-      date: '8/7/2026',
-      source: 'native hebrew',
-      isCloned: false,
-      category: 'hebrew'
-    }
-  ]);
+  const [hebrewVoices, setHebrewVoices] = useState([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState('he-IL-HilaNeural');
   const [loading, setLoading] = useState(true);
+
+  // Hebrew Category Filter: 'all', 'adult_male', 'adult_female', 'female_child', 'male_child'
+  const [hebrewFilter, setHebrewFilter] = useState('all');
+  const [hebrewSearch, setHebrewSearch] = useState('');
 
   // Collapsible toggle for voice library
   const [isElevenLabsExpanded, setIsElevenLabsExpanded] = useState(false);
@@ -129,9 +104,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [screenplayCharacters, setScreenplayCharacters] = useState({
     Narrator: 'he-IL-AvriNeural',
     Mother: 'he-IL-HilaNeural',
-    Father: 'he-IL-AvriNeural',
-    Child: 'he-IL-HilaNeural',
-    'Wise Elder': 'he-IL-AvriNeural'
+    Father: 'he-IL-YonatanNeural',
+    Child: 'he-IL-DanielChild',
+    'Wise Elder': 'he-IL-DoronNeural'
   });
   const [screenplayScript, setScreenplayScript] = useState(null);
   const [generatingScript, setGeneratingScript] = useState(false);
@@ -206,7 +181,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
         category: 'family'
       })) : [];
 
-      // Process voices from server
+      // Process 30 Native Hebrew voices from server
       const heList = Array.isArray(elData) ? elData.filter(v => v.category === 'hebrew' || v.id.startsWith('he-IL')) : [];
       const elList = Array.isArray(elData) ? elData.filter(v => v.category !== 'hebrew' && !v.id.startsWith('he-IL')) : [];
 
@@ -650,6 +625,15 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
+  // Filter 30 Hebrew Voices by Group (10 Males, 10 Females, 5 Girls, 5 Boys)
+  const filteredHebrewVoices = hebrewVoices.filter(v => {
+    const matchesFilter = hebrewFilter === 'all' || v.group === hebrewFilter;
+    const matchesSearch = !hebrewSearch.trim() || 
+      v.name.toLowerCase().includes(hebrewSearch.toLowerCase()) || 
+      v.description.toLowerCase().includes(hebrewSearch.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
   const filteredElevenLabs = elevenLabsVoices.filter(v => {
     if (!catalogSearch.trim()) return true;
     const q = catalogSearch.toLowerCase();
@@ -674,7 +658,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <span className="brand-text-main">FableVoice</span>
               <span className="brand-badge-yellow">AUDIO STUDIO</span>
             </div>
-            <div className="brand-text-sub">HEBREW VOICE CLONING & MULTILINGUAL CONSOLE</div>
+            <div className="brand-text-sub">30 NATIVE ISRAELI HEBREW VOICES & CLONING CONSOLE</div>
           </div>
         </div>
 
@@ -714,9 +698,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
           {/* STUDIO RACK 01 BANNER */}
           <div className="studio-rack-banner">
             <div className="rack-info">
-              <div className="rack-label">STUDIO RACK 01 • HEBREW CLONED VOICE BRIDGE</div>
-              <h1 className="rack-title">Hebrew Voice Cloner & Native Speech Synthesizer</h1>
-              <p className="rack-subtitle">Clone any person speaking Hebrew or synthesize authentic Israeli voices with 100% natural pronunciation.</p>
+              <div className="rack-label">STUDIO RACK 01 • 30 NATIVE HEBREW VOICES & CLONING SUITE</div>
+              <h1 className="rack-title">30 Israeli Hebrew Voice Models & AI Voice Cloner</h1>
+              <p className="rack-subtitle">10 Adult Males, 10 Adult Females, 5 Female Children, and 5 Male Children with 100% authentic Israeli pronunciation.</p>
             </div>
 
             <div className="rack-actions">
@@ -730,26 +714,112 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 className={`rack-mode-btn ${mode === 'elevenlabs' ? 'active-gold-mode' : ''}`}
                 onClick={() => setMode('elevenlabs')}
               >
-                <span className="btn-key">🇮🇱</span> Hebrew Voice Cloner
+                <span className="btn-key">🇮🇱</span> 30 Israeli Hebrew Voices
               </button>
             </div>
           </div>
 
-          {/* ELEVENLABS API KEY BANNER */}
-          <div className="api-key-banner">
-            <div className="api-key-label">
-              <span className="key-icon">🔑</span> ELEVENLABS API KEY & CLONED VOICES
+          {/* 🇮🇱 30 NATIVE ISRAELI HEBREW VOICE MODELS (10 MALE, 10 FEMALE, 5 GIRLS, 5 BOYS) */}
+          <section className="fable-box dedicated-family-section" style={{ border: '1.5px solid #3b82f6', marginBottom: '24px' }}>
+            <div className="family-header-row">
+              <div className="family-title-group">
+                <span className="family-icon-glow">🇮🇱</span>
+                <div>
+                  <h2 className="family-section-title">30 Native Israeli Hebrew Voice Models (עברית ישראלית)</h2>
+                  <p className="family-section-subtitle">10 Adult Males • 10 Adult Females • 5 Female Children • 5 Male Children</p>
+                </div>
+              </div>
+
+              <div className="family-header-actions">
+                <span className="family-counter-badge" style={{ background: '#1e3a8a', borderColor: '#3b82f6' }}>
+                  {hebrewVoices.length} ISRAELI VOICES ACTIVE
+                </span>
+              </div>
             </div>
-            <div className="api-key-input-wrapper">
-              <input
-                type="password"
-                className="api-key-input"
-                placeholder="Paste XI-API-Key (Optional for English/Multi)..."
-                value={apiKeyInput}
-                onChange={handleSaveApiKey}
-              />
+
+            {/* Hebrew Category Filter Tabs */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px', alignItems: 'center' }}>
+              <button 
+                className={`nav-pill-btn ${hebrewFilter === 'all' ? 'active-pill' : ''}`}
+                style={{ fontSize: '11px', padding: '6px 12px' }}
+                onClick={() => setHebrewFilter('all')}
+              >
+                🌟 All 30 Voices (הכל)
+              </button>
+              <button 
+                className={`nav-pill-btn ${hebrewFilter === 'adult_male' ? 'active-pill' : ''}`}
+                style={{ fontSize: '11px', padding: '6px 12px' }}
+                onClick={() => setHebrewFilter('adult_male')}
+              >
+                👨 10 Adult Males (גברים / אבות)
+              </button>
+              <button 
+                className={`nav-pill-btn ${hebrewFilter === 'adult_female' ? 'active-pill' : ''}`}
+                style={{ fontSize: '11px', padding: '6px 12px' }}
+                onClick={() => setHebrewFilter('adult_female')}
+              >
+                👩 10 Adult Females (נשים / אמהות)
+              </button>
+              <button 
+                className={`nav-pill-btn ${hebrewFilter === 'female_child' ? 'active-pill' : ''}`}
+                style={{ fontSize: '11px', padding: '6px 12px' }}
+                onClick={() => setHebrewFilter('female_child')}
+              >
+                👧 5 Female Children (ילדות / בנות)
+              </button>
+              <button 
+                className={`nav-pill-btn ${hebrewFilter === 'male_child' ? 'active-pill' : ''}`}
+                style={{ fontSize: '11px', padding: '6px 12px' }}
+                onClick={() => setHebrewFilter('male_child')}
+              >
+                👦 5 Male Children (ילדים / בנים)
+              </button>
+
+              <div style={{ marginLeft: 'auto', minWidth: '220px' }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search 30 Hebrew voices..."
+                  className="dark-input-field"
+                  style={{ padding: '6px 10px', fontSize: '11px' }}
+                  value={hebrewSearch}
+                  onChange={(e) => setHebrewSearch(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+
+            <div className="three-col-profile-grid">
+              {filteredHebrewVoices.map((v) => {
+                const isSelected = v.id === selectedVoiceId;
+                return (
+                  <div 
+                    key={v.id}
+                    className={`profile-card-item family-card-highlight ${isSelected ? 'selected-gold-card' : ''}`}
+                    onClick={() => handleSelectModel(v)}
+                  >
+                    <div className="profile-card-top">
+                      <div>
+                        <span className="relationship-tag-pill" style={{ background: '#1d4ed8' }}>🇮🇱 {v.relationship}</span>
+                        <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
+                      </div>
+
+                      {isSelected ? (
+                        <span className="badge-selected-green">
+                          <span className="green-dot"></span> SELECTED
+                        </span>
+                      ) : (
+                        <button className="btn-select-gold">SELECT</button>
+                      )}
+                    </div>
+
+                    <p className="family-card-desc">{v.description}</p>
+                    <div className="profile-card-bottom">
+                      <span className="meta-date-tag">{v.groupLabel}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           {/* 2-COLUMN STUDIO PANELS: CAPTURE & AI VOICE TRAINER */}
           <div className="studio-two-col-grid">
@@ -790,7 +860,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             <div className="fable-box trainer-box">
               <div className="trainer-header-row">
                 <span className="calibrator-label">VOICE CALIBRATOR</span>
-                <span className="status-ready-label">STATUS: HEBREW CLONING READY</span>
+                <span className="status-ready-label">STATUS: 30 HEBREW VOICES READY</span>
               </div>
 
               <h2 className="box-title" style={{ marginTop: '4px', marginBottom: '16px' }}>
@@ -839,58 +909,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </button>
             </div>
           </div>
-
-          {/* 🇮🇱 NATIVE ISRAELI HEBREW VOICE MODELS (FEATURED SECTION) */}
-          <section className="fable-box dedicated-family-section" style={{ border: '1.5px solid #3b82f6', marginBottom: '20px' }}>
-            <div className="family-header-row">
-              <div className="family-title-group">
-                <span className="family-icon-glow">🇮🇱</span>
-                <div>
-                  <h2 className="family-section-title">Native Israeli Hebrew Neural Voices</h2>
-                  <p className="family-section-subtitle">Authentic, studio-grade Israeli voices with natural Hebrew pronunciation and zero distortion</p>
-                </div>
-              </div>
-
-              <div className="family-header-actions">
-                <span className="family-counter-badge" style={{ background: '#1e3a8a', borderColor: '#3b82f6' }}>
-                  {hebrewVoices.length} ISRAELI VOICES READY
-                </span>
-              </div>
-            </div>
-
-            <div className="three-col-profile-grid">
-              {hebrewVoices.map((v) => {
-                const isSelected = v.id === selectedVoiceId;
-                return (
-                  <div 
-                    key={v.id}
-                    className={`profile-card-item family-card-highlight ${isSelected ? 'selected-gold-card' : ''}`}
-                    onClick={() => handleSelectModel(v)}
-                  >
-                    <div className="profile-card-top">
-                      <div>
-                        <span className="relationship-tag-pill" style={{ background: '#1d4ed8' }}>🇮🇱 {v.relationship || 'Native Hebrew'}</span>
-                        <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
-                      </div>
-
-                      {isSelected ? (
-                        <span className="badge-selected-green">
-                          <span className="green-dot"></span> SELECTED
-                        </span>
-                      ) : (
-                        <button className="btn-select-gold">SELECT</button>
-                      )}
-                    </div>
-
-                    <p className="family-card-desc">{v.description}</p>
-                    <div className="profile-card-bottom">
-                      <span className="meta-date-tag">Israeli Neural Engine</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
 
           {/* DEDICATED FAMILY MEMBER VOICE LIBRARY */}
           <section className="fable-box dedicated-family-section">
@@ -1168,7 +1186,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
           {/* Character Voice Assignment Matrix */}
           <div className="character-matrix-section">
-            <h3 className="section-small-title">🎭 Character Voice Assignment</h3>
+            <h3 className="section-small-title">🎭 Character Voice Assignment (Select from 30 Hebrew Voices)</h3>
             <div className="character-cards-grid">
               {['Narrator', 'Mother', 'Father', 'Child', 'Wise Elder'].map((charName) => (
                 <div key={charName} className="character-assign-card">
@@ -1311,17 +1329,17 @@ export default function VoiceBrowser({ onSelectVoice }) {
       {/* TAB 4: SDK INTEGRATION */}
       {activeNav === 'sdk' && (
         <div className="fable-box placeholder-panel">
-          <h2>&lt;/&gt; Hebrew Voice Cloning & Neural SDK Integration</h2>
-          <p>Stream real-time cloned voice and native Israeli Hebrew voice synthesis directly into your applications.</p>
+          <h2>&lt;/&gt; Hebrew Voice Cloning & 30 Israeli Models SDK Integration</h2>
+          <p>Stream real-time cloned voice and 30 native Israeli Hebrew voice models directly into your applications.</p>
           <pre className="sdk-code-box">
-{`// Synthesize in custom Cloned Voice speaking Hebrew
+{`// Synthesize using 30 Native Israeli Hebrew Models
 const response = await fetch("/api/voiceover/generate", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     script: "שלום ילד שלי, לילה טוב וחלומות פז.",
-    voice: "CLONED_FAMILY_VOICE_ID",
-    useClonedBridge: true
+    voice: "he-IL-HilaNeural", // or he-IL-AvriNeural, he-IL-DanielChild, etc.
+    language: "he"
   })
 });
 const { url, engine } = await response.json();`}
