@@ -408,7 +408,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   return (
     <div className="fable-studio-page">
       {/* ==================================================================== */}
-      {/* 🚀 TOP HEADER                                                       */}
+      {/* 1. 🚀 TOP HEADER & NAVIGATION BAR                                   */}
       {/* ==================================================================== */}
       <header className="fable-header-bar">
         <div className="fable-brand-group">
@@ -453,99 +453,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </header>
 
       {/* ==================================================================== */}
-      {/* 👨‍👩‍👧‍👦 DEDICATED FAMILY MEMBER VOICE LIBRARY (ALWAYS VISIBLE AT TOP)      */}
-      {/* ==================================================================== */}
-      <section className="fable-box dedicated-family-section">
-        <div className="family-header-row">
-          <div className="family-title-group">
-            <span className="family-icon-glow">👨‍👩‍👧‍👦</span>
-            <div>
-              <h2 className="family-section-title">Dedicated Family Member Voice Library</h2>
-              <p className="family-section-subtitle">Persistent cloned family voices saved locally in your app & bucket storage</p>
-            </div>
-          </div>
-
-          <div className="family-header-actions">
-            <span className="family-counter-badge">
-              {familyVoices.length} SAVED FAMILY {familyVoices.length === 1 ? 'VOICE' : 'VOICES'}
-            </span>
-            <button 
-              className="clone-family-gold-btn"
-              onClick={() => setShowFamilyCloneModal(true)}
-            >
-              + Clone New Family Voice
-            </button>
-          </div>
-        </div>
-
-        {familyVoices.length === 0 ? (
-          <div className="empty-family-card">
-            <div className="empty-family-icon">🎙️</div>
-            <h3 className="empty-family-title">No Family Member Voices Cloned Yet</h3>
-            <p className="empty-family-desc">
-              Clone your family member voices (Mom, Dad, Grandparent, Sibling) to keep them permanently available for storybooks & audiobooks.
-            </p>
-            <button 
-              className="clone-family-gold-btn"
-              style={{ marginTop: '14px' }}
-              onClick={() => setShowFamilyCloneModal(true)}
-            >
-              + Clone Your First Family Voice
-            </button>
-          </div>
-        ) : (
-          <div className="three-col-profile-grid">
-            {familyVoices.map((v) => {
-              const isSelected = v.id === selectedVoiceId;
-              return (
-                <div 
-                  key={v.id}
-                  className={`profile-card-item family-card-highlight ${isSelected ? 'selected-gold-card' : ''}`}
-                  onClick={() => handleSelectModel(v)}
-                >
-                  <div className="profile-card-top">
-                    <div>
-                      <span className="relationship-tag-pill">✨ {v.relationship}</span>
-                      <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
-                    </div>
-
-                    {isSelected ? (
-                      <span className="badge-selected-green">
-                        <span className="green-dot"></span> SELECTED
-                      </span>
-                    ) : (
-                      <button className="btn-select-gold">SELECT</button>
-                    )}
-                  </div>
-
-                  <p className="family-card-desc">{v.description}</p>
-
-                  <div className="profile-card-bottom">
-                    <span className="meta-date-tag">{v.date} (cloned bucket)</span>
-                    <button 
-                      className="del-profile-btn"
-                      onClick={(e) => handleDeleteProfile(e, v.id, v.name)}
-                      disabled={deletingVoiceId === v.id}
-                      title="Delete voice permanently from app, bucket storage, and ElevenLabs"
-                    >
-                      {deletingVoiceId === v.id ? '⏳' : '🗑️ DELETE'}
-                    </button>
-                  </div>
-
-                  {v.previewUrl && (
-                    <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
-                      <audio controls src={v.previewUrl} className="profile-audio" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* ==================================================================== */}
-      {/* 🎛️ STUDIO RACK 01 BANNER                                           */}
+      {/* 2. 🎛️ STUDIO RACK 01 BANNER                                         */}
       {/* ==================================================================== */}
       <div className="studio-rack-banner">
         <div className="rack-info">
@@ -571,7 +479,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </div>
 
       {/* ==================================================================== */}
-      {/* 🔑 ELEVENLABS API KEY & CLONED VOICES BANNER                         */}
+      {/* 3. 🔑 ELEVENLABS API KEY BANNER                                     */}
       {/* ==================================================================== */}
       <div className="api-key-banner">
         <div className="api-key-label">
@@ -589,7 +497,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </div>
 
       {/* ==================================================================== */}
-      {/* 🎙️ 2-COLUMN STUDIO PANELS                                            */}
+      {/* 4. 🎙️ 2-COLUMN STUDIO PANELS: CAPTURE & AI VOICE TRAINER            */}
       {/* ==================================================================== */}
       <div className="studio-two-col-grid">
         {/* LEFT PANEL: CAPTURE AUDIO SAMPLE */}
@@ -675,7 +583,99 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </div>
 
       {/* ==================================================================== */}
-      {/* 🗃️ COLLAPSIBLE ACTIVE VOICE MODEL LIBRARY GRID (ELEVENLABS)           */}
+      {/* 5. 👨‍👩‍👧‍👦 DEDICATED FAMILY MEMBER VOICE LIBRARY (DIRECTLY BELOW RECORDER)  */}
+      {/* ==================================================================== */}
+      <section className="fable-box dedicated-family-section">
+        <div className="family-header-row">
+          <div className="family-title-group">
+            <span className="family-icon-glow">👨‍👩‍👧‍👦</span>
+            <div>
+              <h2 className="family-section-title">Dedicated Family Member Voice Library</h2>
+              <p className="family-section-subtitle">Persistent cloned family voices saved locally in your app & bucket storage</p>
+            </div>
+          </div>
+
+          <div className="family-header-actions">
+            <span className="family-counter-badge">
+              {familyVoices.length} SAVED FAMILY {familyVoices.length === 1 ? 'VOICE' : 'VOICES'}
+            </span>
+            <button 
+              className="clone-family-gold-btn"
+              onClick={() => setShowFamilyCloneModal(true)}
+            >
+              + Clone New Family Voice
+            </button>
+          </div>
+        </div>
+
+        {familyVoices.length === 0 ? (
+          <div className="empty-family-card">
+            <div className="empty-family-icon">🎙️</div>
+            <h3 className="empty-family-title">No Family Member Voices Cloned Yet</h3>
+            <p className="empty-family-desc">
+              Record via the studio microphone above or click below to upload a recording of Mom, Dad, or Grandparents!
+            </p>
+            <button 
+              className="clone-family-gold-btn"
+              style={{ marginTop: '14px' }}
+              onClick={() => setShowFamilyCloneModal(true)}
+            >
+              + Clone Your First Family Voice
+            </button>
+          </div>
+        ) : (
+          <div className="three-col-profile-grid">
+            {familyVoices.map((v) => {
+              const isSelected = v.id === selectedVoiceId;
+              return (
+                <div 
+                  key={v.id}
+                  className={`profile-card-item family-card-highlight ${isSelected ? 'selected-gold-card' : ''}`}
+                  onClick={() => handleSelectModel(v)}
+                >
+                  <div className="profile-card-top">
+                    <div>
+                      <span className="relationship-tag-pill">✨ {v.relationship}</span>
+                      <h3 className="profile-title-text" style={{ marginTop: '4px' }}>{v.name}</h3>
+                    </div>
+
+                    {isSelected ? (
+                      <span className="badge-selected-green">
+                        <span className="green-dot"></span> SELECTED
+                      </span>
+                    ) : (
+                      <button className="btn-select-gold">SELECT</button>
+                    )}
+                  </div>
+
+                  <p className="family-card-desc">{v.description}</p>
+
+                  <div className="profile-card-bottom">
+                    <span className="meta-date-tag">{v.date} (cloned bucket)</span>
+                    <button 
+                      className="del-profile-btn"
+                      onClick={(e) => handleDeleteProfile(e, v.id, v.name)}
+                      disabled={deletingVoiceId === v.id}
+                      title="Delete voice permanently from app, bucket storage, and ElevenLabs"
+                    >
+                      {deletingVoiceId === v.id ? '⏳' : '🗑️ DELETE'}
+                    </button>
+                  </div>
+
+                  {v.previewUrl && (
+                    <div className="profile-preview-player" onClick={(e) => e.stopPropagation()}>
+                      <audio controls src={v.previewUrl} className="profile-audio" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ==================================================================== */}
+      {/* 6. 🗃️ COLLAPSIBLE ACTIVE VOICE MODEL LIBRARY GRID (ELEVENLABS PRESETS) */}
       {/* ==================================================================== */}
       <section className="fable-box active-library-box collapsible-catalog-box">
         <div 
@@ -769,7 +769,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       </section>
 
       {/* ==================================================================== */}
-      {/* 🎧 LIVE TTS PREVIEW CONSOLE                                         */}
+      {/* 7. 🎧 LIVE TTS PREVIEW CONSOLE                                       */}
       {/* ==================================================================== */}
       {activeVoiceObj && (
         <section className="fable-box tts-console-box">
@@ -808,7 +808,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       )}
 
       {/* ==================================================================== */}
-      {/* 🚀 MODAL: "+ CLONE NEW FAMILY VOICE"                                 */}
+      {/* 8. 🚀 MODAL: "+ CLONE NEW FAMILY VOICE"                              */}
       {/* ==================================================================== */}
       {showFamilyCloneModal && (
         <div className="modal-dark-overlay" onClick={() => setShowFamilyCloneModal(false)}>
