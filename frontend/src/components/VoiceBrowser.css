@@ -123,6 +123,140 @@
 }
 
 /* ========================================================================== */
+/* 👨‍👩‍👧‍👦 DEDICATED FAMILY MEMBER VOICE LIBRARY (TOP SECTION)                    */
+/* ========================================================================== */
+.dedicated-family-section {
+  background: linear-gradient(180deg, #131929 0%, #0f1523 100%) !important;
+  border: 1.5px solid #4f46e5 !important;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.12);
+}
+
+.family-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #1e293b;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.family-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.family-icon-glow {
+  font-size: 26px;
+}
+
+.family-section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.family-section-subtitle {
+  margin: 3px 0 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.family-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.family-counter-badge {
+  background: #1e1b4b;
+  color: #c7d2fe;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid #4338ca;
+  letter-spacing: 0.5px;
+}
+
+.clone-family-gold-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0b0e17;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+.clone-family-gold-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
+}
+
+.empty-family-card {
+  text-align: center;
+  padding: 32px 20px;
+  background: #0b0e17;
+  border: 1px dashed #334155;
+  border-radius: 10px;
+}
+
+.empty-family-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.empty-family-title {
+  margin: 0 0 4px 0;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.empty-family-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.family-card-highlight {
+  border-color: #4338ca !important;
+  background: #141a2e !important;
+}
+
+.family-card-highlight:hover {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2) !important;
+}
+
+.relationship-tag-pill {
+  background: #312e81;
+  color: #e0e7ff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.family-card-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 6px 0 10px 0;
+  line-height: 1.4;
+}
+
+/* ========================================================================== */
 /* 🎛️ STUDIO RACK 01 BANNER                                                 */
 /* ========================================================================== */
 .studio-rack-banner {
@@ -627,7 +761,9 @@
   cursor: pointer;
 }
 
-/* TTS CONSOLE BOX */
+/* ========================================================================== */
+/* 🎧 LIVE TTS PREVIEW CONSOLE                                               */
+/* ========================================================================== */
 .tts-console-box {
   background: #111827;
   border: 1px solid #f59e0b;
@@ -679,4 +815,125 @@
   text-decoration: none;
   font-size: 12px;
   font-weight: 700;
+}
+
+/* ========================================================================== */
+/* 🚀 MODAL: CLONE NEW FAMILY VOICE                                          */
+/* ========================================================================== */
+.modal-dark-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(11, 14, 23, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-dark-box {
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 580px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.modal-close-x {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: none; border: none;
+  font-size: 18px; color: #94a3b8;
+  cursor: pointer;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-head-icon {
+  font-size: 28px;
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #ffffff;
+}
+
+.modal-head p {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.modal-error-banner {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #f87171;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-form-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.modal-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dark-file-input {
+  background: #0f172a;
+  border: 1px dashed #334155;
+  border-radius: 6px;
+  padding: 10px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.file-hint-text {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.modal-actions-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cancel-gray-btn {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
 }
