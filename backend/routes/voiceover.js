@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import ElevenLabsService from '../services/elevenlab-service.js';
 import hebrewTtsService from '../services/hebrew-tts-service.js';
+import hebrewPhoneticsEngine from '../services/hebrew-phonetics.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +18,8 @@ const elevenLabsService = elevenLabsApiKey
   : null;
 
 console.log(`[VoiceOver] ElevenLabs API configured: ${elevenLabsService ? 'YES' : 'NO'}`);
-console.log(`[VoiceOver] Native Israeli Hebrew Neural TTS Engine initialized: YES`);
+console.log(`[VoiceOver] Native Israeli Hebrew Neural TTS Engine: READY`);
+console.log(`[VoiceOver] Hebrew Cloned Voice Phonetics Bridge: READY`);
 
 // Curated Ambient Soundtracks for Bedtime & Children Stories
 const SOUNDTRACK_CATALOG = [
@@ -154,6 +156,13 @@ router.get('/voices', async (req, res) => {
   }
 });
 
+// POST transliterate Hebrew to phonetics for cloned voice models
+router.post('/transliterate-hebrew', (req, res) => {
+  const { text } = req.body;
+  const phonetics = hebrewPhoneticsEngine.transliterate(text || '');
+  res.json({ original: text, phonetics });
+});
+
 // GET soundtrack catalog
 router.get('/soundtracks', (req, res) => {
   res.json(SOUNDTRACK_CATALOG);
@@ -167,7 +176,7 @@ router.get('/languages', (req, res) => {
   });
 });
 
-// POST generate AI Screenplay Script (with natural Hebrew phrases)
+// POST generate AI Screenplay Script
 router.post('/screenplay/generate-script', (req, res) => {
   const { theme, characters, childName, language } = req.body;
   const name = childName || (language === 'he' ? 'דניאל' : 'Leo');
@@ -231,24 +240,25 @@ router.post('/screenplay/generate-script', (req, res) => {
   res.json(selectedStory);
 });
 
-// POST generate voiceover with auto-routing to Native Hebrew Neural Engine OR ElevenLabs
+// POST generate voiceover with auto-routing to Native Hebrew Neural Engine OR Cloned Voice Phonetics Bridge
 router.post('/generate', async (req, res) => {
   try {
-    const { script, voice, emotion, stability, similarityBoost, style, speed, modelId, language } = req.body;
+    const { script, voice, emotion, stability, similarityBoost, style, speed, modelId, language, useClonedBridge } = req.body;
 
     if (!script || !script.trim()) {
       return res.status(400).json({ error: 'Script text is required' });
     }
 
-    const isHebrewText = /[\u0590-\u05FF]/.test(script) || language === 'he' || (voice && voice.startsWith('he-IL'));
+    const isHebrewScript = /[\u0590-\u05FF]/.test(script);
+    const isNativeHebrewVoice = voice && voice.startsWith('he-IL');
 
     const uploadsDir = path.join(__dirname, '../../uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // 1. ROUTE TO NATIVE HEBREW NEURAL ENGINE FOR 100% CRYSTAL-CLEAR ISRAELI SPEECH
-    if (isHebrewText) {
+    // 1. ROUTE TO NATIVE ISRAELI NEURAL ENGINE (For Hila & Avri)
+    if (isNativeHebrewVoice || (isHebrewScript && !useClonedBridge && (!voice || voice.startsWith('he-IL')))) {
       console.log(`[VoiceOver] Routing to Native Israeli Hebrew Neural Engine (chars=${script.length})`);
       try {
         const audioBuffer = await hebrewTtsService.synthesizeHebrew(script, voice || 'he-IL-HilaNeural');
@@ -265,7 +275,7 @@ router.post('/generate', async (req, res) => {
           audioLength: audioBuffer.length,
           duration: Math.ceil(script.length / 12),
           status: 'complete',
-          engine: 'Native Israeli Neural Engine',
+          engine: 'Native Israeli Neural Engine (Hila & Avri)',
           createdAt: new Date().toISOString()
         });
       } catch (heErr) {
@@ -274,15 +284,25 @@ router.post('/generate', async (req, res) => {
       }
     }
 
-    // 2. ROUTE TO ELEVENLABS FOR ENGLISH & MULTILINGUAL SPEECH
+    // 2. ROUTE TO ELEVENLABS WITH HEBREW CLONED VOICE PHONETIC BRIDGE
     if (!elevenLabsService || !elevenLabsService.isConfigured()) {
       return res.status(400).json({ error: 'ElevenLabs API key is not configured or invalid' });
     }
 
-    console.log(`[VoiceOver] ElevenLabs synthesis: voice=${voice}, chars=${script.length}`);
+    // If text is Hebrew and targeting a cloned voice, automatically convert to phonetic syllables
+    let synthesizedText = script;
+    let usedBridge = false;
+
+    if (isHebrewScript || language === 'he') {
+      synthesizedText = hebrewPhoneticsEngine.transliterate(script);
+      usedBridge = true;
+      console.log(`[VoiceOver] Hebrew Cloned Voice Bridge: "${script}" -> "${synthesizedText}"`);
+    }
+
+    console.log(`[VoiceOver] ElevenLabs synthesis: voice=${voice}, chars=${synthesizedText.length}`);
 
     try {
-      const audioBuffer = await elevenLabsService.synthesize(script, voice, {
+      const audioBuffer = await elevenLabsService.synthesize(synthesizedText, voice, {
         emotion: emotion || 'neutral',
         stability: typeof stability === 'number' ? stability : 0.5,
         similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
@@ -301,10 +321,11 @@ router.post('/generate', async (req, res) => {
         url: `/uploads/${filename}`,
         voice,
         script,
+        phoneticsUsed: usedBridge ? synthesizedText : null,
         audioLength: audioBuffer.length,
-        duration: Math.ceil(script.length / 14),
+        duration: Math.ceil(synthesizedText.length / 14),
         status: 'complete',
-        engine: 'ElevenLabs Multilingual V2',
+        engine: usedBridge ? 'Hebrew Cloned Voice Bridge (ElevenLabs)' : 'ElevenLabs Multilingual V2',
         createdAt: new Date().toISOString()
       });
     } catch (err) {
@@ -317,11 +338,11 @@ router.post('/generate', async (req, res) => {
   }
 });
 
-// Health check for ElevenLabs & Hebrew Engine
+// Health check
 router.get('/status', (req, res) => {
   res.json({
     service: 'voiceover',
-    hebrewEngine: 'ready (Native Israeli Neural)',
+    hebrewEngine: 'ready (Native Israeli Neural & Cloned Voice Bridge)',
     elevenLabsConfigured: elevenLabsService ? elevenLabsService.isConfigured() : false,
     status: 'ready'
   });

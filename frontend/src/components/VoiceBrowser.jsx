@@ -67,7 +67,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [voiceSimilarity, setVoiceSimilarity] = useState(0.75);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
 
-  // 🌐 Multilingual states (Hebrew positioned last)
+  // 🌐 Multilingual & Hebrew states (Hebrew positioned last)
   const [selectedLanguage, setSelectedLanguage] = useState('he');
   const [supportedLanguages, setSupportedLanguages] = useState([
     { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
@@ -120,6 +120,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [ttsText, setTtsText] = useState('שלום, לילה טוב והמשך ערב נעים. חלומות פז ושינה מתוקה.');
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesizedAudioUrl, setSynthesizedAudioUrl] = useState(null);
+  const [synthesizedEngineUsed, setSynthesizedEngineUsed] = useState(null);
   const [deletingVoiceId, setDeletingVoiceId] = useState(null);
 
   // 4. Screenplay Workshop (Multi-Character Story Generator) states
@@ -195,7 +196,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
         name: v.name,
         relationship: v.relationship || v.labels?.relationship || 'Family Member',
         gender: v.gender || v.labels?.gender || 'Custom',
-        accent: v.accent || v.labels?.accent || 'Israeli Hebrew',
+        accent: v.accent || v.labels?.accent || 'Israeli Hebrew / Cloned',
         style: v.style || v.labels?.descriptive || 'Conversational',
         description: v.description || `${v.name}'s custom cloned family voice model.`,
         previewUrl: v.previewUrl || null,
@@ -382,7 +383,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const formData = new FormData();
       formData.append('name', voiceModelLabel.trim());
       formData.append('relationship', 'Family Member');
-      formData.append('description', 'FableVoice Calibrated Voice Model (Hebrew & 32+ Languages Supported).');
+      formData.append('description', 'FableVoice Calibrated Voice Model (Hebrew Cloned Voice Bridge Enabled).');
       formData.append('sampleFile', audioBufferBlob, `${voiceModelLabel.trim().replace(/\s+/g, '-')}-sample.mp3`);
 
       const res = await fetch('/api/voice-library/clone', {
@@ -403,8 +404,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
         name: newModel.name,
         relationship: newModel.relationship || 'Family Member',
         gender: newModel.gender || 'Custom',
-        accent: newModel.accent || 'Israeli Hebrew',
-        description: 'FableVoice Cloned Family Voice Model',
+        accent: 'Israeli Hebrew / Cloned',
+        description: 'FableVoice Cloned Family Voice Model (Hebrew Bridge Enabled)',
         previewUrl: newModel.previewUrl || audioBufferUrl,
         date: new Date().toLocaleDateString(),
         source: 'cloned bucket',
@@ -414,7 +415,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
       setFamilyVoices(prev => [newFamVoice, ...prev]);
       setSelectedVoiceId(newFamVoice.id);
-      setCloneStatusMsg({ type: 'success', text: `✨ Voice "${voiceModelLabel}" cloned! Now speaks native Hebrew & 32+ languages!` });
+      setCloneStatusMsg({ type: 'success', text: `✨ Voice "${voiceModelLabel}" cloned! Now speaks native Hebrew & 32+ languages via the Hebrew Cloned Voice Bridge!` });
 
       setVoiceModelLabel('');
       setAudioBufferBlob(null);
@@ -451,7 +452,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       formData.append('gender', familyForm.gender);
       formData.append('accent', familyForm.accent);
       formData.append('style', familyForm.style);
-      formData.append('description', familyForm.description || `${familyForm.name} (${familyForm.relationship}) cloned family voice.`);
+      formData.append('description', familyForm.description || `${familyForm.name} (${familyForm.relationship}) cloned family voice with Hebrew Bridge.`);
       formData.append('sampleFile', primarySample);
 
       const res = await fetch('/api/voice-library/clone', {
@@ -533,11 +534,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 2. Synthesize Speech with Native Israeli Hebrew Neural Engine / ElevenLabs
+  // 2. Synthesize Speech with Native Israeli Hebrew Neural Engine / Cloned Voice Bridge
   const handleSynthesize = async () => {
     if (!ttsText.trim()) return;
 
     setSynthesizing(true);
+    setSynthesizedEngineUsed(null);
+
     try {
       const res = await fetch('/api/voiceover/generate', {
         method: 'POST',
@@ -549,7 +552,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
           stability: voiceStability,
           similarityBoost: voiceSimilarity,
           speed: voiceSpeed,
-          language: selectedLanguage
+          language: selectedLanguage,
+          useClonedBridge: true
         })
       });
 
@@ -560,6 +564,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
       const data = await res.json();
       setSynthesizedAudioUrl(data.url);
+      setSynthesizedEngineUsed(data.engine || 'Neural Audio Engine');
     } catch (err) {
       alert('Synthesis error: ' + err.message);
     } finally {
@@ -606,7 +611,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
             voice: assignedVoiceId,
             stability: voiceStability,
             similarityBoost: voiceSimilarity,
-            language: selectedLanguage
+            language: selectedLanguage,
+            useClonedBridge: true
           })
         });
 
@@ -668,7 +674,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <span className="brand-text-main">FableVoice</span>
               <span className="brand-badge-yellow">AUDIO STUDIO</span>
             </div>
-            <div className="brand-text-sub">NATIVE ISRAELI HEBREW & MULTILINGUAL CONSOLE</div>
+            <div className="brand-text-sub">HEBREW VOICE CLONING & MULTILINGUAL CONSOLE</div>
           </div>
         </div>
 
@@ -708,9 +714,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
           {/* STUDIO RACK 01 BANNER */}
           <div className="studio-rack-banner">
             <div className="rack-info">
-              <div className="rack-label">STUDIO RACK 01 • NATIVE HEBREW NEURAL & MULTILINGUAL</div>
-              <h1 className="rack-title">Voice Sample Recording & Native Israeli Speech Synthesizer</h1>
-              <p className="rack-subtitle">Capture vocal samples or synthesize 100% natural, crystal-clear Israeli Hebrew & 32+ languages.</p>
+              <div className="rack-label">STUDIO RACK 01 • HEBREW CLONED VOICE BRIDGE</div>
+              <h1 className="rack-title">Hebrew Voice Cloner & Native Speech Synthesizer</h1>
+              <p className="rack-subtitle">Clone any person speaking Hebrew or synthesize authentic Israeli voices with 100% natural pronunciation.</p>
             </div>
 
             <div className="rack-actions">
@@ -724,7 +730,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 className={`rack-mode-btn ${mode === 'elevenlabs' ? 'active-gold-mode' : ''}`}
                 onClick={() => setMode('elevenlabs')}
               >
-                <span className="btn-key">🇮🇱</span> Native Israeli Neural AI
+                <span className="btn-key">🇮🇱</span> Hebrew Voice Cloner
               </button>
             </div>
           </div>
@@ -756,7 +762,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
 
               <h2 className="box-title">Capture Audio Sample</h2>
-              <p className="box-subtitle">Speak clearly into your microphone for 15–30 seconds.</p>
+              <p className="box-subtitle">Speak Hebrew or English clearly into your microphone for 15–30 seconds.</p>
 
               {/* 1. Live Canvas Audio Waveform Visualizer */}
               <div className="waveform-container">
@@ -784,11 +790,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
             <div className="fable-box trainer-box">
               <div className="trainer-header-row">
                 <span className="calibrator-label">VOICE CALIBRATOR</span>
-                <span className="status-ready-label">STATUS: HEBREW & 32+ LANGS READY</span>
+                <span className="status-ready-label">STATUS: HEBREW CLONING READY</span>
               </div>
 
               <h2 className="box-title" style={{ marginTop: '4px', marginBottom: '16px' }}>
-                AI Voice Calibration & Trainer
+                AI Voice Cloner & Calibration
               </h2>
 
               <div className="dashed-buffer-container">
@@ -818,7 +824,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <input
                   type="text"
                   className="dark-input-field"
-                  placeholder='e.g. "Sarah — Bedtime Reader"'
+                  placeholder='e.g. "Sarah (Mom) — Hebrew Cloned Model"'
                   value={voiceModelLabel}
                   onChange={(e) => setVoiceModelLabel(e.target.value)}
                 />
@@ -829,7 +835,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 onClick={handleCloneFromPanel}
                 disabled={cloneLoading || !audioBufferBlob || !voiceModelLabel.trim()}
               >
-                {cloneLoading ? '✨ CLONING VOICE MODEL...' : '✨ CLONE & SAVE VOICE MODEL'}
+                {cloneLoading ? '✨ CLONING HEBREW VOICE MODEL...' : '✨ CLONE & SAVE HEBREW VOICE'}
               </button>
             </div>
           </div>
@@ -840,14 +846,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <div className="family-title-group">
                 <span className="family-icon-glow">🇮🇱</span>
                 <div>
-                  <h2 className="family-section-title">Native Israeli Hebrew Neural Voice Models</h2>
+                  <h2 className="family-section-title">Native Israeli Hebrew Neural Voices</h2>
                   <p className="family-section-subtitle">Authentic, studio-grade Israeli voices with natural Hebrew pronunciation and zero distortion</p>
                 </div>
               </div>
 
               <div className="family-header-actions">
                 <span className="family-counter-badge" style={{ background: '#1e3a8a', borderColor: '#3b82f6' }}>
-                  {hebrewVoices.length} NATIVE ISRAELI VOICES ACTIVE
+                  {hebrewVoices.length} ISRAELI VOICES READY
                 </span>
               </div>
             </div>
@@ -878,7 +884,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
                     <p className="family-card-desc">{v.description}</p>
                     <div className="profile-card-bottom">
-                      <span className="meta-date-tag">Israeli Neural Studio</span>
+                      <span className="meta-date-tag">Israeli Neural Engine</span>
                     </div>
                   </div>
                 );
@@ -893,13 +899,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <span className="family-icon-glow">👨‍👩‍👧‍👦</span>
                 <div>
                   <h2 className="family-section-title">Dedicated Family Member Voice Library</h2>
-                  <p className="family-section-subtitle">Persistent cloned family voices saved locally in your app & bucket storage</p>
+                  <p className="family-section-subtitle">Persistent cloned family voices that can speak fluent Hebrew & English via the Hebrew Cloned Voice Bridge</p>
                 </div>
               </div>
 
               <div className="family-header-actions">
                 <span className="family-counter-badge">
-                  {familyVoices.length} SAVED FAMILY {familyVoices.length === 1 ? 'VOICE' : 'VOICES'}
+                  {familyVoices.length} CLONED FAMILY {familyVoices.length === 1 ? 'VOICE' : 'VOICES'}
                 </span>
                 <button 
                   className="clone-family-gold-btn"
@@ -913,16 +919,16 @@ export default function VoiceBrowser({ onSelectVoice }) {
             {familyVoices.length === 0 ? (
               <div className="empty-family-card">
                 <div className="empty-family-icon">🎙️</div>
-                <h3 className="empty-family-title">No Family Member Voices Cloned Yet</h3>
+                <h3 className="empty-family-title">No Cloned Family Voices Saved Yet</h3>
                 <p className="empty-family-desc">
-                  Record via the studio microphone above or click below to upload a recording of Mom, Dad, or Grandparents!
+                  Record a Hebrew or English vocal clip above to clone Mom, Dad, or Grandparents and hear them speak Hebrew!
                 </p>
                 <button 
                   className="clone-family-gold-btn"
                   style={{ marginTop: '14px' }}
                   onClick={() => setShowFamilyCloneModal(true)}
                 >
-                  + Clone Your First Family Voice
+                  + Clone Your First Hebrew Voice
                 </button>
               </div>
             ) : (
@@ -953,7 +959,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                       <p className="family-card-desc">{v.description}</p>
 
                       <div className="profile-card-bottom">
-                        <span className="meta-date-tag">{v.date} (cloned bucket)</span>
+                        <span className="meta-date-tag">{v.date} (Hebrew Bridge Enabled)</span>
                         <button 
                           className="del-profile-btn"
                           onClick={(e) => handleDeleteProfile(e, v.id, v.name)}
@@ -976,7 +982,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             )}
           </section>
 
-          {/* 2. LIVE TTS PREVIEW CONSOLE WITH NATIVE HEBREW / MULTILINGUAL SELECTOR */}
+          {/* 2. LIVE TTS PREVIEW CONSOLE */}
           {activeVoiceObj && (
             <section className="fable-box tts-console-box">
               <div className="tts-console-header">
@@ -984,10 +990,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <span className="profile-id-tag">ID: {activeVoiceObj.voiceId || activeVoiceObj.id}</span>
               </div>
 
-              {/* 🌐 Multilingual Language Picker */}
+              {/* 🌐 Multilingual & Hebrew Language Picker */}
               <div className="language-selector-row">
                 <div className="lang-picker-group">
-                  <label className="input-label-uppercase">🌐 Target Spoken Language (Hebrew & 32+ Native Supported)</label>
+                  <label className="input-label-uppercase">🌐 Target Spoken Language</label>
                   <select 
                     className="dark-input-field lang-dropdown"
                     value={selectedLanguage}
@@ -1079,12 +1085,17 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   onClick={handleSynthesize}
                   disabled={synthesizing || !ttsText.trim()}
                 >
-                  {synthesizing ? '⏳ SYNTHESIZING NATIVE HEBREW AUDIO...' : '⚡ SYNTHESIZE SPEECH'}
+                  {synthesizing ? '⏳ SYNTHESIZING HEBREW AUDIO...' : '⚡ SYNTHESIZE SPEECH'}
                 </button>
 
                 {synthesizedAudioUrl && (
-                  <div className="synthesized-player-group">
+                  <div className="synthesized-player-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <audio controls autoPlay src={synthesizedAudioUrl} />
+                    {synthesizedEngineUsed && (
+                      <span className="badge-selected-green" style={{ fontSize: '11px', padding: '6px 10px' }}>
+                        ✨ {synthesizedEngineUsed}
+                      </span>
+                    )}
                     <a href={synthesizedAudioUrl} download="fablevoice-hebrew-audio.mp3" className="download-btn-blue">
                       ⬇ Download MP3
                     </a>
@@ -1300,20 +1311,20 @@ export default function VoiceBrowser({ onSelectVoice }) {
       {/* TAB 4: SDK INTEGRATION */}
       {activeNav === 'sdk' && (
         <div className="fable-box placeholder-panel">
-          <h2>&lt;/&gt; Hebrew Neural SDK Integration & API Endpoints</h2>
-          <p>Stream real-time Israeli Hebrew voice synthesis directly into your applications.</p>
+          <h2>&lt;/&gt; Hebrew Voice Cloning & Neural SDK Integration</h2>
+          <p>Stream real-time cloned voice and native Israeli Hebrew voice synthesis directly into your applications.</p>
           <pre className="sdk-code-box">
-{`// Native Israeli Hebrew Neural Voice Synthesis
+{`// Synthesize in custom Cloned Voice speaking Hebrew
 const response = await fetch("/api/voiceover/generate", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    script: "שלום, לילה טוב והמשך ערב נעים.",
-    voice: "he-IL-HilaNeural",
-    language: "he"
+    script: "שלום ילד שלי, לילה טוב וחלומות פז.",
+    voice: "CLONED_FAMILY_VOICE_ID",
+    useClonedBridge: true
   })
 });
-const { url } = await response.json();`}
+const { url, engine } = await response.json();`}
           </pre>
         </div>
       )}
@@ -1329,8 +1340,8 @@ const { url } = await response.json();`}
             <div className="modal-head">
               <span className="modal-head-icon">👨‍👩‍👧‍👦</span>
               <div>
-                <h2>Clone New Family Member Voice</h2>
-                <p>Upload multi-sample vocal recordings to train a custom voice model.</p>
+                <h2>Clone New Family Member Voice (Hebrew & English)</h2>
+                <p>Upload multi-sample vocal recordings to train a custom voice model that speaks Hebrew.</p>
               </div>
             </div>
 
@@ -1384,7 +1395,7 @@ const { url } = await response.json();`}
               </div>
 
               <div className="modal-form-group">
-                <label>🗂️ Multi-Sample Voice Booster (Upload 1–3 Audio Clips)</label>
+                <label>🗂️ Multi-Sample Voice Booster (Upload 1–3 Audio Clips in Hebrew or English)</label>
                 <div className="sample-slots-grid">
                   {sampleSlots.map((slot) => (
                     <div key={slot.id} className="sample-slot-card">
