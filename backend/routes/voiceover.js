@@ -248,6 +248,9 @@ router.post('/screenplay/generate-script', (req, res) => {
     ? storyThemesHe[theme]
     : (storyThemesEn[theme] || storyThemesEn['bedtime']);
 
+  res.json(selectedStory);
+});
+
 // POST Auto-Translate Text Endpoint
 router.post('/translate', async (req, res) => {
   try {
