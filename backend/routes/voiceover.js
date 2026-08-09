@@ -12,13 +12,15 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-// Initialize ElevenLabs service
-const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
-const elevenLabsService = elevenLabsApiKey 
-  ? new ElevenLabsService(elevenLabsApiKey)
-  : null;
+// Helper to dynamically obtain ElevenLabsService with process.env.ELEVENLABS_API_KEY
+function getElevenLabsService() {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || apiKey.trim() === '') {
+    return null;
+  }
+  return new ElevenLabsService(apiKey.trim());
+}
 
-console.log(`[VoiceOver] ElevenLabs API configured: ${elevenLabsService ? 'YES' : 'NO'}`);
 console.log(`[VoiceOver] 30 Native Israeli Hebrew Neural Voice Models: READY`);
 console.log(`[VoiceOver] 30-Persona Multilingual Voice Engine (All Languages): READY`);
 
@@ -141,10 +143,11 @@ router.get('/voices', async (req, res) => {
       combinedVoices.push(...roster.voices);
     }
 
-    // Add ElevenLabs base voices if configured
-    if (elevenLabsService && elevenLabsService.isConfigured()) {
+    // Add ElevenLabs base voices if configured in environment variable
+    const elevenLabs = getElevenLabsService();
+    if (elevenLabs && elevenLabs.isConfigured()) {
       try {
-        let elVoices = await elevenLabsService.getVoices();
+        let elVoices = await elevenLabs.getVoices();
         combinedVoices.push(...elVoices);
       } catch (err) {
         console.error('[VoiceOver] Error fetching ElevenLabs voices:', err.message);
@@ -291,8 +294,9 @@ router.post('/generate', async (req, res) => {
     }
 
     // 2. ROUTE TO ELEVENLABS FOR 30 MULTILINGUAL VOICES OR CLONED VOICES
-    if (!elevenLabsService || !elevenLabsService.isConfigured()) {
-      return res.status(400).json({ error: 'ElevenLabs API key is not configured or invalid' });
+    const elevenLabs = getElevenLabsService();
+    if (!elevenLabs || !elevenLabs.isConfigured()) {
+      return res.status(400).json({ error: 'ElevenLabs API key is not configured in ELEVENLABS_API_KEY environment variable' });
     }
 
     // If text is Hebrew and targeting a cloned voice, automatically convert to phonetic syllables
@@ -310,7 +314,7 @@ router.post('/generate', async (req, res) => {
     console.log(`[VoiceOver] ElevenLabs synthesis: inputVoice=${voice} -> resolvedId=${targetVoiceId}, chars=${synthesizedText.length}`);
 
     try {
-      const audioBuffer = await elevenLabsService.synthesize(synthesizedText, targetVoiceId, {
+      const audioBuffer = await elevenLabs.synthesize(synthesizedText, targetVoiceId, {
         emotion: emotion || 'neutral',
         stability: typeof stability === 'number' ? stability : 0.5,
         similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
@@ -348,11 +352,12 @@ router.post('/generate', async (req, res) => {
 
 // Health check
 router.get('/status', (req, res) => {
+  const elevenLabs = getElevenLabsService();
   res.json({
     service: 'voiceover',
     hebrewEngine: 'ready (30 Native Israeli Neural Voices & Cloned Voice Bridge)',
     multilingualEngine: 'ready (30 Personas for All Languages)',
-    elevenLabsConfigured: elevenLabsService ? elevenLabsService.isConfigured() : false,
+    elevenLabsConfigured: elevenLabs ? elevenLabs.isConfigured() : false,
     status: 'ready'
   });
 });

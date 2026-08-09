@@ -11,6 +11,15 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// Helper to dynamically get ElevenLabsService instance using ELEVENLABS_API_KEY environment variable
+function getElevenLabsService() {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey || apiKey.trim() === '') {
+    return null;
+  }
+  return new ElevenLabsService(apiKey.trim());
+}
+
 // Directories
 const VOICE_LIBRARY_DIR = path.join(__dirname, '../../voice-library');
 const UPLOADS_CLONED_DIR = path.join(__dirname, '../../uploads/cloned-voices');
@@ -37,9 +46,6 @@ const upload = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 } // 25MB max
 });
-
-// Initialize ElevenLabs Service
-const elevenlabsService = new ElevenLabsService(process.env.ELEVENLABS_API_KEY);
 
 // GET all voice presets / custom family voices
 router.get('/voice-library', (req, res) => {
@@ -91,7 +97,10 @@ router.post('/voice-library/clone', upload.single('sampleFile'), async (req, res
     let elevenLabsVoiceId = null;
 
     // Call ElevenLabs API to add voice clone if API key & sample file available
-    if (elevenlabsService.isConfigured() && req.file) {
+    const elevenlabsService = getElevenLabsService();
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+
+    if (elevenlabsService && elevenlabsService.isConfigured() && req.file) {
       try {
         const formData = new FormData();
         formData.append('name', name.trim());
@@ -113,7 +122,7 @@ router.post('/voice-library/clone', upload.single('sampleFile'), async (req, res
         const elResponse = await fetch('https://api.elevenlabs.io/v1/voices/add', {
           method: 'POST',
           headers: {
-            'xi-api-key': process.env.ELEVENLABS_API_KEY
+            'xi-api-key': apiKey.trim()
           },
           body: formData
         });
@@ -284,8 +293,9 @@ router.delete('/voice-library/:presetId', async (req, res) => {
     }
 
     // Call ElevenLabs API to delete voice remotely if voiceId exists
+    const elevenlabsService = getElevenLabsService();
     const remoteVoiceId = voiceData?.voiceId || presetId;
-    if (elevenlabsService.isConfigured() && remoteVoiceId && !remoteVoiceId.startsWith('preset-') && !remoteVoiceId.startsWith('family-')) {
+    if (elevenlabsService && elevenlabsService.isConfigured() && remoteVoiceId && !remoteVoiceId.startsWith('preset-') && !remoteVoiceId.startsWith('family-')) {
       await elevenlabsService.deleteVoice(remoteVoiceId);
     }
 

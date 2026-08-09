@@ -8,10 +8,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
   // Mode selection: 'elevenlabs' vs 'offline'
   const [mode, setMode] = useState('elevenlabs');
 
-  // API Key state
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [apiKeySaved, setApiKeySaved] = useState(false);
-
   // Dedicated Family Voices & Catalog presets
   const [familyVoices, setFamilyVoices] = useState([]);
   const [elevenLabsVoices, setElevenLabsVoices] = useState([]);
@@ -137,11 +133,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     loadAllVoiceData();
     loadSoundtracks();
     loadLanguageData();
-    const existingKey = localStorage.getItem('ELEVENLABS_API_KEY') || '';
-    if (existingKey) {
-      setApiKeyInput(existingKey);
-      setApiKeySaved(true);
-    }
 
     const currentAudio = previewAudioRef.current;
     currentAudio.onended = () => {
@@ -297,19 +288,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
       alert(`Preview error for ${voiceObj.name}: ${err.message}`);
     } finally {
       setLoadingPreviewId(null);
-    }
-  };
-
-  // Save XI-API-Key locally
-  const handleSaveApiKey = (e) => {
-    const val = e.target.value;
-    setApiKeyInput(val);
-    if (val.trim()) {
-      localStorage.setItem('ELEVENLABS_API_KEY', val.trim());
-      setApiKeySaved(true);
-    } else {
-      localStorage.removeItem('ELEVENLABS_API_KEY');
-      setApiKeySaved(false);
     }
   };
 
@@ -800,22 +778,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
               >
                 <span className="btn-key">{selectedLangObj.flag}</span> 30 {selectedLangObj.name.split(' ')[0]} Voices
               </button>
-            </div>
-          </div>
-
-          {/* ELEVENLABS API KEY BANNER */}
-          <div className="api-key-banner">
-            <div className="api-key-label">
-              <span className="key-icon">🔑</span> ELEVENLABS API KEY & CLONED VOICES
-            </div>
-            <div className="api-key-input-wrapper">
-              <input
-                type="password"
-                className="api-key-input"
-                placeholder="Paste XI-API-Key (Optional for English/Multi)..."
-                value={apiKeyInput}
-                onChange={handleSaveApiKey}
-              />
             </div>
           </div>
 
