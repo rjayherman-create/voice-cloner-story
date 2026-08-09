@@ -189,66 +189,170 @@ router.get('/languages', (req, res) => {
   });
 });
 
-// POST generate AI Screenplay Script
+// POST generate AI Multi-Voice Script (Story, Podcast Banter, News Panel, Commercial, Drama)
 router.post('/screenplay/generate-script', (req, res) => {
-  const { theme, characters, childName, language } = req.body;
+  const { theme, format, topic, childName, language, targetLength } = req.body;
   const name = childName || (language === 'he' ? 'דניאל' : 'Leo');
   const lang = language || 'en';
+  const isHe = lang === 'he';
+  const customTopic = topic && topic.trim() ? topic.trim() : null;
+  const selectedFormat = format || (theme === 'bedtime' || theme === 'fantasy' || theme === 'adventure' ? 'story' : 'podcast');
 
+  // 1. PODCAST FORMAT (Host, Co-Host, Expert Guest)
+  if (selectedFormat === 'podcast') {
+    const pTopic = customTopic || (isHe ? 'עתיד הבינה המלאכותית והיצירה הקולית' : 'The Future of AI Voice & Creative Audio');
+    if (isHe) {
+      return res.json({
+        title: `פודקאסט: ${pTopic}`,
+        format: 'podcast',
+        scenes: [
+          { character: 'Host', text: `ברוכים הבאים לפרק החדש שלנו! היום אנחנו צוללים לנושא מרתק במיוחד: ${pTopic}.` },
+          { character: 'Co-Host', text: `לגמרי, ואי אפשר להתעלם מאיך שהתחום הזה משתנה בקצב מסחרר ממש מול העיניים שלנו.` },
+          { character: 'Guest', text: `הדיוק והעומק של הכלים החדשים מאפשרים ליוצרים להגיע לרמת הפקה של אולפן מקצועי בתוך דקות.` },
+          { character: 'Host', text: `זה פשוט מדהים. תודה שהצטרפתם אלינו, ונתראה בפרק הבא של הפודקאסט!` }
+        ]
+      });
+    } else {
+      return res.json({
+        title: `Podcast Episode: ${pTopic}`,
+        format: 'podcast',
+        scenes: [
+          { character: 'Host', text: `Welcome back everyone! Today we have an incredible episode exploring ${pTopic}.` },
+          { character: 'Co-Host', text: `That’s right! The pace of innovation in this space is unbelievable, and creators are seeing huge results.` },
+          { character: 'Guest', text: `Exactly. When you combine authentic voice delivery with instant pacing, the listener engagement skyrockets.` },
+          { character: 'Host', text: `Spot on. Thank you so much for tuning in today, and we'll catch you on the next episode!` }
+        ]
+      });
+    }
+  }
+
+  // 2. NEWS BULLETIN & PANEL DISCUSSION (Anchor, Field Reporter, Analyst)
+  if (selectedFormat === 'news') {
+    const nTopic = customTopic || (isHe ? 'התפתחויות מיוחדות במהדורת היום' : 'Breaking Developments & Market Brief');
+    if (isHe) {
+      return res.json({
+        title: `מבזק חדשות: ${nTopic}`,
+        format: 'news',
+        scenes: [
+          { character: 'Anchor', text: `ערב טוב, כאן המבזק המרכזי. אנו פותחים בדיווח מיוחד בנושא: ${nTopic}.` },
+          { character: 'Reporter', text: `שלום מהשטח. אנו עדים כאן לתנועה ערה ולהתעניינות רבה בעקבות ההודעה שנמסרה מוקדם יותר.` },
+          { character: 'Analyst', text: `הנתונים מצביעים על השפעה משמעותית בטווח הארוך, וזהו שינוי מגמה בולט שחשוב לעקוב אחריו.` },
+          { character: 'Anchor', text: `תודה לצוות הכתבים והפרשנים. נמשיך לעדכן בדיווחים שוטפים לאורך כל הערב.` }
+        ]
+      });
+    } else {
+      return res.json({
+        title: `News Briefing: ${nTopic}`,
+        format: 'news',
+        scenes: [
+          { character: 'Anchor', text: `Good evening. We begin with our top headline tonight regarding ${nTopic}.` },
+          { character: 'Reporter', text: `Live on location, we are seeing immediate public reaction and high engagement across the board.` },
+          { character: 'Analyst', text: `Market analysts confirm this development marks a pivotal shift in industry dynamics for the coming quarter.` },
+          { character: 'Anchor', text: `We will continue following this developing story. Up next, our comprehensive global report.` }
+        ]
+      });
+    }
+  }
+
+  // 3. COMMERCIAL / DIALOGUE AD (Announcer, Customer A, Customer B)
+  if (selectedFormat === 'commercial') {
+    const adTopic = customTopic || (isHe ? 'הפתרון המושלם ליצירת אודיו' : 'The Ultimate Audio Production Platform');
+    if (isHe) {
+      return res.json({
+        title: `תשדיר פרסומת: ${adTopic}`,
+        format: 'commercial',
+        scenes: [
+          { character: 'Announcer', text: `מחפשים את הדרך המושלמת להפיק אודיו ברמה הגבוהה ביותר? הכירו את ${adTopic}!` },
+          { character: 'Customer A', text: `חיפשתי כל כך הרבה זמן כלי שמאפשר לי לדייק את זמני הקריינות בקלות, וזה פשוט עובד!` },
+          { character: 'Customer B', text: `וזה נשמע מקצועי בדיוק כמו באולפן הקלטות יוקרתי, בתוך שניות ספורות.` },
+          { character: 'Announcer', text: `הצטרפו עוד היום לאלפי יוצרים מובילים והתחילו ליצור בחינם!` }
+        ]
+      });
+    } else {
+      return res.json({
+        title: `Commercial Promo: ${adTopic}`,
+        format: 'commercial',
+        scenes: [
+          { character: 'Announcer', text: `Are you looking for the fastest way to produce broadcast-ready voiceovers? Meet ${adTopic}!` },
+          { character: 'Customer A', text: `I used to spend hours editing audio tracks. Now I dial in the exact time and it’s done in seconds!` },
+          { character: 'Customer B', text: `And the voice clarity is unbelievable. It sounds like a million-dollar studio production.` },
+          { character: 'Announcer', text: `Unlock your creative superpower today. Try it free now!` }
+        ]
+      });
+    }
+  }
+
+  // 4. MULTI-CHARACTER STORY (Bedtime / Adventure / Fantasy)
   const storyThemesHe = {
     'bedtime': {
-      title: `המסע של ${name} לאי החלומות`,
+      title: customTopic ? `סיפור לילה: ${customTopic}` : `המסע של ${name} לאי החלומות`,
+      format: 'story',
       scenes: [
-        { character: 'Narrator', text: `השמש שקעה לאיטה מעבר לאופק, והערב השקט ירד על הבית של ${name}.` },
+        { character: 'Narrator', text: `השמש שקעה לאיטה מעבר לאופק, והערב השקט ירד על ביתו של ${name}. ${customTopic ? customTopic : ''}` },
         { character: 'Mother', text: `לילה טוב ילד שלי. עצום עיניים ותקשיב לשיר הערש שהכוכבים שרים לך בשמיים.` },
         { character: 'Child', text: `לילה טוב אמא, לילה טוב כוכבים נוצצים, לילה טוב לכל העולם.` },
         { character: 'Narrator', text: `עם חיוך שליו ורוגע עמוק, ${name} נרדם ונכנס אל עולם של חלומות יפים ונעימים.` }
       ]
     },
     'fantasy': {
-      title: `${name} ודרקון הכוכבים`,
+      title: customTopic ? `אגדה קסומה: ${customTopic}` : `${name} ודרקון הכוכבים`,
+      format: 'story',
       scenes: [
         { character: 'Narrator', text: `בלב היער הקסום, במקום שבו הציפורים שרות בלילה, ${name} מצא שביל של אור זוהר.` },
         { character: 'Child', text: `תראו כמה האור הזה יפה! בואו נלך ונראה לאן הוא מוביל אותנו.` },
         { character: 'Wise Elder', text: `רק בעלי לב טוב ואוהב יכולים לפגוש את דרקון הכוכבים ולהביא שלום ליער.` },
         { character: 'Narrator', text: `הדרקון חייך, פיזר אבק כוכבים נוצץ, והאיר את הלילה בשלווה ובשמחה גדולה.` }
       ]
+    },
+    'adventure': {
+      title: customTopic ? `הרפתקה מסעירה: ${customTopic}` : `${name} ומצודת העננים`,
+      format: 'story',
+      scenes: [
+        { character: 'Narrator', text: `גבוה מעל הרי הקטיפה, רחפה מצודה עשויה כולה מעננים זוהרים בשמי בין הערביים.` },
+        { character: 'Father', text: `מוכנים להמראה, קפטן ${name}? קח את המצפן, הלילה אנו טסים לקבוצת כוכבי הצפון!` },
+        { character: 'Child', text: `במלוא המהירות קדימה! אני כבר רואה את גשר הקשת בענן!` },
+        { character: 'Narrator', text: `יחד, יד ביד, הם ריחפו מבעד לעננים הנוצצים, צוחקים ומאושרים כל הדרך הביתה.` }
+      ]
     }
   };
 
   const storyThemesEn = {
     'fantasy': {
-      title: `${name} and the Enchanted Star-Dragon`,
+      title: customTopic ? `Fantasy Quest: ${customTopic}` : `${name} and the Enchanted Star-Dragon`,
+      format: 'story',
       scenes: [
-        { character: 'Narrator', text: `Deep within the whispering sapphire woods, where fireflies glowed like little suns, young ${name} found a shimmering golden key tucked under a sleeping acorn.` },
-        { character: 'Child', text: `Look! It’s glowing! I wonder what magical door this key opens tonight...` },
+        { character: 'Narrator', text: `Deep within the whispering sapphire woods, young ${name} discovered a shimmering path of golden starlight.` },
+        { character: 'Child', text: `Look! The trees are glowing! I wonder what magical secret lies at the end of this trail...` },
         { character: 'Wise Elder', text: `Hold tight to your courage, little traveler. The Star-Dragon only shares his light with those who have a kind and gentle heart.` },
-        { character: 'Narrator', text: `With a deep breath and a joyful smile, ${name} turned the key in the ancient oak tree, and the sky burst into a magnificent shower of peaceful starlight.` }
+        { character: 'Narrator', text: `With a joyful smile, ${name} reached the clearing, and the night sky burst into a magnificent shower of peaceful wonder.` }
       ]
     },
     'bedtime': {
-      title: `${name}’s Voyage to the Island of Dreams`,
+      title: customTopic ? `Bedtime Tale: ${customTopic}` : `${name}’s Voyage to the Island of Dreams`,
+      format: 'story',
       scenes: [
-        { character: 'Narrator', text: `As twilight settled softly over the rooftops, the gentle night wind whispered a cozy lullaby to ${name}.` },
+        { character: 'Narrator', text: `As twilight settled softly over the rooftops, the gentle night wind whispered a cozy lullaby to ${name}. ${customTopic ? customTopic : ''}` },
         { character: 'Mother', text: `Close your eyes, my dear. The moon is painting the clouds in shades of silver and lavender, watching over your sweet dreams.` },
         { character: 'Child', text: `Goodnight stars, goodnight moon, goodnight sleepy world...` },
-        { character: 'Narrator', text: `Wrapped in warm blankets, ${name} drifted peacefully off into the land where every adventure is filled with wonder, safe and sound.` }
+        { character: 'Narrator', text: `Wrapped in warm blankets, ${name} drifted peacefully off into the land where every adventure is safe and sound.` }
       ]
     },
     'adventure': {
-      title: `${name} and the Secret Cloud Castle`,
+      title: customTopic ? `Adventure Quest: ${customTopic}` : `${name} and the Secret Cloud Castle`,
+      format: 'story',
       scenes: [
         { character: 'Narrator', text: `High above the velvet mountains, a castle woven entirely of marshmallow clouds floated across the twilight sky.` },
-        { character: 'Father', text: `Ready for liftoff, captain? Grab your compass, tonight we chart a course for the Northern Constellations!` },
+        { character: 'Father', text: `Ready for liftoff, Captain ${name}? Grab your compass, tonight we chart a course for the Northern Constellations!` },
         { character: 'Child', text: `Full speed ahead! I can already see the glowing rainbow bridge!` },
         { character: 'Narrator', text: `Together, hand in hand, they soared through the sparkling clouds, laughing all the way home to bed.` }
       ]
     }
   };
 
-  const selectedStory = (lang === 'he' && storyThemesHe[theme])
-    ? storyThemesHe[theme]
-    : (storyThemesEn[theme] || storyThemesEn['bedtime']);
+  const selectedTheme = theme && storyThemesEn[theme] ? theme : 'bedtime';
+  const selectedStory = (isHe && storyThemesHe[selectedTheme])
+    ? storyThemesHe[selectedTheme]
+    : (storyThemesEn[selectedTheme] || storyThemesEn['bedtime']);
 
   res.json(selectedStory);
 });

@@ -202,7 +202,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [synthesizedEngineUsed, setSynthesizedEngineUsed] = useState(null);
   const [deletingVoiceId, setDeletingVoiceId] = useState(null);
 
-  // 4. Multi-Voice Screenplay Workshop states
+  // 4. Multi-Voice Screenplay & Dialogue Workshop states
+  const [screenplayFormat, setScreenplayFormat] = useState('story'); // 'story' | 'podcast' | 'news' | 'commercial' | 'cinematic'
+  const [screenplayTopic, setScreenplayTopic] = useState('');
   const [storyTheme, setStoryTheme] = useState('bedtime');
   const [childName, setChildName] = useState('Leo');
   const [screenplayCharacters, setScreenplayCharacters] = useState({
@@ -210,7 +212,16 @@ export default function VoiceBrowser({ onSelectVoice }) {
     Mother: 'en-fem-1',
     Father: 'en-male-2',
     Child: 'en-girl-1',
-    'Wise Elder': 'en-male-6'
+    'Wise Elder': 'en-male-6',
+    Host: 'en-male-1',
+    'Co-Host': 'en-fem-2',
+    Guest: 'en-male-3',
+    Anchor: 'en-fem-1',
+    Reporter: 'en-male-2',
+    Analyst: 'en-fem-3',
+    Announcer: 'en-male-1',
+    'Customer A': 'en-fem-1',
+    'Customer B': 'en-male-4'
   });
   const [screenplayScript, setScreenplayScript] = useState(null);
   const [generatingScript, setGeneratingScript] = useState(false);
@@ -965,13 +976,21 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  const handleGenerateScreenplayScript = async () => {
+  const handleGenerateScreenplayScript = async (fmtKey, customTopic) => {
     setGeneratingScript(true);
+    const chosenFormat = fmtKey || screenplayFormat;
+    const chosenTopic = typeof customTopic === 'string' ? customTopic : screenplayTopic;
     try {
       const res = await fetch('/api/voiceover/screenplay/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: storyTheme, childName, language: selectedLanguage })
+        body: JSON.stringify({
+          format: chosenFormat,
+          topic: chosenTopic,
+          theme: storyTheme,
+          childName,
+          language: selectedLanguage
+        })
       });
       const data = await res.json();
       setScreenplayScript(data);
@@ -981,6 +1000,38 @@ export default function VoiceBrowser({ onSelectVoice }) {
     } finally {
       setGeneratingScript(false);
     }
+  };
+
+  const handleUpdateSceneText = (idx, newText) => {
+    if (!screenplayScript || !screenplayScript.scenes) return;
+    const updatedScenes = [...screenplayScript.scenes];
+    updatedScenes[idx].text = newText;
+    setScreenplayScript({ ...screenplayScript, scenes: updatedScenes });
+  };
+
+  const handleUpdateSceneCharacter = (idx, newChar) => {
+    if (!screenplayScript || !screenplayScript.scenes) return;
+    const updatedScenes = [...screenplayScript.scenes];
+    updatedScenes[idx].character = newChar;
+    setScreenplayScript({ ...screenplayScript, scenes: updatedScenes });
+  };
+
+  const handleAddSceneLine = () => {
+    if (!screenplayScript || !screenplayScript.scenes) return;
+    const newScene = {
+      character: 'Narrator',
+      text: selectedLanguage === 'he' ? 'שורה חדשה בדיאלוג...' : 'New dialogue line...'
+    };
+    setScreenplayScript({
+      ...screenplayScript,
+      scenes: [...screenplayScript.scenes, newScene]
+    });
+  };
+
+  const handleRemoveSceneLine = (idx) => {
+    if (!screenplayScript || !screenplayScript.scenes) return;
+    const updated = screenplayScript.scenes.filter((_, i) => i !== idx);
+    setScreenplayScript({ ...screenplayScript, scenes: updated });
   };
 
   const handleSynthesizeScreenplay = async () => {
@@ -1004,6 +1055,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             similarityBoost: voiceSimilarity,
             speed: voiceSpeed,
             language: selectedLanguage,
+            engineMode: engineMode,
             useClonedBridge: true
           })
         });
@@ -2391,66 +2443,96 @@ export default function VoiceBrowser({ onSelectVoice }) {
           <div className="screenplay-header">
             <div>
               <h2 className="screenplay-title">🎭 Multi-Voice Character Workshop</h2>
-              <p className="screenplay-sub">Assign different voices to multiple characters for audio drama, podcast banter, and dialogues.</p>
+              <p className="screenplay-sub">Assign different voices to multiple characters for audio drama, podcast banter, news panels, and commercials.</p>
             </div>
             <button 
               className="gold-studio-btn"
-              onClick={handleGenerateScreenplayScript}
+              onClick={() => handleGenerateScreenplayScript(screenplayFormat, screenplayTopic)}
               disabled={generatingScript}
-              style={{ maxWidth: '240px' }}
+              style={{ maxWidth: '280px' }}
             >
-              {generatingScript ? '⏳ Generating Script...' : '✨ Generate Dialogue Script'}
+              {generatingScript ? '⏳ Writing Dialogue...' : '✨ Write Dialogue with AI'}
             </button>
           </div>
 
-          <div className="story-controls-grid">
-            <div className="control-card">
-              <label className="input-label-uppercase">Script Genre</label>
-              <select 
-                className="dark-input-field"
-                value={storyTheme}
-                onChange={(e) => setStoryTheme(e.target.value)}
-              >
-                <option value="bedtime">🌙 Bedtime Story (סיפור לפני השינה)</option>
-                <option value="fantasy">✨ Enchanted Fantasy & Quest</option>
-                <option value="adventure">🚀 Sci-Fi & Adventure</option>
-              </select>
+          {/* 🤖 UNIVERSAL AI MULTI-VOICE SCRIPT WRITER DOCK */}
+          <div className="ai-script-assistant-card" style={{ marginBottom: '16px' }}>
+            <div className="ai-assistant-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🤖</span>
+                <strong style={{ fontSize: '13px', color: '#f59e0b' }}>AI Multi-Voice Script Assistant</strong>
+                <span style={{ fontSize: '11px', color: '#94a3b8' }}>• Stories, Podcast Banter, News Panels & Commercials</span>
+              </div>
             </div>
 
-            <div className="control-card">
-              <label className="input-label-uppercase">Dialogue Language</label>
-              <select 
-                className="dark-input-field"
-                value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
+            {/* Format Selection Pills */}
+            <div className="ai-formats-row" style={{ marginTop: '10px' }}>
+              <span className="ai-mini-label">💡 Format:</span>
+              <button 
+                className={`ai-format-pill ${screenplayFormat === 'story' ? 'active-ai-pill' : ''}`}
+                onClick={() => { setScreenplayFormat('story'); handleGenerateScreenplayScript('story', screenplayTopic); }}
+                disabled={generatingScript}
               >
-                {supportedLanguages.map(l => (
-                  <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
-                ))}
-              </select>
+                🧒 Kids & Bedtime Story
+              </button>
+              <button 
+                className={`ai-format-pill ${screenplayFormat === 'podcast' ? 'active-ai-pill' : ''}`}
+                onClick={() => { setScreenplayFormat('podcast'); handleGenerateScreenplayScript('podcast', screenplayTopic); }}
+                disabled={generatingScript}
+              >
+                🎙️ Podcast Banter (Host + Guest)
+              </button>
+              <button 
+                className={`ai-format-pill ${screenplayFormat === 'news' ? 'active-ai-pill' : ''}`}
+                onClick={() => { setScreenplayFormat('news'); handleGenerateScreenplayScript('news', screenplayTopic); }}
+                disabled={generatingScript}
+              >
+                📰 News Panel (Anchor + Reporter)
+              </button>
+              <button 
+                className={`ai-format-pill ${screenplayFormat === 'commercial' ? 'active-ai-pill' : ''}`}
+                onClick={() => { setScreenplayFormat('commercial'); handleGenerateScreenplayScript('commercial', screenplayTopic); }}
+                disabled={generatingScript}
+              >
+                📢 Commercial Dialogue Ad
+              </button>
             </div>
 
-            <div className="control-card" style={{ gridColumn: 'span 2' }}>
-              <label className="input-label-uppercase">Main Character Name</label>
-              <input 
+            {/* Creative Prompt Input */}
+            <div className="ai-prompt-input-group" style={{ marginTop: '10px' }}>
+              <input
                 type="text"
-                className="dark-input-field"
-                value={childName}
-                onChange={(e) => setChildName(e.target.value)}
-                placeholder="e.g. Leo, Emma, דניאל, יאיר"
+                className="dark-input-field ai-dock-prompt-input"
+                placeholder={
+                  screenplayFormat === 'podcast' ? 'Type podcast topic (e.g. "Two tech hosts debating the future of AI and audio")...' :
+                  screenplayFormat === 'news' ? 'Type news headline (e.g. "Breaking economic report with field correspondent")...' :
+                  screenplayFormat === 'commercial' ? 'Type product promo (e.g. "A fun coffee brand with an announcer and two sleepy friends")...' :
+                  'Type story idea (e.g. "A magical bedtime story about a curious bunny and a wise owl")...'
+                }
+                value={screenplayTopic}
+                onChange={(e) => setScreenplayTopic(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleGenerateScreenplayScript(screenplayFormat, screenplayTopic); }}
               />
+              <button 
+                className="ai-gen-gold-btn"
+                onClick={() => handleGenerateScreenplayScript(screenplayFormat, screenplayTopic)}
+                disabled={generatingScript}
+              >
+                {generatingScript ? '⏳ Writing...' : '✨ Generate Multi-Voice Script'}
+              </button>
             </div>
           </div>
 
-          <div className="character-matrix-section">
+          {/* Character Voice Matrix (Assignable from 30 Personas) */}
+          <div className="character-matrix-section" style={{ marginBottom: '16px' }}>
             <h3 className="section-small-title">🎭 Character Voice Assignment (Select from 30 {selectedLangObj.name.split(' ')[0]} Personas & Clones)</h3>
             <div className="character-cards-grid">
-              {['Narrator', 'Mother', 'Father', 'Child', 'Wise Elder'].map((charName) => (
+              {['Narrator', 'Mother', 'Father', 'Child', 'Host', 'Co-Host', 'Guest', 'Anchor', 'Reporter', 'Announcer', 'Customer A'].map((charName) => (
                 <div key={charName} className="character-assign-card">
                   <div className="char-role-badge">{charName}</div>
                   <select
                     className="dark-input-field"
-                    value={screenplayCharacters[charName] || ''}
+                    value={screenplayCharacters[charName] || selectedVoiceId}
                     onChange={(e) => setScreenplayCharacters({ ...screenplayCharacters, [charName]: e.target.value })}
                   >
                     {allAvailableVoices.map(v => (
@@ -2464,38 +2546,68 @@ export default function VoiceBrowser({ onSelectVoice }) {
             </div>
           </div>
 
+          {/* Interactive Editable Dialogue Scenes */}
           {screenplayScript && (
             <div className="script-editor-container">
               <div className="script-title-row">
                 <h3 className="story-title-highlight">📜 {screenplayScript.title}</h3>
-                <button 
-                  className="gold-studio-btn"
-                  onClick={handleSynthesizeScreenplay}
-                  disabled={synthesizingScreenplay}
-                  style={{ maxWidth: '280px' }}
-                >
-                  {synthesizingScreenplay ? '⏳ Synthesizing Audio...' : '⚡ Synthesize Multi-Voice Audio'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button 
+                    className="editor-sub-btn"
+                    onClick={handleAddSceneLine}
+                  >
+                    ➕ Add Dialogue Line
+                  </button>
+                  <button 
+                    className="gold-studio-btn"
+                    onClick={handleSynthesizeScreenplay}
+                    disabled={synthesizingScreenplay}
+                    style={{ maxWidth: '280px' }}
+                  >
+                    {synthesizingScreenplay ? '⏳ Synthesizing Audio...' : '⚡ Synthesize Multi-Voice Audio'}
+                  </button>
+                </div>
               </div>
 
               <div className="dialogue-scenes-list">
                 {screenplayScript.scenes.map((scene, idx) => (
-                  <div key={idx} className="dialogue-scene-card">
-                    <div className="scene-speaker-tag">
-                      <strong>Scene {idx + 1}: {scene.character}</strong>
+                  <div key={idx} className="dialogue-scene-card" style={{ marginBottom: '10px' }}>
+                    <div className="scene-speaker-tag" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="scene-num-badge">Scene {idx + 1}</span>
+                        <select
+                          className="dark-input-field mini-lang-dropdown"
+                          value={scene.character}
+                          onChange={(e) => handleUpdateSceneCharacter(idx, e.target.value)}
+                        >
+                          {['Narrator', 'Mother', 'Father', 'Child', 'Host', 'Co-Host', 'Guest', 'Anchor', 'Reporter', 'Announcer', 'Customer A', 'Customer B', 'Wise Elder'].map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button 
+                        className="del-profile-btn"
+                        onClick={() => handleRemoveSceneLine(idx)}
+                        title="Delete this scene line"
+                      >
+                        🗑️ Remove
+                      </button>
                     </div>
-                    <p 
-                      className="scene-dialogue-text"
+
+                    <textarea 
+                      className="dark-textarea"
+                      style={{ marginTop: '8px', minHeight: '60px', width: '100%' }}
                       dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
-                    >
-                      "{scene.text}"
-                    </p>
+                      value={scene.text}
+                      onChange={(e) => handleUpdateSceneText(idx, e.target.value)}
+                    />
                   </div>
                 ))}
               </div>
 
               {screenplayAudioLines.length > 0 && (
-                <div className="synthesized-scenes-results">
+                <div className="synthesized-scenes-results" style={{ marginTop: '16px' }}>
                   <h4 className="audio-results-header">🎧 Multi-Voice Generated Audio Clips ({screenplayAudioLines.length} Scenes Ready)</h4>
                   <div className="scenes-audio-grid">
                     {screenplayAudioLines.map((line, i) => (
