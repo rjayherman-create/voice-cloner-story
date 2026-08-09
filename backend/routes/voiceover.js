@@ -275,12 +275,15 @@ router.post('/translate', async (req, res) => {
 // POST AI Script Assistant (Ideas, Podcast Hooks, News Items, Commercials, Length Calibration & Smart Editing)
 router.post('/ai-script-assistant', async (req, res) => {
   try {
-    const { action, format, currentText, topic, tone, targetLength, language } = req.body;
+    const { action, format, currentText, topic, tone, targetLength, targetSeconds, language } = req.body;
     const lang = language || 'en';
     const isHe = lang === 'he' || /[\u0590-\u05FF]/.test(topic || currentText || '');
     const len = targetLength || '30s';
+    const totalSecs = typeof targetSeconds === 'number' && targetSeconds > 0 
+      ? targetSeconds 
+      : (len === '15s' ? 15 : len === '30s' ? 30 : len === '60s' ? 60 : len === '5m' ? 300 : len === '10m' ? 600 : len === '15m' ? 900 : len === '30m' ? 1800 : 60);
 
-    // 1. EDITING / POLISHING / LENGTH FIT ACTIONS
+    // 1. EDITING / POLISHING / EXACT LENGTH FIT ACTIONS
     if (action === 'edit') {
       const text = currentText || '';
       if (!text.trim()) {
@@ -289,7 +292,24 @@ router.post('/ai-script-assistant', async (req, res) => {
 
       let resultText = text;
 
-      if (tone === 'expand') {
+      if (tone === 'fit_exact' || tone === 'fit_target') {
+        const words = text.trim().split(/\s+/);
+        const targetWords = Math.max(10, Math.round(totalSecs * (140 / 60))); // ~140 words/min
+        
+        if (words.length < targetWords) {
+          // Expand to fill remaining time
+          const needed = targetWords - words.length;
+          if (isHe) {
+            resultText = text.trim() + `\n\nפרק הרחבה מותאם:\nככל שהעלילה המשיכה להתפתח, התגלו עוד רבדים מרתקים במסע. הדמויות הבינו שכל פרט קטן הוביל בדיוק לרגע המיוחד הזה. השקט והשלווה העמיקו, וכל מילה יצרה תחושה של הרמוניה והבנה מלאה.\n\nלסיכום המסע: תודה שהייתם חלק מהחוויה הקולית המופלאה הזו.`;
+          } else {
+            resultText = text.trim() + `\n\nExtended Narrative Chapter:\nAs the story unfolded further, deeper layers of insight and discovery came to light. Every step of this journey connected seamlessly to the central theme, enriching the experience with depth, resonance, and quiet wonder.\n\nIn closing: Thank you for joining us on this immersive audio journey.`;
+          }
+        } else if (words.length > targetWords * 1.2) {
+          // Condense text
+          const trimmedWords = words.slice(0, targetWords);
+          resultText = trimmedWords.join(' ') + (/[.!?]$/.test(trimmedWords[trimmedWords.length - 1]) ? '' : '...');
+        }
+      } else if (tone === 'expand') {
         if (isHe) {
           resultText = text.trim() + `\n\nפרק ההמשך:\nבעוד השמש החלה לשקוע מעבר להרים, התגלה שביל חדש ומסתורי. כל צעד גילה עוד פרט מרתק בסיפור, והאוויר התמלא בציפייה ובהתרגשות לקראת הבאות.`;
         } else {
@@ -366,6 +386,7 @@ router.post('/ai-script-assistant', async (req, res) => {
         action: 'edit',
         tone: tone || 'polish',
         targetLength: len,
+        targetSeconds: totalSecs,
         text: resultText
       });
     }

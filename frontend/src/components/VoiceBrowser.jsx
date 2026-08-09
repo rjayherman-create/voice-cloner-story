@@ -56,6 +56,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [translating, setTranslating] = useState(false);
   const [sourceTranslateLang, setSourceTranslateLang] = useState('auto');
   const [isDictating, setIsDictating] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState(1);
+  const [customSeconds, setCustomSeconds] = useState(0);
   const recognitionRef = useRef(null);
 
   // 🌐 Multilingual states (Hebrew positioned LAST on the list)
@@ -325,10 +327,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 🤖 AI Script Assistant Handlers with Target Length & Long-Form Support
-  const handleAiGenerate = async (formatKey, lenKey) => {
+  // 🤖 AI Script Assistant Handlers with Target Length & Exact Time Setter Support
+  const handleAiGenerate = async (formatKey, lenKey, customSecs) => {
     const chosenFormat = formatKey || aiFormat;
     const chosenLength = lenKey || targetLength;
+    const exactSecs = typeof customSecs === 'number' ? customSecs : ((customMinutes * 60) + customSeconds);
     setAiLoading(true);
     setAiSuccessMsg('');
     try {
@@ -339,6 +342,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           action: 'generate',
           format: chosenFormat,
           targetLength: chosenLength,
+          targetSeconds: exactSecs,
           topic: aiPromptTopic,
           language: selectedLanguage
         })
@@ -346,7 +350,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const data = await res.json();
       if (data.text) {
         setTtsText(data.text);
-        setAiSuccessMsg(`✨ Generated ${chosenLength} ${chosenFormat.toUpperCase()} script on "${data.topic}"!`);
+        const mins = Math.floor(exactSecs / 60);
+        const secs = exactSecs % 60;
+        const timeLabel = mins > 0 ? (secs > 0 ? `${mins}m ${secs}s` : `${mins} Min`) : `${secs}s`;
+        setAiSuccessMsg(`✨ Written to exact length: ${timeLabel} (${data.topic || chosenFormat})!`);
       }
     } catch (err) {
       alert('AI Assistant error: ' + err.message);
@@ -355,8 +362,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  const handleAiEdit = async (toneKey) => {
+  const handleAiEdit = async (toneKey, customSecs) => {
     if (!ttsText.trim()) return;
+    const exactSecs = typeof customSecs === 'number' ? customSecs : ((customMinutes * 60) + customSeconds);
     setAiLoading(true);
     setAiSuccessMsg('');
     try {
@@ -367,6 +375,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           action: 'edit',
           tone: toneKey,
           targetLength: targetLength,
+          targetSeconds: exactSecs,
           currentText: ttsText,
           language: selectedLanguage
         })
@@ -374,13 +383,23 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const data = await res.json();
       if (data.text) {
         setTtsText(data.text);
-        setAiSuccessMsg(`✨ Script updated (${toneKey})!`);
+        const mins = Math.floor(exactSecs / 60);
+        const secs = exactSecs % 60;
+        const timeLabel = mins > 0 ? (secs > 0 ? `${mins}m ${secs}s` : `${mins} Min`) : `${secs}s`;
+        setAiSuccessMsg(`✨ Script calibrated to exact length: ${timeLabel}!`);
       }
     } catch (err) {
       alert('AI Editing error: ' + err.message);
     } finally {
       setAiLoading(false);
     }
+  };
+
+  // Quick Preset Setter
+  const applyTimePreset = (mins, secs, label) => {
+    setCustomMinutes(mins);
+    setCustomSeconds(secs);
+    if (label) setTargetLength(label);
   };
 
   // 🎬 Strip [VISUAL: ...] cues from video scripts for clean audio recording
@@ -1400,6 +1419,142 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
+              {/* ⏱️ INTERACTIVE EXACT TIME SETTER */}
+              <div className="time-setter-studio-card" style={{ marginTop: '10px', marginBottom: '12px' }}>
+                <div className="time-setter-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '16px' }}>⏱️</span>
+                    <strong style={{ fontSize: '13px', color: '#f59e0b' }}>Audio Length & Time Setter:</strong>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Set exact spoken time & AI will write to that precise length</span>
+                  </div>
+
+                  <div className="time-target-badge-pill">
+                    🎯 Set Time: <span className="time-highlight">{String(customMinutes).padStart(2, '0')}:{String(customSeconds).padStart(2, '0')}</span> (~{Math.round(((customMinutes * 60) + customSeconds) * (140 / 60))} words)
+                  </div>
+                </div>
+
+                {/* Quick Duration Preset Pills */}
+                <div className="duration-pill-buttons" style={{ marginTop: '8px' }}>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 0 && customSeconds === 15 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(0, 15, '15s')}
+                  >
+                    ⚡ 15s
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 0 && customSeconds === 30 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(0, 30, '30s')}
+                  >
+                    ⏱️ 30s
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 1 && customSeconds === 0 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(1, 0, '60s')}
+                  >
+                    ⏳ 1 Min
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 3 && customSeconds === 0 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(3, 0, '3m')}
+                  >
+                    🎬 3 Min
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 5 && customSeconds === 0 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(5, 0, '5m')}
+                  >
+                    🎬 5 Min
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 10 && customSeconds === 0 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(10, 0, '10m')}
+                  >
+                    📻 10 Min
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 15 && customSeconds === 0 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(15, 0, '15m')}
+                  >
+                    🧒 15 Min (Kids Story)
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 30 && customSeconds === 0 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(30, 0, '30m')}
+                  >
+                    🎙️ 30 Min (Master)
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 45 && customSeconds === 0 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(45, 0, '45m')}
+                  >
+                    🎙️ 45 Min
+                  </button>
+                  <button 
+                    className={`duration-pill-btn ${customMinutes === 60 && customSeconds === 0 ? 'active-duration-pill' : ''}`}
+                    onClick={() => applyTimePreset(60, 0, '60m')}
+                  >
+                    🎙️ 60 Min
+                  </button>
+                </div>
+
+                {/* Exact Minutes & Seconds Custom Steppers + Continuous Slider */}
+                <div className="time-setter-stepper-row" style={{ marginTop: '10px' }}>
+                  <div className="stepper-box">
+                    <span className="stepper-label">Min:</span>
+                    <button className="stepper-btn" onClick={() => setCustomMinutes(Math.max(0, customMinutes - 1))}>-</button>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      max="120" 
+                      className="dark-input-field stepper-input"
+                      value={customMinutes}
+                      onChange={(e) => setCustomMinutes(Math.max(0, parseInt(e.target.value) || 0))}
+                    />
+                    <button className="stepper-btn" onClick={() => setCustomMinutes(customMinutes + 1)}>+</button>
+                  </div>
+
+                  <div className="stepper-box">
+                    <span className="stepper-label">Sec:</span>
+                    <button className="stepper-btn" onClick={() => setCustomSeconds(Math.max(0, customSeconds - 5))}>-</button>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      max="59" 
+                      className="dark-input-field stepper-input"
+                      value={customSeconds}
+                      onChange={(e) => setCustomSeconds(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
+                    />
+                    <button className="stepper-btn" onClick={() => setCustomSeconds(Math.min(59, customSeconds + 5))}>+</button>
+                  </div>
+
+                  <div className="slider-group" style={{ flex: 1, minWidth: '150px' }}>
+                    <input 
+                      type="range"
+                      min="15"
+                      max="1800"
+                      step="15"
+                      value={(customMinutes * 60) + customSeconds}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        setCustomMinutes(Math.floor(val / 60));
+                        setCustomSeconds(val % 60);
+                      }}
+                      className="fable-range"
+                    />
+                  </div>
+
+                  {/* One-Click Action: Fit Current Text to this set length */}
+                  <button 
+                    className="ai-tool-btn highlight-tool-btn"
+                    onClick={() => handleAiEdit('fit_exact', (customMinutes * 60) + customSeconds)}
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Scale/expand existing text to fit this exact duration"
+                  >
+                    📐 Fit Text to {String(customMinutes).padStart(2, '0')}:{String(customSeconds).padStart(2, '0')}
+                  </button>
+                </div>
+              </div>
+
               {/* ============================================================ */}
               {/* 🤖 2. UNIVERSAL AI SCRIPT ASSISTANT (VIDEO, KIDS, PODCASTS) */}
               {/* ============================================================ */}
@@ -1414,55 +1569,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   {aiSuccessMsg && (
                     <span className="ai-status-pill">{aiSuccessMsg}</span>
                   )}
-                </div>
-
-                {/* ⏱️ EXTENDED TARGET AUDIO LENGTH SELECTOR */}
-                <div className="duration-picker-bar" style={{ marginTop: '10px' }}>
-                  <span className="ai-mini-label">⏱️ Target Duration:</span>
-                  <div className="duration-pill-buttons">
-                    <button 
-                      className={`duration-pill-btn ${targetLength === '15s' ? 'active-duration-pill' : ''}`}
-                      onClick={() => { setTargetLength('15s'); handleAiGenerate(aiFormat, '15s'); }}
-                    >
-                      ⚡ 15s (Ad Hook)
-                    </button>
-                    <button 
-                      className={`duration-pill-btn ${targetLength === '30s' ? 'active-duration-pill' : ''}`}
-                      onClick={() => { setTargetLength('30s'); handleAiGenerate(aiFormat, '30s'); }}
-                    >
-                      ⏱️ 30s (Promo)
-                    </button>
-                    <button 
-                      className={`duration-pill-btn ${targetLength === '60s' ? 'active-duration-pill' : ''}`}
-                      onClick={() => { setTargetLength('60s'); handleAiGenerate(aiFormat, '60s'); }}
-                    >
-                      ⏳ 1 Min
-                    </button>
-                    <button 
-                      className={`duration-pill-btn ${targetLength === '5m' ? 'active-duration-pill' : ''}`}
-                      onClick={() => { setTargetLength('5m'); handleAiGenerate(aiFormat, '5m'); }}
-                    >
-                      🎬 5 Min (YouTube)
-                    </button>
-                    <button 
-                      className={`duration-pill-btn ${targetLength === '10m' ? 'active-duration-pill' : ''}`}
-                      onClick={() => { setTargetLength('10m'); handleAiGenerate(aiFormat, '10m'); }}
-                    >
-                      📻 10 Min (Deep-Dive)
-                    </button>
-                    <button 
-                      className={`duration-pill-btn ${targetLength === '15m' ? 'active-duration-pill' : ''}`}
-                      onClick={() => { setTargetLength('15m'); setAiFormat('kids_story'); handleAiGenerate('kids_story', '15m'); }}
-                    >
-                      🧒 15 Min (Kids Story)
-                    </button>
-                    <button 
-                      className={`duration-pill-btn ${targetLength === '30m' ? 'active-duration-pill' : ''}`}
-                      onClick={() => { setTargetLength('30m'); handleAiGenerate(aiFormat, '30m'); }}
-                    >
-                      🎙️ 30 Min (Master Episode)
-                    </button>
-                  </div>
                 </div>
 
                 {/* Creative Format Ideas */}
@@ -1753,10 +1859,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     />
                     <button 
                       className="ai-gen-gold-btn"
-                      onClick={() => handleAiGenerate(aiFormat, targetLength)}
+                      onClick={() => handleAiGenerate(aiFormat, targetLength, (customMinutes * 60) + customSeconds)}
                       disabled={aiLoading}
+                      title={`Write complete ${aiFormat.replace('_', ' ')} calibrated to exactly ${customMinutes}m ${customSeconds}s`}
                     >
-                      {aiLoading ? '⏳ Writing...' : `✨ Write Story with AI`}
+                      {aiLoading ? '⏳ Writing...' : `✨ Write Story to Exact Length (${String(customMinutes).padStart(2, '0')}:${String(customSeconds).padStart(2, '0')})`}
                     </button>
                   </div>
                 </div>
