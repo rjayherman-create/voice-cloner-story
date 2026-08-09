@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import voiceoverRoutes from './routes/voiceover.js';
 import projectsRoutes from './routes/projects.js';
 import voiceLibraryRoutes from './routes/voice-library.js';
+import billingRoutes from './routes/billing.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +26,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../projects')));
 
 // API Routes
 app.use('/api/voiceover', voiceoverRoutes);
+app.use('/api/billing', billingRoutes);
 app.use('/api', projectsRoutes);
 app.use('/api', voiceLibraryRoutes);
 
