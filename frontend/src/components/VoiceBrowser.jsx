@@ -130,6 +130,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const timerRef = useRef(null);
 
   useEffect(() => {
+    document.title = '🎙️ FableVoice Studio - Voice Cloning & Audio Stories';
     loadAllVoiceData();
     loadSoundtracks();
     loadLanguageData();
