@@ -239,6 +239,17 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [playingSoundtrackId, setPlayingSoundtrackId] = useState(null);
   const soundtrackAudioRef = useRef(null);
 
+  // 6. Sound Studio Multi-Track Mixer & Master DAW states (Auto & Manual)
+  const [mixerMode, setMixerMode] = useState('auto'); // 'auto' | 'manual'
+  const [mixerVoiceGain, setMixerVoiceGain] = useState(1.0);
+  const [mixerMusicGain, setMixerMusicGain] = useState(0.25);
+  const [mixerAutoDucking, setMixerAutoDucking] = useState(true);
+  const [mixerIntroDelay, setMixerIntroDelay] = useState(1.5);
+  const [mixerOutroPad, setMixerOutroPad] = useState(2.5);
+  const [isRenderingMix, setIsRenderingMix] = useState(false);
+  const [mixedMasterAudioUrl, setMixedMasterAudioUrl] = useState(null);
+  const [mixedMasterDetails, setMixedMasterDetails] = useState(null);
+
   // Refs for recording & timer
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -1107,6 +1118,42 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
+  // 🎛️ Sound Studio Multi-Track Mixer Handler (Auto & Manual Modes)
+  const handleRenderMasterMix = async (overrideMode) => {
+    const activeMode = overrideMode || mixerMode;
+    setIsRenderingMix(true);
+    try {
+      const soundtrackToUse = selectedSoundtrack?.id || 'lullaby-harp';
+      const res = await fetch('/api/voiceover/mix-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voiceUrl: synthesizedAudioUrl,
+          soundtrackId: soundtrackToUse,
+          mode: activeMode,
+          voiceVolume: activeMode === 'auto' ? 1.0 : mixerVoiceGain,
+          musicVolume: activeMode === 'auto' ? 0.25 : mixerMusicGain,
+          autoDucking: activeMode === 'auto' ? true : mixerAutoDucking,
+          introDelaySec: activeMode === 'auto' ? 1.5 : mixerIntroDelay,
+          outroPadSec: activeMode === 'auto' ? 2.5 : mixerOutroPad
+        })
+      });
+
+      const data = await res.json();
+      if (data.mixedUrl) {
+        setMixedMasterAudioUrl(data.mixedUrl);
+        setMixedMasterDetails(data);
+        setAiSuccessMsg(`🎉 Master Audio Mix rendered successfully (${data.durationSeconds}s) with ${data.soundtrackTitle}!`);
+      } else {
+        alert(data.error || 'Failed to render mix');
+      }
+    } catch (err) {
+      alert('Mixing error: ' + err.message);
+    } finally {
+      setIsRenderingMix(false);
+    }
+  };
+
   const filteredRosterVoices = currentRosterVoices.filter(v => {
     const matchesFilter = voiceFilter === 'all' || v.group === voiceFilter;
     const matchesSearch = !voiceSearch.trim() || 
@@ -1180,7 +1227,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
             className={`nav-pill-btn ${activeNav === 'soundtrack' ? 'active-pill' : ''}`}
             onClick={() => setActiveNav('soundtrack')}
           >
-            <span className="pill-num">3.</span> Ambience Console
+            <span className="pill-num">3.</span> Ambience Library
+          </button>
+          <button 
+            className={`nav-pill-btn ${activeNav === 'mixer' ? 'active-pill' : ''}`}
+            onClick={() => setActiveNav('mixer')}
+          >
+            <span className="pill-num">4.</span> 🎛️ Sound Studio (Mixer)
           </button>
           <button 
             className={`nav-pill-btn ${activeNav === 'sdk' ? 'active-pill' : ''}`}
@@ -2772,7 +2825,238 @@ export default function VoiceBrowser({ onSelectVoice }) {
         </main>
       )}
 
-      {/* TAB 4: SDK INTEGRATION */}
+      {/* TAB 4: SOUND STUDIO & MULTI-TRACK AUDIO MIXER */}
+      {activeNav === 'mixer' && (
+        <main className="soundtrack-tab-content fable-box">
+          <div className="soundtrack-header">
+            <div>
+              <h2 className="screenplay-title">🎛️ Sound Studio: Multi-Track Mixer & Master DAW</h2>
+              <p className="screenplay-sub">Automatically or manually blend voiceovers with background soundtracks, smart auto-ducking, and intro/outro music fades.</p>
+            </div>
+
+            <button 
+              className="gold-studio-btn"
+              onClick={() => handleRenderMasterMix('auto')}
+              disabled={isRenderingMix}
+              style={{ maxWidth: '280px' }}
+            >
+              {isRenderingMix ? '⏳ Rendering Mix...' : '✨ 1-Click Auto-Mix Master'}
+            </button>
+          </div>
+
+          {/* Mode Switcher */}
+          <div className="zero-cost-engine-banner" style={{ marginBottom: '18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🎚️</span>
+                <strong style={{ fontSize: '13px', color: '#f8fafc' }}>Sound Studio Mixing Mode:</strong>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className={`nav-pill-btn ${mixerMode === 'auto' ? 'active-pill' : ''}`}
+                  onClick={() => setMixerMode('auto')}
+                  style={{ fontSize: '12px', padding: '6px 14px' }}
+                >
+                  ✨ 1-Click Auto-Mix (AI Balanced)
+                </button>
+                <button
+                  className={`nav-pill-btn ${mixerMode === 'manual' ? 'active-pill' : ''}`}
+                  onClick={() => setMixerMode('manual')}
+                  style={{ fontSize: '12px', padding: '6px 14px' }}
+                >
+                  🎛️ Manual Multi-Track Console
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 2-TRACK MIXER CONSOLE BOARD */}
+          <div className="two-track-mixer-board" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '18px', marginBottom: '22px' }}>
+            {/* TRACK 1: VOICEOVER STEM */}
+            <div className="soundtrack-card" style={{ background: '#0b1120', border: '1.5px solid #3b82f6', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span className="st-cat-badge" style={{ background: '#1e3a8a', color: '#60a5fa' }}>TRACK 1</span>
+                <strong style={{ fontSize: '14px', color: '#f8fafc' }}>🎙️ Voiceover Stem</strong>
+              </div>
+
+              <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '14px' }}>
+                Active Model: <strong style={{ color: '#f59e0b' }}>{activeVoiceObj ? activeVoiceObj.name : 'Studio Voice'}</strong> ({selectedLangObj.flag} {selectedLangObj.name})
+              </p>
+
+              {mixerMode === 'manual' && (
+                <div className="mixer-control-group" style={{ marginBottom: '14px' }}>
+                  <label>Voiceover Gain Level: <strong style={{ color: '#38bdf8' }}>{Math.round(mixerVoiceGain * 100)}%</strong></label>
+                  <input 
+                    type="range" min="0.2" max="1.5" step="0.05"
+                    className="fable-range"
+                    value={mixerVoiceGain}
+                    onChange={(e) => setMixerVoiceGain(parseFloat(e.target.value))}
+                  />
+                </div>
+              )}
+
+              {synthesizedAudioUrl ? (
+                <div style={{ marginTop: '10px' }}>
+                  <span style={{ fontSize: '11px', color: '#10b981', display: 'block', marginBottom: '4px' }}>✓ Voiceover Audio Ready</span>
+                  <audio controls src={synthesizedAudioUrl} style={{ width: '100%' }} />
+                </div>
+              ) : (
+                <div style={{ padding: '12px', background: '#0f172a', borderRadius: '8px', border: '1px dashed #334155', textAlign: 'center' }}>
+                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>ℹ️ Generate speech in Tab 1, or mix will use studio demo sample.</span>
+                </div>
+              )}
+            </div>
+
+            {/* TRACK 2: BACKGROUND MUSIC STEM */}
+            <div className="soundtrack-card" style={{ background: '#0b1120', border: '1.5px solid #f59e0b', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span className="st-cat-badge" style={{ background: '#78350f', color: '#fbbf24' }}>TRACK 2</span>
+                <strong style={{ fontSize: '14px', color: '#f8fafc' }}>🎵 Soundtrack Stem</strong>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label className="input-label-uppercase" style={{ fontSize: '11px' }}>Select Background Track (20 Tracks)</label>
+                <select 
+                  className="dark-input-field"
+                  style={{ width: '100%', marginTop: '4px' }}
+                  value={selectedSoundtrack ? selectedSoundtrack.id : 'lullaby-harp'}
+                  onChange={(e) => {
+                    const st = soundtracks.find(t => t.id === e.target.value);
+                    if (st) setSelectedSoundtrack(st);
+                  }}
+                >
+                  {soundtracks.map(t => (
+                    <option key={t.id} value={t.id}>
+                      [{t.category}] {t.title} ({t.tempo})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {mixerMode === 'manual' && (
+                <>
+                  <div className="mixer-control-group" style={{ marginBottom: '12px' }}>
+                    <label>Soundtrack Volume: <strong style={{ color: '#f59e0b' }}>{Math.round(mixerMusicGain * 100)}%</strong></label>
+                    <input 
+                      type="range" min="0.05" max="0.8" step="0.05"
+                      className="fable-range"
+                      value={mixerMusicGain}
+                      onChange={(e) => setMixerMusicGain(parseFloat(e.target.value))}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                    <div className="mixer-control-group">
+                      <label style={{ fontSize: '11px' }}>Intro Music Lead: {mixerIntroDelay}s</label>
+                      <input 
+                        type="range" min="0.0" max="4.0" step="0.5"
+                        className="fable-range"
+                        value={mixerIntroDelay}
+                        onChange={(e) => setMixerIntroDelay(parseFloat(e.target.value))}
+                      />
+                    </div>
+
+                    <div className="mixer-control-group">
+                      <label style={{ fontSize: '11px' }}>Outro Music Fade: {mixerOutroPad}s</label>
+                      <input 
+                        type="range" min="0.5" max="6.0" step="0.5"
+                        className="fable-range"
+                        value={mixerOutroPad}
+                        onChange={(e) => setMixerOutroPad(parseFloat(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mixer-control-group auto-duck-toggle">
+                    <label className="toggle-label" style={{ fontSize: '12px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={mixerAutoDucking}
+                        onChange={(e) => setMixerAutoDucking(e.target.checked)}
+                      />
+                      <span>✨ Smart Auto-Ducking (75% music attenuation under voice)</span>
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {selectedSoundtrack && (
+                <div style={{ marginTop: '10px' }}>
+                  <span style={{ fontSize: '11px', color: '#fbbf24', display: 'block', marginBottom: '4px' }}>Preview Soundtrack Stem:</span>
+                  <audio controls src={selectedSoundtrack.url} style={{ width: '100%' }} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* MASTER MIX RENDER & STEM EXPORT SECTION */}
+          <div className="fable-box" style={{ background: '#030712', border: '2px solid #10b981', padding: '24px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#f8fafc', marginBottom: '8px' }}>
+              🎛️ Master Studio Render Console
+            </h3>
+            <p style={{ fontSize: '13px', color: '#94a3b8', maxWidth: '650px', margin: '0 auto 18px' }}>
+              Render a clean, broadcast-normalized master audio mix combining speech narration with the ambient soundtrack, calibrated intro/outro fades, and auto-ducking.
+            </p>
+
+            <button 
+              className="gold-studio-btn"
+              onClick={() => handleRenderMasterMix()}
+              disabled={isRenderingMix}
+              style={{ maxWidth: '340px', margin: '0 auto', fontSize: '15px', padding: '14px 28px' }}
+            >
+              {isRenderingMix ? '⏳ Rendering Master Audio Mix...' : `⚡ Render ${mixerMode === 'auto' ? 'Auto-Balanced' : 'Custom'} Master Mix`}
+            </button>
+
+            {mixedMasterAudioUrl && (
+              <div style={{ marginTop: '24px', background: '#0b1120', padding: '20px', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                  <span className="badge-selected-green" style={{ fontSize: '13px', padding: '6px 14px' }}>
+                    🎉 MASTER BROADCAST MIX READY ({mixedMasterDetails?.durationSeconds}s)
+                  </span>
+                </div>
+
+                <audio controls autoPlay src={mixedMasterAudioUrl} style={{ width: '100%', maxWidth: '600px', margin: '0 auto 16px', display: 'block' }} />
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <a 
+                    href={mixedMasterAudioUrl} 
+                    download="fablevoice-master-mix.wav" 
+                    className="gold-studio-btn"
+                    style={{ textDecoration: 'none', display: 'inline-block', maxWidth: '260px' }}
+                  >
+                    ⬇️ Download Master Mixed Audio
+                  </a>
+
+                  {synthesizedAudioUrl && (
+                    <a 
+                      href={synthesizedAudioUrl} 
+                      download="voiceover-stem.mp3" 
+                      className="download-btn-blue"
+                      style={{ textDecoration: 'none', display: 'inline-block' }}
+                    >
+                      🎙️ Voiceover Stem Only
+                    </a>
+                  )}
+
+                  {selectedSoundtrack && (
+                    <a 
+                      href={selectedSoundtrack.url} 
+                      download={`${selectedSoundtrack.id}.wav`} 
+                      className="download-btn-blue"
+                      style={{ textDecoration: 'none', display: 'inline-block' }}
+                    >
+                      🎵 Music Stem Only
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      )}
+
+      {/* TAB 5: SDK INTEGRATION */}
       {activeNav === 'sdk' && (
         <div className="fable-box placeholder-panel">
           <h2>&lt;/&gt; Universal AI Voice & Multilingual API Integration</h2>

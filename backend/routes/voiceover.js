@@ -10,9 +10,11 @@ import multilingualRosterService from '../services/multilingual-roster.js';
 import translationService from '../services/translation-service.js';
 import universalTtsService from '../services/universal-tts-service.js';
 import soundtrackLibraryService from '../services/soundtrack-library.js';
+import audioMixerService from '../services/audio-mixer-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 
 const router = express.Router();
 
@@ -153,6 +155,50 @@ router.get('/soundtracks', (req, res) => {
     categories: soundtrackLibraryService.getCategories(),
     soundtracks: tracks
   });
+});
+
+// POST Mix Voiceover + Ambient Soundtrack (Auto & Manual Studio Mixer)
+router.post('/mix-audio', async (req, res) => {
+  try {
+    const { 
+      voiceUrl, 
+      soundtrackId, 
+      mode = 'auto', 
+      voiceVolume = 1.0, 
+      musicVolume = 0.25, 
+      autoDucking = true,
+      introDelaySec = 1.5,
+      outroPadSec = 2.5
+    } = req.body;
+
+    let voiceFilePath = null;
+    if (voiceUrl) {
+      const filename = path.basename(voiceUrl.split('?')[0]);
+      const candidatePath = path.join(UPLOADS_DIR, filename);
+      if (fs.existsSync(candidatePath)) {
+        voiceFilePath = candidatePath;
+      }
+    }
+
+    const mixResult = await audioMixerService.mixTracks({
+      voiceFilePath,
+      soundtrackId: soundtrackId || 'lullaby-harp',
+      mode,
+      voiceVolume: parseFloat(voiceVolume) || 1.0,
+      musicVolume: parseFloat(musicVolume) || 0.25,
+      autoDucking: autoDucking !== false,
+      introDelaySec: parseFloat(introDelaySec) || 1.5,
+      outroPadSec: parseFloat(outroPadSec) || 2.5
+    });
+
+    res.json({
+      success: true,
+      ...mixResult
+    });
+  } catch (err) {
+    console.error('[VoiceOver] Audio mixing error:', err);
+    res.status(500).json({ error: err.message || 'Audio mixing failed' });
+  }
 });
 
 // GET multilingual catalog & phrases
