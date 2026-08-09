@@ -6,6 +6,7 @@ import ElevenLabsService from '../services/elevenlab-service.js';
 import hebrewTtsService from '../services/hebrew-tts-service.js';
 import hebrewPhoneticsEngine from '../services/hebrew-phonetics.js';
 import multilingualRosterService from '../services/multilingual-roster.js';
+import translationService from '../services/translation-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -247,7 +248,25 @@ router.post('/screenplay/generate-script', (req, res) => {
     ? storyThemesHe[theme]
     : (storyThemesEn[theme] || storyThemesEn['bedtime']);
 
-  res.json(selectedStory);
+// POST Auto-Translate Text Endpoint
+router.post('/translate', async (req, res) => {
+  try {
+    const { text, targetLanguage, sourceLanguage } = req.body;
+    if (!text || !text.trim()) {
+      return res.json({ success: true, text: '' });
+    }
+
+    const translatedText = await translationService.translate(text, targetLanguage || 'en', sourceLanguage || 'auto');
+    res.json({
+      success: true,
+      originalText: text,
+      targetLanguage,
+      translatedText
+    });
+  } catch (err) {
+    console.error('[VoiceOver] Translation route error:', err);
+    res.status(500).json({ error: err.message || 'Translation failed', translatedText: req.body.text });
+  }
 });
 
 // POST AI Script Assistant (Ideas, Podcast Hooks, News Items, Commercials, Length Calibration & Smart Editing)

@@ -846,6 +846,18 @@
   color: #f59e0b;
 }
 
+.ai-tool-btn.translate-btn {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+.ai-tool-btn.translate-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
 .ai-tool-btn.fit-btn {
   background: #1e3a8a;
   border-color: #3b82f6;

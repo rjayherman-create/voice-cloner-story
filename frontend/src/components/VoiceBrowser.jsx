@@ -53,6 +53,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [aiFormat, setAiFormat] = useState('podcast');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuccessMsg, setAiSuccessMsg] = useState('');
+  const [translating, setTranslating] = useState(false);
 
   // 🌐 Multilingual states (Hebrew positioned LAST on the list)
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -445,13 +446,46 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  const handleSelectLanguage = (langCode) => {
+  // 🌐 Neural Auto-Translation for Script Content
+  const translateScriptText = async (textToTranslate, targetLang) => {
+    if (!textToTranslate || !textToTranslate.trim()) return;
+    setTranslating(true);
+    const targetLangObj = supportedLanguages.find(l => l.code === targetLang) || { name: targetLang };
+    setAiSuccessMsg(`🌐 Auto-translating script to ${targetLangObj.name}...`);
+    try {
+      const res = await fetch('/api/voiceover/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: textToTranslate,
+          targetLanguage: targetLang
+        })
+      });
+      const data = await res.json();
+      if (data && data.translatedText) {
+        setTtsText(data.translatedText);
+        setAiSuccessMsg(`✅ Translated to ${targetLangObj.name}!`);
+      }
+    } catch (err) {
+      console.error('Translation error:', err);
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const handleSelectLanguage = async (langCode) => {
     setSelectedLanguage(langCode);
-    const preset = WORKFLOW_PRESETS[activeWorkflow];
-    if (preset && preset.phrases[langCode]) {
-      setTtsText(preset.phrases[langCode]);
-    } else if (multilingualPhrases[langCode]) {
-      setTtsText(multilingualPhrases[langCode]);
+
+    // If user has written or generated text, automatically translate it to the newly selected language!
+    if (ttsText && ttsText.trim()) {
+      await translateScriptText(ttsText, langCode);
+    } else {
+      const preset = WORKFLOW_PRESETS[activeWorkflow];
+      if (preset && preset.phrases[langCode]) {
+        setTtsText(preset.phrases[langCode]);
+      } else if (multilingualPhrases[langCode]) {
+        setTtsText(multilingualPhrases[langCode]);
+      }
     }
   };
 
@@ -1392,6 +1426,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 {/* Smart Polishing & Editing Tools */}
                 <div className="ai-edit-tools-row" style={{ marginTop: '10px' }}>
                   <span className="ai-mini-label">⚡ Tools:</span>
+                  <button 
+                    className="ai-tool-btn translate-btn" 
+                    onClick={() => translateScriptText(ttsText, selectedLanguage)} 
+                    disabled={translating || !ttsText.trim()}
+                    title={`Automatically translate current script to ${selectedLangObj.name}`}
+                  >
+                    {translating ? '⏳ Translating...' : `🌐 Translate to ${selectedLangObj.name.split(' ')[0]}`}
+                  </button>
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('polish')} disabled={aiLoading}>
                     ✨ Polish & Flow
                   </button>
