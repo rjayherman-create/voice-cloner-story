@@ -1153,6 +1153,19 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
+              {/* 📝 STORY SCRIPT / TEXT SENTENCE (POSITIONED RIGHT UNDER LANGUAGE & VOICE SELECTION) */}
+              <div style={{ marginBottom: '16px' }}>
+                <label className="input-label-uppercase">📝 Story Script / Text Sentence to Synthesize</label>
+                <textarea
+                  className="dark-textarea"
+                  value={ttsText}
+                  dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
+                  onChange={(e) => setTtsText(e.target.value)}
+                  rows={3}
+                  placeholder="Enter story text to synthesize in chosen language..."
+                />
+              </div>
+
               {/* Quick Language Switch Pills with Hebrew Last */}
               <div className="quick-phrases-bar" style={{ marginBottom: '16px' }}>
                 <span className="quick-label">⚡ Fast Switch Language:</span>
@@ -1235,19 +1248,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
                   />
                 </div>
-              </div>
-
-              {/* Text Input for Synthesis */}
-              <div style={{ marginTop: '16px' }}>
-                <label className="input-label-uppercase">📝 Story Script / Test Sentence</label>
-                <textarea
-                  className="dark-textarea"
-                  value={ttsText}
-                  dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
-                  onChange={(e) => setTtsText(e.target.value)}
-                  rows={3}
-                  placeholder="Enter text to synthesize in chosen language..."
-                />
               </div>
 
               {/* Action synthesis row */}
