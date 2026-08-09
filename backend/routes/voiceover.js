@@ -289,7 +289,41 @@ router.post('/ai-script-assistant', async (req, res) => {
 
       let resultText = text;
 
-      if (tone === 'conversational') {
+      if (tone === 'expand') {
+        if (isHe) {
+          resultText = text.trim() + `\n\nפרק ההמשך:\nבעוד השמש החלה לשקוע מעבר להרים, התגלה שביל חדש ומסתורי. כל צעד גילה עוד פרט מרתק בסיפור, והאוויר התמלא בציפייה ובהתרגשות לקראת הבאות.`;
+        } else {
+          resultText = text.trim() + `\n\nChapter Continuation:\nAs the sun began to dip behind the hills, an unexpected new path revealed itself. Every step uncovered another captivating secret in the unfolding journey, filling the air with wonder and anticipation for what lay ahead.`;
+        }
+      } else if (tone === 'rephrase') {
+        if (isHe) {
+          resultText = text
+            .replace(/\bמאוד\b/g, 'באופן יוצא מגדר הרגיל')
+            .replace(/\bיפה\b/g, 'מרהיב ומלא קסם')
+            .replace(/\bטוב\b/g, 'משובח ואיכותי')
+            .replace(/\bאמר\b/g, 'הצהיר בהתרגשות')
+            .trim();
+        } else {
+          resultText = text
+            .replace(/\bvery\b/gi, 'exceptionally')
+            .replace(/\bgreat\b/gi, 'extraordinary')
+            .replace(/\bgood\b/gi, 'compelling')
+            .replace(/\bsaid\b/gi, 'expressed with passion')
+            .trim();
+        }
+      } else if (tone === 'kids') {
+        if (isHe) {
+          resultText = `היה היה פעם, בעמק חלומי ונעים, מקום שבו כל הכוכבים שרים שיר ערש מתוק.\n\n${text}\n\nועם חיוך רחב ושלווה עמוקה בלב, הגיע הזמן להתכרבל בשמיכה החמה ולחלום חלומות פז. לילה טוב!`;
+        } else {
+          resultText = `Once upon a cozy, starry evening, in a land where clouds were soft like cotton candy:\n\n${text}\n\nAnd with a gentle smile and a peaceful heart, it was time to snuggle in warm blankets and drift off into sweet, magical dreams. Goodnight!`;
+        }
+      } else if (tone === 'video_cues') {
+        if (isHe) {
+          resultText = `[סצינה 1: צילום פתיחה רחב ומזמין]\n[קריינות]: ${text}\n\n[סצינה 2: התקרבות אל הדמויות והתרחשות מרכזית]\n[קריינות]: וכך החל הרגע שכולם חיכו לו.`;
+        } else {
+          resultText = `[SCENE 1: 0:00 - Cinematic wide establishing shot with ambient music]\n[VOICEOVER]: ${text}\n\n[SCENE 2: 0:15 - Close-up on the main subject with dynamic graphics overlay]\n[VOICEOVER]: And that was only the beginning of an unforgettable journey.`;
+        }
+      } else if (tone === 'conversational') {
         if (isHe) {
           resultText = text
             .replace(/\bשלום\b/g, 'היי לכולם, מה שלומכם? ')

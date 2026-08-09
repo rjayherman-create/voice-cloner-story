@@ -55,6 +55,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [aiSuccessMsg, setAiSuccessMsg] = useState('');
   const [translating, setTranslating] = useState(false);
   const [sourceTranslateLang, setSourceTranslateLang] = useState('auto');
+  const [isDictating, setIsDictating] = useState(false);
+  const recognitionRef = useRef(null);
 
   // 🌐 Multilingual states (Hebrew positioned LAST on the list)
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -394,6 +396,89 @@ export default function VoiceBrowser({ onSelectVoice }) {
       .trim();
     setTtsText(cleaned);
     setAiSuccessMsg('🎙️ Visual directions removed. Clean voiceover ready for synthesis!');
+  };
+
+  // 🎙️ Live Microphone Speech-to-Text Dictation
+  const toggleDictation = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in your browser. For best results, please use Google Chrome or Microsoft Edge.');
+      return;
+    }
+
+    if (isDictating) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsDictating(false);
+      setAiSuccessMsg('🎙️ Microphone dictation stopped.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      const speechLangMap = {
+        'he': 'he-IL',
+        'en': 'en-US',
+        'es': 'es-ES',
+        'fr': 'fr-FR',
+        'de': 'de-DE',
+        'it': 'it-IT',
+        'pt': 'pt-BR',
+        'ja': 'ja-JP',
+        'zh': 'zh-CN',
+        'ko': 'ko-KR',
+        'hi': 'hi-IN',
+        'ar': 'ar-SA',
+        'ru': 'ru-RU',
+        'nl': 'nl-NL'
+      };
+
+      recognition.lang = speechLangMap[selectedLanguage] || 'en-US';
+
+      recognition.onstart = () => {
+        setIsDictating(true);
+        const targetName = supportedLanguages.find(l => l.code === selectedLanguage)?.name || selectedLanguage;
+        setAiSuccessMsg(`🔴 Listening... speak into your microphone in ${targetName}!`);
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            transcript += event.results[i][0].transcript + ' ';
+          }
+        }
+        if (transcript.trim()) {
+          setTtsText(prev => {
+            const current = (prev || '').trim();
+            return current ? `${current} ${transcript.trim()}` : transcript.trim();
+          });
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed') {
+          alert('Microphone access was denied. Please allow microphone permissions in your browser bar.');
+        }
+        setIsDictating(false);
+      };
+
+      recognition.onend = () => {
+        setIsDictating(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error('Error starting dictation:', err);
+      alert('Could not start microphone: ' + err.message);
+      setIsDictating(false);
+    }
   };
 
   // 🔊 Instant Play & Stop Toggle for any voice
@@ -1469,7 +1554,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              {/* 🌐 2.5 BIDIRECTIONAL TRANSLATION STRIP (ENGLISH <-> HEBREW / ANY LANGUAGE) */}
+              {/* 🌐 2. BIDIRECTIONAL TRANSLATION STRIP (ENGLISH <-> HEBREW / ANY LANGUAGE) */}
               <div className="bidirectional-translation-card" style={{ marginBottom: '14px' }}>
                 <div className="translation-strip-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1559,17 +1644,19 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              {/* 📝 SCRIPT TEXT SENTENCE AREA WITH REAL-TIME AUDIO DURATION METER */}
-              <div style={{ marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+              {/* 📝 3. DEDICATED AI SCRIPT & STORY EDITOR DOCK WITH MICROPHONE DICTATION */}
+              <div className="ai-script-editor-dock" style={{ marginBottom: '16px' }}>
+                {/* Editor Header with Live Audio Meter & Action Buttons */}
+                <div className="editor-dock-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <label className="input-label-uppercase" style={{ margin: 0 }}>
-                      📝 Script Content ({targetLength} Target)
-                    </label>
+                    <span style={{ fontSize: '15px' }}>📝</span>
+                    <strong style={{ fontSize: '13px', color: '#f8fafc' }}>
+                      Script & Story Editor ({targetLength} Target)
+                    </strong>
 
                     {/* Live Duration & Word Count Meter */}
                     <span className={`live-meter-badge ${isDurationOnTarget ? 'meter-good' : 'meter-warn'}`}>
-                      ⏱️ Est. Audio: {formatAudioTime(rawSeconds)} ({wordCount} words • {charCount} chars) • Target: {targetLength}
+                      ⏱️ Est. Audio: {formatAudioTime(rawSeconds)} ({wordCount} words • {charCount} chars)
                     </span>
 
                     {isVideoScriptFormat && (
@@ -1579,22 +1666,195 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     )}
                   </div>
 
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* 🎙️ LIVE MICROPHONE SPEECH-TO-TEXT DICTATION BUTTON */}
+                    <button 
+                      className={`dictate-mic-btn ${isDictating ? 'listening-pulse' : ''}`}
+                      onClick={toggleDictation}
+                      title="Dictate text directly using your microphone (Speech-to-Text)"
+                    >
+                      {isDictating ? '🔴 Listening... Click to Stop' : '🎙️ Dictate with Mic'}
+                    </button>
+
+                    <button 
+                      className="editor-sub-btn"
+                      onClick={() => setTtsText('')}
+                      disabled={!ttsText.trim()}
+                      title="Clear text input"
+                    >
+                      🗑️ Clear
+                    </button>
+
+                    <button 
+                      className="toggle-text-btn"
+                      onClick={() => setIsStoriesExpanded(!isStoriesExpanded)}
+                    >
+                      {isStoriesExpanded ? '▲ Hide Templates' : '📚 Templates ▼'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 🤖 AI Story & Script Writer Bar (Directly Above Text Area) */}
+                <div className="ai-dock-writer-bar">
+                  <div className="ai-dock-format-pills">
+                    <span className="ai-mini-label">✨ AI Writer:</span>
+                    <button 
+                      className={`ai-format-pill ${aiFormat === 'kids_story' ? 'active-ai-pill' : ''}`}
+                      onClick={() => { setAiFormat('kids_story'); handleAiGenerate('kids_story', targetLength); }}
+                      disabled={aiLoading}
+                    >
+                      🧒 Kids Bedtime Story
+                    </button>
+                    <button 
+                      className={`ai-format-pill ${aiFormat === 'podcast' ? 'active-ai-pill' : ''}`}
+                      onClick={() => { setAiFormat('podcast'); handleAiGenerate('podcast', targetLength); }}
+                      disabled={aiLoading}
+                    >
+                      🎙️ Podcast
+                    </button>
+                    <button 
+                      className={`ai-format-pill ${aiFormat === 'video_script' ? 'active-ai-pill' : ''}`}
+                      onClick={() => { setAiFormat('video_script'); handleAiGenerate('video_script', targetLength); }}
+                      disabled={aiLoading}
+                    >
+                      🎬 Video Script
+                    </button>
+                    <button 
+                      className={`ai-format-pill ${aiFormat === 'news' ? 'active-ai-pill' : ''}`}
+                      onClick={() => { setAiFormat('news'); handleAiGenerate('news', targetLength); }}
+                      disabled={aiLoading}
+                    >
+                      📰 News
+                    </button>
+                    <button 
+                      className={`ai-format-pill ${aiFormat === 'commercial' ? 'active-ai-pill' : ''}`}
+                      onClick={() => { setAiFormat('commercial'); handleAiGenerate('commercial', targetLength); }}
+                      disabled={aiLoading}
+                    >
+                      📢 Commercial
+                    </button>
+                    <button 
+                      className={`ai-format-pill ${aiFormat === 'narration' ? 'active-ai-pill' : ''}`}
+                      onClick={() => { setAiFormat('narration'); handleAiGenerate('narration', targetLength); }}
+                      disabled={aiLoading}
+                    >
+                      📖 Narration
+                    </button>
+                  </div>
+
+                  <div className="ai-prompt-input-group" style={{ marginTop: '8px' }}>
+                    <input
+                      type="text"
+                      className="dark-input-field ai-dock-prompt-input"
+                      placeholder={`Type any story or script idea (e.g. "A magical bedtime story about a curious bunny", "A 1-minute tech podcast")...`}
+                      value={aiPromptTopic}
+                      onChange={(e) => setAiPromptTopic(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAiGenerate(aiFormat, targetLength); }}
+                    />
+                    <button 
+                      className="ai-gen-gold-btn"
+                      onClick={() => handleAiGenerate(aiFormat, targetLength)}
+                      disabled={aiLoading}
+                    >
+                      {aiLoading ? '⏳ Writing...' : `✨ Write Story with AI`}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 🪄 AI In-Place Editing Tools Toolbar */}
+                <div className="ai-inplace-tools-bar">
+                  <span className="ai-mini-label">🪄 AI In-Place Edits:</span>
                   <button 
-                    className="toggle-text-btn"
-                    onClick={() => setIsStoriesExpanded(!isStoriesExpanded)}
+                    className="ai-tool-btn highlight-tool-btn" 
+                    onClick={() => handleAiEdit('expand')} 
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Continue the story with an additional chapter/scene"
                   >
-                    {isStoriesExpanded ? '▲ Hide Script Library' : '📚 Browse Preset Script Templates ▼'}
+                    ✨ Expand Story +
+                  </button>
+                  <button 
+                    className="ai-tool-btn" 
+                    onClick={() => handleAiEdit('rephrase')} 
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Rewrite with richer, more evocative storytelling vocabulary"
+                  >
+                    🪄 Rephrase & Enhance
+                  </button>
+                  <button 
+                    className="ai-tool-btn" 
+                    onClick={() => handleAiEdit('conversational')} 
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Make tone casual, warm and conversational for podcasts"
+                  >
+                    🎙️ Conversational
+                  </button>
+                  <button 
+                    className="ai-tool-btn" 
+                    onClick={() => handleAiEdit('kids')} 
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Adapt tone into a calming bedtime story for children"
+                  >
+                    🧒 Kids Bedtime Tone
+                  </button>
+                  <button 
+                    className="ai-tool-btn" 
+                    onClick={() => handleAiEdit('news')} 
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Format into an authoritative news bulletin"
+                  >
+                    📰 News Bulletin
+                  </button>
+                  <button 
+                    className="ai-tool-btn" 
+                    onClick={() => handleAiEdit('video_cues')} 
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Embed storyboard visual camera directions and voiceover cues"
+                  >
+                    🎬 Add Video Cues
+                  </button>
+                  {isVideoScriptFormat && (
+                    <button 
+                      className="ai-tool-btn fit-btn" 
+                      onClick={handleStripVisualCues} 
+                      title="Removes bracketed camera & scene directions before audio recording"
+                    >
+                      🎙️ Strip [Visual Cues]
+                    </button>
+                  )}
+                  <button 
+                    className="ai-tool-btn" 
+                    onClick={() => handleAiEdit('pauses')} 
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Add natural commas and ellipses for studio cadence"
+                  >
+                    ⚡ Natural Pauses
+                  </button>
+                  <button 
+                    className="ai-tool-btn" 
+                    onClick={() => handleAiEdit(targetLength === '15s' ? 'fit_15s' : 'fit_30s')} 
+                    disabled={aiLoading || !ttsText.trim()}
+                    title="Trim sentences to fit current target duration"
+                  >
+                    ✂️ Fit Duration
                   </button>
                 </div>
 
-                <textarea
-                  className="dark-textarea"
-                  value={ttsText}
-                  dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
-                  onChange={(e) => setTtsText(e.target.value)}
-                  rows={targetLength === '15m' || targetLength === '30m' ? 12 : targetLength === '5m' || targetLength === '10m' ? 8 : 5}
-                  placeholder="Enter script text or generate with AI assistant above..."
-                />
+                {/* Main Script Textarea */}
+                <div style={{ position: 'relative' }}>
+                  <textarea
+                    className={`dark-textarea dock-textarea ${isDictating ? 'dictation-active-border' : ''}`}
+                    value={ttsText}
+                    dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
+                    onChange={(e) => setTtsText(e.target.value)}
+                    rows={targetLength === '15m' || targetLength === '30m' ? 12 : targetLength === '5m' || targetLength === '10m' ? 8 : 6}
+                    placeholder="Type your story/script here, click '🎙️ Dictate with Mic' to speak into your microphone, or use '✨ Write Story with AI' above..."
+                  />
+                  {isDictating && (
+                    <div className="live-dictating-overlay-badge">
+                      🔴 Live Speech-to-Text Active: Speak into your mic...
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* COLLAPSIBLE SCRIPT & STORY TEMPLATES DRAWER */}

@@ -1024,6 +1024,169 @@
 }
 
 /* ========================================================================== */
+/* 📝 AI SCRIPT & STORY EDITOR DOCK WITH MICROPHONE DICTATION                 */
+/* ========================================================================== */
+.ai-script-editor-dock {
+  background: #080c16;
+  border: 1.5px solid #3b82f6;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.editor-dock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dictate-mic-btn {
+  background: #1e293b;
+  border: 1px solid #ef4444;
+  color: #f87171;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dictate-mic-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.dictate-mic-btn.listening-pulse {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #f87171;
+  animation: micGlowPulse 1s infinite alternate;
+}
+
+@keyframes micGlowPulse {
+  0% { transform: scale(0.98); box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
+  100% { transform: scale(1.03); box-shadow: 0 0 16px rgba(239, 68, 68, 0.9); }
+}
+
+.editor-sub-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.editor-sub-btn:hover:not(:disabled) {
+  color: #f87171;
+  border-color: #ef4444;
+}
+
+.editor-sub-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.ai-dock-writer-bar {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.ai-dock-format-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ai-prompt-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.ai-dock-prompt-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-color: #3b82f6;
+  background: #080c16;
+}
+
+.ai-gen-gold-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.ai-gen-gold-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.ai-inplace-tools-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.ai-tool-btn.highlight-tool-btn {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.ai-tool-btn.highlight-tool-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.dock-textarea {
+  border-color: #1e293b;
+  font-size: 14px;
+}
+
+.dock-textarea.dictation-active-border {
+  border-color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+.live-dictating-overlay-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: rgba(239, 68, 68, 0.9);
+  color: #ffffff;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  animation: micGlowPulse 1.2s infinite alternate;
+}
+
+/* ========================================================================== */
 /* COLLAPSIBLE SCRIPT TEMPLATES DRAWER                                        */
 /* ========================================================================== */
 .collapsible-templates-box {
