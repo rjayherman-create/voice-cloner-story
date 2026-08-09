@@ -15,8 +15,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [selectedVoiceId, setSelectedVoiceId] = useState('en-fem-1');
   const [loading, setLoading] = useState(true);
 
-  // Collapsible toggle for Dynamic 30-Voice Library (at bottom)
+  // Collapsible toggles
   const [isLibraryExpanded, setIsLibraryExpanded] = useState(false);
+  const [isTuningExpanded, setIsTuningExpanded] = useState(false);
+  const [isStoriesExpanded, setIsStoriesExpanded] = useState(false);
+
   const [voiceFilter, setVoiceFilter] = useState('all');
   const [voiceSearch, setVoiceSearch] = useState('');
 
@@ -42,6 +45,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [voiceSimilarity, setVoiceSimilarity] = useState(0.85);
   const [voiceSpeed, setVoiceSpeed] = useState(0.90);
 
+  // 🤖 AI Script Assistant & Creative Generator States
+  const [aiPromptTopic, setAiPromptTopic] = useState('');
+  const [aiFormat, setAiFormat] = useState('podcast');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuccessMsg, setAiSuccessMsg] = useState('');
+
   // 🌐 Multilingual states (Hebrew positioned LAST on the list)
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [supportedLanguages, setSupportedLanguages] = useState([
@@ -61,8 +70,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
     { code: 'he', name: 'Hebrew (עברית ישראלית)', flag: '🇮🇱' }
   ]);
   const [multilingualPhrases, setMultilingualPhrases] = useState({
-    en: 'Welcome to FableVoice Audio Studio. Active voice model calibrated with multilingual speech synthesis.',
-    he: 'שלום, לילה טוב והמשך ערב נעים. חלומות פז ושינה מתוקה.'
+    en: 'Welcome to FableVoice Audio Studio. Active voice model calibrated for podcasts, news, narrations, and creative audio.',
+    he: 'שלום וברוכים הבאים לאולפן ההקלטות. מודל הקול מכויל לקריינות, פודקאסטים, חדשות ויצירה קולית מתקדמת.'
   });
 
   // Workflow sample texts dictionary for all modes in En and He
@@ -80,9 +89,35 @@ export default function VoiceBrowser({ onSelectVoice }) {
         fr: 'Bonne nuit mon petit ange, dors bien et fais de très beaux rêves étoilés.'
       }
     },
+    podcast: {
+      label: '🎙️ Podcast & Audio Show',
+      desc: 'Engaging conversational pacing with warm vocal presence for interviews & hosts',
+      stability: 0.50,
+      similarity: 0.80,
+      speed: 1.05,
+      phrases: {
+        en: 'Welcome back to The Daily Frequency! Today we have an incredible episode breaking down the future of creative AI and storytelling. Let’s jump right in.',
+        he: 'שלום וברוכים הבאים לפודקאסט היומי שלנו! היום נדבר על עתיד הבינה המלאכותית ויצירת תוכן קולי. קחו כוס קפה ובואו נתחיל.',
+        es: '¡Bienvenidos de nuevo a nuestro podcast! Hoy tenemos un episodio increíble sobre el futuro de la tecnología.',
+        fr: 'Bienvenue dans notre podcast du jour ! Aujourd\'hui, nous explorons les grandes innovations de demain.'
+      }
+    },
+    news: {
+      label: '📰 News & Broadcast Bulletin',
+      desc: 'Crisp, articulate delivery with balanced clarity for journalism & reports',
+      stability: 0.70,
+      similarity: 0.85,
+      speed: 1.00,
+      phrases: {
+        en: 'Top Story of the Hour: Tech leaders announce major breakthroughs in clean energy systems, signaling a pivotal shift across global markets. More details coming up.',
+        he: 'מבזק חדשות מיוחד: פריצת דרך משמעותית נרשמה היום בתחום האנרגיה הירוקה. מומחים מדווחים על שינוי מגמה בשווקים הבינלאומיים.',
+        es: 'Boletín de última hora: Importantes avances en tecnología energética marcan la jornada de hoy.',
+        fr: 'Flash info : De nouvelles avancées majeures viennent d\'être annoncées aujourd\'hui par les experts.'
+      }
+    },
     fantasy: {
-      label: '✨ Fantasy Quest & Fairy Tale',
-      desc: 'Expressive intonation and dynamic energy for magical adventure tales',
+      label: '✨ Fantasy Quest & Narration',
+      desc: 'Expressive intonation and dynamic energy for magical audiobooks and documentaries',
       stability: 0.55,
       similarity: 0.80,
       speed: 1.00,
@@ -93,30 +128,17 @@ export default function VoiceBrowser({ onSelectVoice }) {
         fr: 'Au cœur de la forêt enchantée, le dragon des étoiles illuminait la nuit d\'une merveilleuse poussière d\'or.'
       }
     },
-    dialogue: {
-      label: '💬 Family Character Dialogue',
-      desc: 'Natural conversational cadence for playful interactions between characters',
-      stability: 0.45,
+    commercial: {
+      label: '📢 Commercial & Promo Ad',
+      desc: 'High-energy, punchy hook designed for announcements and product promos',
+      stability: 0.40,
       similarity: 0.75,
-      speed: 1.05,
+      speed: 1.10,
       phrases: {
-        en: 'Are you ready for tonight’s big journey to the stars? Grab your compass and let’s fly together!',
-        he: 'אתה מוכן למסע הגדול של הלילה אל הכוכבים? קח את המצפן ובוא נצא לדרך ביחד!',
-        es: '¿Estás listo para el gran viaje de esta noche hacia las estrellas? ¡Toma tu brújula y volemos juntos!',
-        fr: 'Es-tu prêt pour le grand voyage de ce soir vers les étoiles ? Prends ta boussole et partons ensemble !'
-      }
-    },
-    toddler: {
-      label: '👶 Toddler Calm & Whisper',
-      desc: 'Soft, whisper-quiet cadence with maximum stability for babies and toddlers',
-      stability: 0.90,
-      similarity: 0.90,
-      speed: 0.80,
-      phrases: {
-        en: 'Shh... quiet night, sweet dreams. Safe and warm in your cozy bed, fast asleep until morning sun.',
-        he: 'ששש... לילה שקט ורגוע, חלומות נעימים. עטוף בשמיכה חמה, ישן בשלווה עד הבוקר.',
-        es: 'Shh... noche tranquila, dulces sueños. Calientito en tu camita, durmiendo en paz.',
-        fr: 'Chut... douce nuit, dors en paix mon tout-petit, bercé par les étoiles jusqu\'au matin.'
+        en: 'Are you ready for the ultimate creative breakthrough? Experience studio-grade AI voiceovers in seconds. Try it today and elevate your content!',
+        he: 'מוכנים לפריצת הדרך הגדולה שלכם? גלו את פלטפורמת הקול המובילה בעולם ליצירת תוכן מקצועי. התחילו עכשיו!',
+        es: '¿Estás listo para el siguiente nivel? Descubre la mejor experiencia de voz con inteligencia artificial.',
+        fr: 'Prêt pour l\'innovation ? Découvrez dès aujourd\'hui la nouvelle référence du studio vocal par IA.'
       }
     }
   };
@@ -148,7 +170,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [cloneStatusMsg, setCloneStatusMsg] = useState({ type: '', text: '' });
 
   // TTS Synthesis Test state (defaulting to clean text)
-  const [ttsText, setTtsText] = useState('Welcome to FableVoice Audio Studio. Active voice model calibrated with multilingual speech synthesis.');
+  const [ttsText, setTtsText] = useState('Close your eyes, little adventurer. The moon is painting the sky in shades of silver and lavender, watching over your sweet dreams.');
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesizedAudioUrl, setSynthesizedAudioUrl] = useState(null);
   const [synthesizedEngineUsed, setSynthesizedEngineUsed] = useState(null);
@@ -183,7 +205,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    document.title = '🎙️ FableVoice Studio - Voice Cloning & Audio Stories';
+    document.title = '🎙️ FableVoice Studio - AI Voice Cloning & Universal Audio Studio';
     loadAllVoiceData();
     loadSoundtracks();
     loadLanguageData();
@@ -228,7 +250,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
       if (data && Array.isArray(data.voices)) {
         setCurrentRosterVoices(data.voices);
         if (data.voices.length > 0 && (!selectedVoiceId || !selectedVoiceId.startsWith(langCode))) {
-          // If language changed, switch active voice to first voice of this language
           setSelectedVoiceId(data.voices[0].id);
         }
       }
@@ -248,7 +269,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const elData = await elRes.json();
       const libData = await libRes.json();
 
-      // Process dedicated family voices
       const famList = Array.isArray(libData) ? libData.map(v => ({
         id: v.id || v.voiceId,
         voiceId: v.voiceId || v.id,
@@ -271,7 +291,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
       setFamilyVoices(famList);
       setElevenLabsVoices(elList);
 
-      // Only set roster to heList if language is Hebrew; otherwise load English roster
       if (selectedLanguage === 'he' && heList.length > 0) {
         setCurrentRosterVoices(heList);
         setSelectedVoiceId('he-IL-HilaNeural');
@@ -299,18 +318,71 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
+  // 🤖 AI Script Assistant Handlers
+  const handleAiGenerate = async (formatKey) => {
+    const chosenFormat = formatKey || aiFormat;
+    setAiLoading(true);
+    setAiSuccessMsg('');
+    try {
+      const res = await fetch('/api/voiceover/ai-script-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generate',
+          format: chosenFormat,
+          topic: aiPromptTopic,
+          language: selectedLanguage
+        })
+      });
+      const data = await res.json();
+      if (data.text) {
+        setTtsText(data.text);
+        setAiSuccessMsg(`✨ Generated ${chosenFormat.toUpperCase()} script on "${data.topic}"!`);
+      }
+    } catch (err) {
+      alert('AI Assistant error: ' + err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiEdit = async (toneKey) => {
+    if (!ttsText.trim()) return;
+    setAiLoading(true);
+    setAiSuccessMsg('');
+    try {
+      const res = await fetch('/api/voiceover/ai-script-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'edit',
+          tone: toneKey,
+          currentText: ttsText,
+          language: selectedLanguage
+        })
+      });
+      const data = await res.json();
+      if (data.text) {
+        setTtsText(data.text);
+        setAiSuccessMsg(`✨ Script updated (${toneKey})!`);
+      }
+    } catch (err) {
+      alert('AI Editing error: ' + err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   // 🔊 Instant Play & Stop Toggle for any voice
   const handleToggleVoicePreview = async (voiceObj, e) => {
     if (e) e.stopPropagation();
 
-    // If already playing this voice, stop it
     if (playingVoiceId === voiceObj.id) {
       previewAudioRef.current.pause();
       setPlayingVoiceId(null);
       return;
     }
 
-    // If cached preview audio URL exists, play immediately
     if (voicePreviewAudios[voiceObj.id]) {
       previewAudioRef.current.src = voicePreviewAudios[voiceObj.id];
       previewAudioRef.current.play().catch(e => console.log('Autoplay error', e));
@@ -318,11 +390,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
       return;
     }
 
-    // Synthesize preview sample on-the-fly for this voice
     setLoadingPreviewId(voiceObj.id);
     try {
       const demoPhrase = multilingualPhrases[selectedLanguage] || 
-        `Hello, this is ${voiceObj.name}. Wishing you wonderful dreams tonight.`;
+        `Hello, this is ${voiceObj.name}. Ready for voiceover recording.`;
 
       const res = await fetch('/api/voiceover/generate', {
         method: 'POST',
@@ -353,7 +424,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Quick switch language and load accurate phrase
   const handleSelectLanguage = (langCode) => {
     setSelectedLanguage(langCode);
     const preset = WORKFLOW_PRESETS[activeWorkflow];
@@ -364,7 +434,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Switch Studio Workflow Preset (Bedtime, Fantasy, Dialogue, Toddler)
   const handleSelectWorkflow = (wfKey) => {
     setActiveWorkflow(wfKey);
     const preset = WORKFLOW_PRESETS[wfKey];
@@ -380,14 +449,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Format Timer as MM:SS
   const formatTimer = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  // 1. Live Waveform Canvas Visualizer loop
   const drawWaveform = (analyser, canvas) => {
     const ctx = canvas.getContext('2d');
     const bufferLength = analyser.frequencyBinCount;
@@ -420,7 +487,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     render();
   };
 
-  // Start Mic Recording with Live Waveform
   const startRecording = async () => {
     try {
       setCloneStatusMsg({ type: '', text: '' });
@@ -469,7 +535,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Stop Mic Recording
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
@@ -478,7 +543,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Multi-sample file slot handler
   const handleSampleSlotFile = (slotId, file) => {
     setSampleSlots(prev => prev.map(s => s.id === slotId ? { ...s, file, name: file ? file.name : '' } : s));
     if (slotId === 1 && file) {
@@ -487,15 +551,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Clone from Studio Rack Right Panel & Save in Bucket
   const handleCloneFromPanel = async () => {
     if (!voiceModelLabel.trim()) {
-      setCloneStatusMsg({ type: 'error', text: 'Please enter a Voice Model Label (e.g. "Sarah — Bedtime Reader")' });
+      setCloneStatusMsg({ type: 'error', text: 'Please enter a Voice Model Label' });
       return;
     }
 
     if (!audioBufferBlob) {
-      setCloneStatusMsg({ type: 'error', text: 'No recorded sample in buffer. Complete recording on the left.' });
+      setCloneStatusMsg({ type: 'error', text: 'No recorded sample in buffer.' });
       return;
     }
 
@@ -505,7 +568,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
     try {
       const formData = new FormData();
       formData.append('name', voiceModelLabel.trim());
-      formData.append('relationship', 'Family Member');
+      formData.append('relationship', 'Voice Model');
       formData.append('description', 'FableVoice Calibrated Voice Model saved in persistent bucket storage.');
       formData.append('sampleFile', audioBufferBlob, `${voiceModelLabel.trim().replace(/\s+/g, '-')}-sample.mp3`);
 
@@ -525,10 +588,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
         id: newModel.id || newModel.voiceId,
         voiceId: newModel.voiceId || newModel.id,
         name: newModel.name,
-        relationship: newModel.relationship || 'Family Member',
+        relationship: newModel.relationship || 'Custom Model',
         gender: newModel.gender || 'Custom',
         accent: 'Israeli Hebrew / Cloned',
-        description: 'FableVoice Cloned Family Voice Model (Bucket Storage)',
+        description: 'FableVoice Cloned Voice Model (Bucket Storage)',
         previewUrl: newModel.previewUrl || audioBufferUrl,
         date: new Date().toLocaleDateString(),
         source: 'cloned bucket',
@@ -551,11 +614,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Submit Clone from Modal Form
   const handleFamilyModalSubmit = async (e) => {
     e.preventDefault();
     if (!familyForm.name.trim()) {
-      setFamilyCloneError('Voice Name is required (e.g., Mom, Dad, Grandma Sarah)');
+      setFamilyCloneError('Voice Name is required');
       return;
     }
 
@@ -575,7 +637,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       formData.append('gender', familyForm.gender);
       formData.append('accent', familyForm.accent);
       formData.append('style', familyForm.style);
-      formData.append('description', familyForm.description || `${familyForm.name} (${familyForm.relationship}) cloned family voice saved in bucket.`);
+      formData.append('description', familyForm.description || `${familyForm.name} cloned voice saved in bucket.`);
       formData.append('sampleFile', primarySample);
 
       const res = await fetch('/api/voice-library/clone', {
@@ -626,7 +688,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Delete Voice Profile from Bucket
   const handleDeleteProfile = async (e, profileId, profileName) => {
     e.stopPropagation();
     if (!window.confirm(`Are you sure you want to delete "${profileName}" from bucket storage?`)) {
@@ -649,7 +710,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Select Active Model
   const handleSelectModel = (profile) => {
     setSelectedVoiceId(profile.id);
     if (onSelectVoice) {
@@ -657,7 +717,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 2. Synthesize Speech with Active Voice & Workflow Choices
   const handleSynthesize = async () => {
     if (!ttsText.trim()) return;
 
@@ -695,7 +754,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 4. Generate AI Screenplay Script
   const handleGenerateScreenplayScript = async () => {
     setGeneratingScript(true);
     try {
@@ -714,7 +772,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 4. Synthesize Full Screenplay Multi-Character Audio
   const handleSynthesizeScreenplay = async () => {
     if (!screenplayScript || !screenplayScript.scenes) return;
 
@@ -724,7 +781,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
     try {
       for (let i = 0; i < screenplayScript.scenes.length; i++) {
         const scene = screenplayScript.scenes[i];
-        const assignedVoiceId = screenplayCharacters[scene.character] || selectedVoiceId || 'he-IL-HilaNeural';
+        const assignedVoiceId = screenplayCharacters[scene.character] || selectedVoiceId || 'en-fem-1';
 
         const res = await fetch('/api/voiceover/generate', {
           method: 'POST',
@@ -758,7 +815,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 5. Soundtrack Play / Stop toggle
   const toggleSoundtrackPlay = (st) => {
     if (playingSoundtrackId === st.id) {
       if (soundtrackAudioRef.current) soundtrackAudioRef.current.pause();
@@ -774,7 +830,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // Filter 30 Personas by Group (10 Males, 10 Females, 5 Girls, 5 Boys)
   const filteredRosterVoices = currentRosterVoices.filter(v => {
     const matchesFilter = voiceFilter === 'all' || v.group === voiceFilter;
     const matchesSearch = !voiceSearch.trim() || 
@@ -800,9 +855,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
           <div className="brand-titles">
             <div className="brand-title-line">
               <span className="brand-text-main">FableVoice</span>
-              <span className="brand-badge-yellow">AUDIO STUDIO</span>
+              <span className="brand-badge-yellow">STUDIO</span>
             </div>
-            <div className="brand-text-sub">VOICE CLONING & 30-PERSONA MULTILINGUAL STUDIO</div>
+            <div className="brand-text-sub">AI VOICE CLONING • PODCASTS • NEWS • NARRATION • AUDIO STORIES</div>
           </div>
         </div>
 
@@ -817,34 +872,34 @@ export default function VoiceBrowser({ onSelectVoice }) {
             className={`nav-pill-btn ${activeNav === 'screenplay' ? 'active-pill' : ''}`}
             onClick={() => setActiveNav('screenplay')}
           >
-            <span className="pill-num">2.</span> Screenplay Workshop
+            <span className="pill-num">2.</span> Multi-Voice Workshop
           </button>
           <button 
             className={`nav-pill-btn ${activeNav === 'soundtrack' ? 'active-pill' : ''}`}
             onClick={() => setActiveNav('soundtrack')}
           >
-            <span className="pill-num">3.</span> Soundtrack Console
+            <span className="pill-num">3.</span> Ambience Console
           </button>
           <button 
             className={`nav-pill-btn ${activeNav === 'sdk' ? 'active-pill' : ''}`}
             onClick={() => setActiveNav('sdk')}
           >
-            &lt;/&gt; SDK Integration
+            &lt;/&gt; API / SDK
           </button>
         </nav>
       </header>
 
       {/* ==================================================================== */}
-      {/* TAB 1: VOICE STUDIO (TOP: RECORDER & DEDICATED FAMILY LIBRARY)       */}
+      {/* TAB 1: UNIVERSAL VOICE STUDIO                                        */}
       {/* ==================================================================== */}
       {activeNav === 'studio' && (
         <main className="studio-tab-content">
           {/* STUDIO RACK 01 BANNER */}
           <div className="studio-rack-banner">
             <div className="rack-info">
-              <div className="rack-label">STUDIO RACK 01</div>
-              <h1 className="rack-title">Voice Sample Recording & AI Voice Cloner</h1>
-              <p className="rack-subtitle">Capture a 15–30 second vocal sample to clone family voices into bucket storage or synthesize with 30-voice multilingual personas.</p>
+              <div className="rack-label">UNIVERSAL VOICE STUDIO</div>
+              <h1 className="rack-title">Voice Cloner & Creative Audio Production</h1>
+              <p className="rack-subtitle">Synthesize audiobooks, podcasts, news briefings, radio promos, or clone custom voices into persistent bucket storage.</p>
             </div>
 
             <div className="rack-actions">
@@ -852,7 +907,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 className={`rack-mode-btn ${mode === 'offline' ? 'active-mode' : ''}`}
                 onClick={() => setMode('offline')}
               >
-                <span className="btn-dot">((•))</span> Offline Bucket Recording
+                <span className="btn-dot">((•))</span> Bucket Storage
               </button>
               <button 
                 className={`rack-mode-btn ${mode === 'elevenlabs' ? 'active-gold-mode' : ''}`}
@@ -873,10 +928,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              <h2 className="box-title">Capture Audio Sample</h2>
-              <p className="box-subtitle">Speak clearly into your microphone for 15–30 seconds in any language.</p>
+              <h2 className="box-title">Capture Vocal Sample</h2>
+              <p className="box-subtitle">Record 15–30 seconds of clear speech to clone custom voice models into bucket storage.</p>
 
-              {/* 1. Live Canvas Audio Waveform Visualizer */}
+              {/* Live Canvas Audio Waveform Visualizer */}
               <div className="waveform-container">
                 <canvas ref={canvasRef} width="280" height="40" className="waveform-canvas" />
               </div>
@@ -936,7 +991,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <input
                   type="text"
                   className="dark-input-field"
-                  placeholder='e.g. "Sarah (Mom) — Bedtime Reader"'
+                  placeholder='e.g. "Sarah — Podcast Host" or "Grandpa Dan"'
                   value={voiceModelLabel}
                   onChange={(e) => setVoiceModelLabel(e.target.value)}
                 />
@@ -952,14 +1007,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
             </div>
           </div>
 
-          {/* DEDICATED FAMILY MEMBER VOICE LIBRARY (ALWAYS VISIBLE AT TOP) */}
+          {/* DEDICATED PERSISTENT VOICE LIBRARY */}
           <section className="fable-box dedicated-family-section">
             <div className="family-header-row">
               <div className="family-title-group">
-                <span className="family-icon-glow">👨‍👩‍👧‍👦</span>
+                <span className="family-icon-glow">👥</span>
                 <div>
-                  <h2 className="family-section-title">Dedicated Family Member Voice Library</h2>
-                  <p className="family-section-subtitle">Persistent cloned family voices saved in storage bucket • Available across all sessions</p>
+                  <h2 className="family-section-title">Saved Voice Models (Persistent Bucket Storage)</h2>
+                  <p className="family-section-subtitle">Custom cloned voices and narration profiles saved in storage bucket • Available across all sessions</p>
                 </div>
               </div>
 
@@ -971,7 +1026,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   className="clone-family-gold-btn"
                   onClick={() => setShowFamilyCloneModal(true)}
                 >
-                  + Clone New Family Voice
+                  + Clone New Voice
                 </button>
               </div>
             </div>
@@ -979,9 +1034,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
             {familyVoices.length === 0 ? (
               <div className="empty-family-card">
                 <div className="empty-family-icon">🎙️</div>
-                <h3 className="empty-family-title">No Cloned Family Voices Saved in Bucket Yet</h3>
+                <h3 className="empty-family-title">No Custom Cloned Voices in Bucket Yet</h3>
                 <p className="empty-family-desc">
-                  Record a vocal clip above to clone Mom, Dad, or Grandparents and save them permanently to your bucket!
+                  Record a 15-second vocal clip above to clone your voice, hosts, or family members into permanent bucket storage!
                 </p>
                 <button 
                   className="clone-family-gold-btn"
@@ -1043,7 +1098,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           </section>
 
           {/* ================================================================ */}
-          {/* 🎛️ 2. UNIFIED LIVE CALIBRATION CONSOLE (WITH 30-VOICE PICKER)   */}
+          {/* 🎛️ 2. UNIFIED LIVE CALIBRATION CONSOLE (WITH AI SCRIPT ASSISTANT) */}
           {/* ================================================================ */}
           {activeVoiceObj && (
             <section className="fable-box tts-console-box" style={{ border: '2px solid #f59e0b', marginBottom: '24px', boxShadow: '0 0 24px rgba(245, 158, 11, 0.15)' }}>
@@ -1054,7 +1109,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   </div>
                   <div>
                     <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#ffffff', margin: 0 }}>
-                      Live Calibration Console: <span style={{ color: '#f59e0b' }}>{activeVoiceObj.name}</span>
+                      Live Studio Console: <span style={{ color: '#f59e0b' }}>{activeVoiceObj.name}</span>
                     </h3>
                     <span style={{ fontSize: '12px', color: '#94a3b8' }}>
                       {activeVoiceObj.relationship || activeVoiceObj.gender} • {selectedLangObj.flag} {selectedLangObj.name}
@@ -1063,7 +1118,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {/* Instant Audio Preview Button in Header */}
                   <button
                     className={`preview-play-stop-btn ${playingVoiceId === activeVoiceObj.id ? 'btn-stop-preview' : 'btn-play-preview'}`}
                     onClick={(e) => handleToggleVoicePreview(activeVoiceObj, e)}
@@ -1074,7 +1128,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              {/* 1. DIRECT 30-VOICE & CLONED FAMILY MODEL SELECTOR INSIDE CONSOLE */}
+              {/* 1. DIRECT 30-VOICE & CLONED FAMILY MODEL SELECTOR */}
               <div className="console-voice-selector-grid">
                 {/* A. Language Selector (Hebrew placed LAST) */}
                 <div className="lang-picker-group">
@@ -1094,7 +1148,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
                 {/* B. Integrated 30-Voice + Cloned Family Model Picker */}
                 <div className="lang-picker-group" style={{ flex: 1.5 }}>
-                  <label className="input-label-uppercase">🎙️ 2. Active Voice Persona (30 {selectedLangObj.name.split(' ')[0]} Models & Clones)</label>
+                  <label className="input-label-uppercase">🎙️ 2. Active Voice Model (30 {selectedLangObj.name.split(' ')[0]} Personas & Clones)</label>
                   <select
                     className="dark-input-field lang-dropdown"
                     value={selectedVoiceId}
@@ -1103,18 +1157,16 @@ export default function VoiceBrowser({ onSelectVoice }) {
                       if (found) handleSelectModel(found);
                     }}
                   >
-                    {/* Cloned Family Voices */}
                     {familyVoices.length > 0 && (
-                      <optgroup label="💾 Saved Cloned Family Voices (Bucket)">
+                      <optgroup label="💾 Saved Cloned Voice Models (Bucket)">
                         {familyVoices.map(fv => (
                           <option key={fv.id} value={fv.id}>
-                            ✨ {fv.name} ({fv.relationship || 'Family Member'})
+                            ✨ {fv.name} ({fv.relationship || 'Custom Voice'})
                           </option>
                         ))}
                       </optgroup>
                     )}
 
-                    {/* 10 Adult Males */}
                     <optgroup label={`👨 10 Adult Males (${selectedLangObj.name.split(' ')[0]})`}>
                       {currentRosterVoices.filter(v => v.group === 'adult_male').map(v => (
                         <option key={v.id} value={v.id}>
@@ -1123,7 +1175,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
                       ))}
                     </optgroup>
 
-                    {/* 10 Adult Females */}
                     <optgroup label={`👩 10 Adult Females (${selectedLangObj.name.split(' ')[0]})`}>
                       {currentRosterVoices.filter(v => v.group === 'adult_female').map(v => (
                         <option key={v.id} value={v.id}>
@@ -1132,20 +1183,18 @@ export default function VoiceBrowser({ onSelectVoice }) {
                       ))}
                     </optgroup>
 
-                    {/* 5 Female Children */}
-                    <optgroup label={`👧 5 Female Children (${selectedLangObj.name.split(' ')[0]})`}>
+                    <optgroup label={`👧 5 Female Youth / Children (${selectedLangObj.name.split(' ')[0]})`}>
                       {currentRosterVoices.filter(v => v.group === 'female_child').map(v => (
                         <option key={v.id} value={v.id}>
-                          👧 {v.name} ({v.relationship || 'Girl'})
+                          👧 {v.name} ({v.relationship || 'Youth'})
                         </option>
                       ))}
                     </optgroup>
 
-                    {/* 5 Male Children */}
-                    <optgroup label={`👦 5 Male Children (${selectedLangObj.name.split(' ')[0]})`}>
+                    <optgroup label={`👦 5 Male Youth / Children (${selectedLangObj.name.split(' ')[0]})`}>
                       {currentRosterVoices.filter(v => v.group === 'male_child').map(v => (
                         <option key={v.id} value={v.id}>
-                          👦 {v.name} ({v.relationship || 'Boy'})
+                          👦 {v.name} ({v.relationship || 'Youth'})
                         </option>
                       ))}
                     </optgroup>
@@ -1153,21 +1202,147 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              {/* 📝 STORY SCRIPT / TEXT SENTENCE (POSITIONED RIGHT UNDER LANGUAGE & VOICE SELECTION) */}
-              <div style={{ marginBottom: '16px' }}>
-                <label className="input-label-uppercase">📝 Story Script / Text Sentence to Synthesize</label>
+              {/* ============================================================ */}
+              {/* 🤖 2. INTEGRATED AI SCRIPT ASSISTANT (IDEA GENERATION & EDITING) */}
+              {/* ============================================================ */}
+              <div className="ai-script-assistant-card" style={{ marginBottom: '14px' }}>
+                <div className="ai-assistant-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>🤖</span>
+                    <strong style={{ fontSize: '13px', color: '#f59e0b' }}>AI Creative Script Assistant</strong>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>• Idea Generator & Smart Audio Editor</span>
+                  </div>
+
+                  {aiSuccessMsg && (
+                    <span className="ai-status-pill">{aiSuccessMsg}</span>
+                  )}
+                </div>
+
+                {/* Creative Format Ideas */}
+                <div className="ai-formats-row" style={{ marginTop: '8px' }}>
+                  <span className="ai-mini-label">💡 Generate Creative Format:</span>
+                  <button 
+                    className={`ai-format-pill ${aiFormat === 'podcast' ? 'active-ai-pill' : ''}`}
+                    onClick={() => { setAiFormat('podcast'); handleAiGenerate('podcast'); }}
+                    disabled={aiLoading}
+                  >
+                    🎙️ Podcast Intro Hook
+                  </button>
+                  <button 
+                    className={`ai-format-pill ${aiFormat === 'news' ? 'active-ai-pill' : ''}`}
+                    onClick={() => { setAiFormat('news'); handleAiGenerate('news'); }}
+                    disabled={aiLoading}
+                  >
+                    📰 News Bulletin
+                  </button>
+                  <button 
+                    className={`ai-format-pill ${aiFormat === 'commercial' ? 'active-ai-pill' : ''}`}
+                    onClick={() => { setAiFormat('commercial'); handleAiGenerate('commercial'); }}
+                    disabled={aiLoading}
+                  >
+                    📢 Commercial / Promo
+                  </button>
+                  <button 
+                    className={`ai-format-pill ${aiFormat === 'narration' ? 'active-ai-pill' : ''}`}
+                    onClick={() => { setAiFormat('narration'); handleAiGenerate('narration'); }}
+                    disabled={aiLoading}
+                  >
+                    📖 Audio Narration
+                  </button>
+                  <button 
+                    className={`ai-format-pill ${aiFormat === 'interview' ? 'active-ai-pill' : ''}`}
+                    onClick={() => { setAiFormat('interview'); handleAiGenerate('interview'); }}
+                    disabled={aiLoading}
+                  >
+                    💬 Interview Banter
+                  </button>
+                </div>
+
+                {/* Custom Brainstorm Prompt Input */}
+                <div className="ai-custom-prompt-row" style={{ marginTop: '8px' }}>
+                  <input
+                    type="text"
+                    className="dark-input-field ai-prompt-input"
+                    placeholder={`Enter any topic (e.g. "Space exploration", "Morning tech briefing", "Electric cars")...`}
+                    value={aiPromptTopic}
+                    onChange={(e) => setAiPromptTopic(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAiGenerate(aiFormat); }}
+                  />
+                  <button 
+                    className="ai-gen-btn"
+                    onClick={() => handleAiGenerate(aiFormat)}
+                    disabled={aiLoading}
+                  >
+                    {aiLoading ? '⏳ Generating...' : '✨ Generate with AI'}
+                  </button>
+                </div>
+
+                {/* Smart Polishing & Editing Tools */}
+                <div className="ai-edit-tools-row" style={{ marginTop: '10px' }}>
+                  <span className="ai-mini-label">⚡ Polish Script:</span>
+                  <button className="ai-tool-btn" onClick={() => handleAiEdit('polish')} disabled={aiLoading}>
+                    ✨ Polish & Flow
+                  </button>
+                  <button className="ai-tool-btn" onClick={() => handleAiEdit('conversational')} disabled={aiLoading}>
+                    🎙️ Make Conversational
+                  </button>
+                  <button className="ai-tool-btn" onClick={() => handleAiEdit('news')} disabled={aiLoading}>
+                    📰 News Bulletin Tone
+                  </button>
+                  <button className="ai-tool-btn" onClick={() => handleAiEdit('shorten')} disabled={aiLoading}>
+                    ⏳ Shorten & Punchy
+                  </button>
+                  <button className="ai-tool-btn" onClick={() => handleAiEdit('pauses')} disabled={aiLoading}>
+                    ⚡ Add Natural Pauses
+                  </button>
+                </div>
+              </div>
+
+              {/* 📝 STORY / SCRIPT TEXT SENTENCE AREA (RIGHT UNDER CONTROLS) */}
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label className="input-label-uppercase" style={{ margin: 0 }}>
+                    📝 Script / Voiceover Text to Synthesize
+                  </label>
+                  <button 
+                    className="toggle-text-btn"
+                    onClick={() => setIsStoriesExpanded(!isStoriesExpanded)}
+                  >
+                    {isStoriesExpanded ? '▲ Hide Script Library' : '📚 Browse Preset Script Templates ▼'}
+                  </button>
+                </div>
+
                 <textarea
                   className="dark-textarea"
                   value={ttsText}
                   dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
                   onChange={(e) => setTtsText(e.target.value)}
-                  rows={3}
-                  placeholder="Enter story text to synthesize in chosen language..."
+                  rows={4}
+                  placeholder="Enter script text or generate with AI assistant above..."
                 />
               </div>
 
+              {/* COLLAPSIBLE SCRIPT & STORY TEMPLATES DRAWER */}
+              {isStoriesExpanded && (
+                <div className="collapsible-templates-box" style={{ marginBottom: '16px' }}>
+                  <div className="templates-grid">
+                    {Object.keys(WORKFLOW_PRESETS).map(wfKey => {
+                      const wf = WORKFLOW_PRESETS[wfKey];
+                      const phrase = wf.phrases[selectedLanguage] || wf.phrases['en'];
+                      return (
+                        <div key={wfKey} className="template-card" onClick={() => { setTtsText(phrase); handleSelectWorkflow(wfKey); }}>
+                          <span className="template-title">{wf.label}</span>
+                          <p className="template-snippet">{phrase}</p>
+                          <button className="btn-use-template">Use This Script</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Quick Language Switch Pills with Hebrew Last */}
-              <div className="quick-phrases-bar" style={{ marginBottom: '16px' }}>
+              <div className="quick-phrases-bar" style={{ marginBottom: '14px' }}>
                 <span className="quick-label">⚡ Fast Switch Language:</span>
                 <div className="quick-pill-buttons">
                   {['en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'zh', 'ar', 'ru', 'he'].map(code => {
@@ -1186,9 +1361,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              {/* 🎯 2. STUDIO WORKFLOW CHOICES (Bedtime, Fantasy, Dialogue, Toddler) */}
-              <div className="workflow-selection-container">
-                <label className="input-label-uppercase">🎯 Studio Workflow Mode (Sets Accurate Pacing & Intonation)</label>
+              {/* 🎯 3. STUDIO WORKFLOW CHOICES (One-Click Presets) */}
+              <div className="workflow-selection-container" style={{ marginBottom: '14px' }}>
+                <label className="input-label-uppercase">🎯 Studio Workflow Preset (Sets Pacing & Intonation)</label>
                 <div className="workflow-cards-row">
                   {Object.keys(WORKFLOW_PRESETS).map(wfKey => {
                     const wf = WORKFLOW_PRESETS[wfKey];
@@ -1208,46 +1383,86 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              {/* 3. FINE-TUNING SLIDERS */}
-              <div className="tuning-sliders-grid" style={{ marginTop: '16px' }}>
-                <div className="slider-item">
-                  <div className="slider-label-row">
-                    <span>Voice Stability (Consistency):</span>
-                    <strong>{Math.round(voiceStability * 100)}%</strong>
+              {/* ============================================================ */}
+              {/* ⚙️ 4. COLLAPSIBLE VOICE TUNING DRAWER WITH EXPLANATIONS      */}
+              {/* ============================================================ */}
+              <div className="collapsible-tuning-container" style={{ marginBottom: '16px' }}>
+                <div 
+                  className="tuning-summary-header clickable-accordion-header"
+                  onClick={() => setIsTuningExpanded(!isTuningExpanded)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>⚙️</span>
+                    <strong style={{ fontSize: '12px', color: '#f8fafc' }}>Voice Fine-Tuning Controls</strong>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      (Stability: <span style={{ color: '#f59e0b' }}>{Math.round(voiceStability * 100)}%</span> • Clarity: <span style={{ color: '#f59e0b' }}>{Math.round(voiceSimilarity * 100)}%</span> • Pace: <span style={{ color: '#f59e0b' }}>{voiceSpeed}x</span>)
+                    </span>
                   </div>
-                  <input 
-                    type="range" min="0.1" max="1.0" step="0.05"
-                    className="fable-range"
-                    value={voiceStability}
-                    onChange={(e) => setVoiceStability(parseFloat(e.target.value))}
-                  />
+
+                  <button className="tuning-expand-pill-btn">
+                    {isTuningExpanded ? '▲ Hide Sliders & Guide' : '▼ Fine-Tune Sliders & Explanations'}
+                  </button>
                 </div>
 
-                <div className="slider-item">
-                  <div className="slider-label-row">
-                    <span>Clarity & Character Similarity:</span>
-                    <strong>{Math.round(voiceSimilarity * 100)}%</strong>
-                  </div>
-                  <input 
-                    type="range" min="0.1" max="1.0" step="0.05"
-                    className="fable-range"
-                    value={voiceSimilarity}
-                    onChange={(e) => setVoiceSimilarity(parseFloat(e.target.value))}
-                  />
-                </div>
+                {isTuningExpanded && (
+                  <div className="tuning-expanded-drawer" style={{ marginTop: '12px' }}>
+                    <div className="tuning-sliders-grid">
+                      {/* Stability Slider + Guide */}
+                      <div className="slider-item">
+                        <div className="slider-label-row">
+                          <span>Voice Stability (Consistency):</span>
+                          <strong>{Math.round(voiceStability * 100)}%</strong>
+                        </div>
+                        <input 
+                          type="range" min="0.1" max="1.0" step="0.05"
+                          className="fable-range"
+                          value={voiceStability}
+                          onChange={(e) => setVoiceStability(parseFloat(e.target.value))}
+                        />
+                        <div className="slider-explanation-box">
+                          ℹ️ <strong>Higher (75–90%)</strong>: Calm, steady, soothing tone for bedtime & narrations.<br />
+                          ℹ️ <strong>Lower (35–55%)</strong>: Dynamic emotional range for lively podcast & character dialogue.
+                        </div>
+                      </div>
 
-                <div className="slider-item">
-                  <div className="slider-label-row">
-                    <span>Story Pace / Speaking Speed:</span>
-                    <strong>{voiceSpeed}x</strong>
+                      {/* Clarity / Similarity Slider + Guide */}
+                      <div className="slider-item">
+                        <div className="slider-label-row">
+                          <span>Clarity & Character Similarity:</span>
+                          <strong>{Math.round(voiceSimilarity * 100)}%</strong>
+                        </div>
+                        <input 
+                          type="range" min="0.1" max="1.0" step="0.05"
+                          className="fable-range"
+                          value={voiceSimilarity}
+                          onChange={(e) => setVoiceSimilarity(parseFloat(e.target.value))}
+                        />
+                        <div className="slider-explanation-box">
+                          ℹ️ <strong>Higher (80–95%)</strong>: Crisp consonant clarity & exact likeness to original voice model.<br />
+                          ℹ️ <strong>Lower (50–70%)</strong>: Softer acoustic timbre, smoothing out background breath sounds.
+                        </div>
+                      </div>
+
+                      {/* Speaking Speed Slider + Guide */}
+                      <div className="slider-item">
+                        <div className="slider-label-row">
+                          <span>Speaking Pace / Speed:</span>
+                          <strong>{voiceSpeed}x</strong>
+                        </div>
+                        <input 
+                          type="range" min="0.75" max="1.25" step="0.05"
+                          className="fable-range"
+                          value={voiceSpeed}
+                          onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
+                        />
+                        <div className="slider-explanation-box">
+                          ℹ️ <strong>Slower (0.80–0.90x)</strong>: Relaxed pacing for meditation & sleep induction.<br />
+                          ℹ️ <strong>Brisk (1.05–1.15x)</strong>: Energetic delivery for news, promos, and podcasts.
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <input 
-                    type="range" min="0.75" max="1.25" step="0.05"
-                    className="fable-range"
-                    value={voiceSpeed}
-                    onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
-                  />
-                </div>
+                )}
               </div>
 
               {/* Action synthesis row */}
@@ -1294,7 +1509,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <span className="db-icon">{selectedLangObj.flag}</span>
                 <div>
                   <h2 className="library-section-title">30 {selectedLangObj.name} Voice Roster</h2>
-                  <p className="catalog-subtitle-text">10 Adult Males • 10 Adult Females • 5 Female Children • 5 Male Children</p>
+                  <p className="catalog-subtitle-text">10 Adult Males • 10 Adult Females • 5 Female Youth • 5 Male Youth</p>
                 </div>
               </div>
 
@@ -1308,21 +1523,18 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
             </div>
 
-            {/* Collapsed Preview Bar */}
             {!isLibraryExpanded && (
               <div 
                 className="catalog-collapsed-banner"
                 onClick={() => setIsLibraryExpanded(true)}
               >
-                <span>{selectedLangObj.flag} All 30 {selectedLangObj.name} voices are selectable in the Live Calibration Console above.</span>
+                <span>{selectedLangObj.flag} All 30 {selectedLangObj.name} voices are selectable in the Live Console above.</span>
                 <strong className="click-to-expand-gold">Click to open full card gallery with instant Play/Stop controls →</strong>
               </div>
             )}
 
-            {/* Expanded 30-Voice Grid with Play / Stop Buttons */}
             {isLibraryExpanded && (
               <div className="expanded-catalog-body">
-                {/* Category Filter Tabs */}
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px', alignItems: 'center' }}>
                   <button 
                     className={`nav-pill-btn ${voiceFilter === 'all' ? 'active-pill' : ''}`}
@@ -1350,14 +1562,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     style={{ fontSize: '11px', padding: '6px 12px' }}
                     onClick={() => setVoiceFilter('female_child')}
                   >
-                    👧 5 Female Children (ילדות)
+                    👧 5 Female Youth (צעירות)
                   </button>
                   <button 
                     className={`nav-pill-btn ${voiceFilter === 'male_child' ? 'active-pill' : ''}`}
                     style={{ fontSize: '11px', padding: '6px 12px' }}
                     onClick={() => setVoiceFilter('male_child')}
                   >
-                    👦 5 Male Children (ילדים)
+                    👦 5 Male Youth (צעירים)
                   </button>
 
                   <div style={{ marginLeft: 'auto', minWidth: '220px' }}>
@@ -1404,7 +1616,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
                         <div className="profile-card-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
                           <span className="meta-date-tag">{v.groupLabel || v.gender}</span>
 
-                          {/* 🔊 Play & Stop Preview Button for this voice */}
                           <button
                             className={`preview-play-stop-btn ${isPlaying ? 'btn-stop-preview' : 'btn-play-preview'}`}
                             onClick={(e) => handleToggleVoicePreview(v, e)}
@@ -1431,14 +1642,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
       )}
 
       {/* ==================================================================== */}
-      {/* 4. 📖 TAB 2: SCREENPLAY WORKSHOP (MULTI-CHARACTER BEDTIME STORIES)   */}
+      {/* TAB 2: MULTI-VOICE WORKSHOP                                          */}
       {/* ==================================================================== */}
       {activeNav === 'screenplay' && (
         <main className="screenplay-tab-content fable-box">
           <div className="screenplay-header">
             <div>
-              <h2 className="screenplay-title">📖 Screenplay Workshop & Multi-Voice Story Generator</h2>
-              <p className="screenplay-sub">Generate personalized stories in any language with different voices assigned to each character.</p>
+              <h2 className="screenplay-title">🎭 Multi-Voice Character Workshop</h2>
+              <p className="screenplay-sub">Assign different voices to multiple characters for audio drama, podcast banter, and dialogues.</p>
             </div>
             <button 
               className="gold-studio-btn"
@@ -1446,26 +1657,26 @@ export default function VoiceBrowser({ onSelectVoice }) {
               disabled={generatingScript}
               style={{ maxWidth: '240px' }}
             >
-              {generatingScript ? '⏳ Generating Story...' : '✨ Generate Story Script'}
+              {generatingScript ? '⏳ Generating Script...' : '✨ Generate Dialogue Script'}
             </button>
           </div>
 
-          {/* Story Theme, Language & Child Name Controls */}
           <div className="story-controls-grid">
             <div className="control-card">
-              <label className="input-label-uppercase">Story Theme</label>
+              <label className="input-label-uppercase">Script Genre</label>
               <select 
                 className="dark-input-field"
                 value={storyTheme}
                 onChange={(e) => setStoryTheme(e.target.value)}
               >
-                <option value="bedtime">🌙 המסע לאי החלומות (Bedtime Dream Voyage)</option>
-                <option value="fantasy">✨ דרקון הכוכבים (Enchanted Star-Dragon)</option>
+                <option value="bedtime">🌙 Bedtime Story (סיפור לפני השינה)</option>
+                <option value="fantasy">✨ Enchanted Fantasy & Quest</option>
+                <option value="adventure">🚀 Sci-Fi & Adventure</option>
               </select>
             </div>
 
             <div className="control-card">
-              <label className="input-label-uppercase">Story Language</label>
+              <label className="input-label-uppercase">Dialogue Language</label>
               <select 
                 className="dark-input-field"
                 value={selectedLanguage}
@@ -1478,20 +1689,19 @@ export default function VoiceBrowser({ onSelectVoice }) {
             </div>
 
             <div className="control-card" style={{ gridColumn: 'span 2' }}>
-              <label className="input-label-uppercase">Child's Name (גיבור הסיפור / Hero)</label>
+              <label className="input-label-uppercase">Main Character Name</label>
               <input 
                 type="text"
                 className="dark-input-field"
                 value={childName}
                 onChange={(e) => setChildName(e.target.value)}
-                placeholder="e.g. דניאל, יאיר, Leo, Emma"
+                placeholder="e.g. Leo, Emma, דניאל, יאיר"
               />
             </div>
           </div>
 
-          {/* Character Voice Assignment Matrix */}
           <div className="character-matrix-section">
-            <h3 className="section-small-title">🎭 Character Voice Assignment (Choose from 30 {selectedLangObj.name.split(' ')[0]} Personas & Cloned Voices)</h3>
+            <h3 className="section-small-title">🎭 Character Voice Assignment (Select from 30 {selectedLangObj.name.split(' ')[0]} Personas & Clones)</h3>
             <div className="character-cards-grid">
               {['Narrator', 'Mother', 'Father', 'Child', 'Wise Elder'].map((charName) => (
                 <div key={charName} className="character-assign-card">
@@ -1512,7 +1722,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
             </div>
           </div>
 
-          {/* Generated Script Display & Synthesis Action */}
           {screenplayScript && (
             <div className="script-editor-container">
               <div className="script-title-row">
@@ -1523,7 +1732,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   disabled={synthesizingScreenplay}
                   style={{ maxWidth: '280px' }}
                 >
-                  {synthesizingScreenplay ? '⏳ Synthesizing Multi-Voice Story...' : '⚡ Synthesize Full Screenplay Audio'}
+                  {synthesizingScreenplay ? '⏳ Synthesizing Audio...' : '⚡ Synthesize Multi-Voice Audio'}
                 </button>
               </div>
 
@@ -1543,7 +1752,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 ))}
               </div>
 
-              {/* Synthesized Multi-Voice Audio Results */}
               {screenplayAudioLines.length > 0 && (
                 <div className="synthesized-scenes-results">
                   <h4 className="audio-results-header">🎧 Multi-Voice Generated Audio Clips ({screenplayAudioLines.length} Scenes Ready)</h4>
@@ -1562,17 +1770,15 @@ export default function VoiceBrowser({ onSelectVoice }) {
         </main>
       )}
 
-      {/* ==================================================================== */}
-      {/* 5. 🎼 TAB 3: SOUNDTRACK CONSOLE & AMBIENCE MIXER                    */}
-      {/* ==================================================================== */}
+      {/* TAB 3: AMBIENCE CONSOLE */}
       {activeNav === 'soundtrack' && (
         <main className="soundtrack-tab-content fable-box">
           <audio ref={soundtrackAudioRef} loop />
 
           <div className="soundtrack-header">
             <div>
-              <h2 className="screenplay-title">🎼 Soundtrack Console & Background Ambience Mixer</h2>
-              <p className="screenplay-sub">Mix calming lullabies and enchanted background tracks with your voiceovers.</p>
+              <h2 className="screenplay-title">🎼 Background Ambience & Music Mixer</h2>
+              <p className="screenplay-sub">Mix calming ambient soundscapes, podcast intro pads, and music tracks with your voiceovers.</p>
             </div>
           </div>
 
@@ -1634,16 +1840,18 @@ export default function VoiceBrowser({ onSelectVoice }) {
       {/* TAB 4: SDK INTEGRATION */}
       {activeNav === 'sdk' && (
         <div className="fable-box placeholder-panel">
-          <h2>&lt;/&gt; 30-Persona Multilingual & Hebrew Neural SDK Integration</h2>
-          <p>Stream real-time cloned voice and 30-voice multilingual rosters directly into your applications.</p>
+          <h2>&lt;/&gt; Universal AI Voice & Multilingual API Integration</h2>
+          <p>Stream real-time cloned voices, podcasts, news briefings, and 30-voice personas into your applications.</p>
           <pre className="sdk-code-box">
-{`// Synthesize in any of the 30 language personas
+{`// Synthesize in any language with custom stability, clarity, and speed
 const response = await fetch("/api/voiceover/generate", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    script: "Goodnight little star, sweet dreams and rest well.",
-    voice: "en-fem-1", // 10 Adult Males, 10 Adult Females, 5 Girls, 5 Boys
+    script: "Welcome back to today's broadcast. Breaking updates coming in live.",
+    voice: "en-fem-1",
+    stability: 0.70,
+    speed: 1.05,
     language: "en"
   })
 });
@@ -1652,19 +1860,17 @@ const { url, engine } = await response.json();`}
         </div>
       )}
 
-      {/* ==================================================================== */}
-      {/* 3. 🚀 MODAL: "+ CLONE NEW FAMILY VOICE"                              */}
-      {/* ==================================================================== */}
+      {/* MODAL: CLONE NEW VOICE */}
       {showFamilyCloneModal && (
         <div className="modal-dark-overlay" onClick={() => setShowFamilyCloneModal(false)}>
           <div className="modal-dark-box" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-x" onClick={() => setShowFamilyCloneModal(false)}>✕</button>
 
             <div className="modal-head">
-              <span className="modal-head-icon">👨‍👩‍👧‍👦</span>
+              <span className="modal-head-icon">🎙️</span>
               <div>
-                <h2>Clone New Family Member Voice</h2>
-                <p>Upload multi-sample vocal recordings to train a custom voice model saved in bucket storage.</p>
+                <h2>Clone New Voice Model</h2>
+                <p>Upload multi-sample vocal recordings to train a custom voice model saved in persistent bucket storage.</p>
               </div>
             </div>
 
@@ -1674,10 +1880,10 @@ const { url, engine } = await response.json();`}
 
             <form onSubmit={handleFamilyModalSubmit} className="modal-form">
               <div className="modal-form-group">
-                <label>Voice Name / Person *</label>
+                <label>Voice Model Name *</label>
                 <input 
                   type="text"
-                  placeholder="e.g. Mom (Sarah), Dad, Grandma Mary, Sister Emma"
+                  placeholder="e.g. Alex (Podcast Host), Sarah, David (Reporter)"
                   className="dark-input-field"
                   value={familyForm.name}
                   onChange={(e) => setFamilyForm({ ...familyForm, name: e.target.value })}
@@ -1687,18 +1893,16 @@ const { url, engine } = await response.json();`}
 
               <div className="modal-two-col">
                 <div className="modal-form-group">
-                  <label>Relationship</label>
+                  <label>Role / Persona</label>
                   <select 
                     className="dark-input-field"
                     value={familyForm.relationship}
                     onChange={(e) => setFamilyForm({ ...familyForm, relationship: e.target.value })}
                   >
-                    <option value="Mother">Mother (אמא)</option>
-                    <option value="Father">Father (אבא)</option>
-                    <option value="Sister">Sister (אחות)</option>
-                    <option value="Brother">Brother (אח)</option>
-                    <option value="Child">Child (ילד/ה)</option>
-                    <option value="Grandparent">Grandparent (סבא/סבתא)</option>
+                    <option value="Host / Narrator">Host / Narrator</option>
+                    <option value="Podcast Host">Podcast Host</option>
+                    <option value="News Reporter">News Reporter</option>
+                    <option value="Commercial Speaker">Commercial Speaker</option>
                     <option value="Family Member">Family Member</option>
                   </select>
                 </div>

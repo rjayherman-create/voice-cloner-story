@@ -250,6 +250,102 @@ router.post('/screenplay/generate-script', (req, res) => {
   res.json(selectedStory);
 });
 
+// POST AI Script Assistant (Ideas, Podcast Hooks, News Items, Commercials, Polishing & Editing)
+router.post('/ai-script-assistant', async (req, res) => {
+  try {
+    const { action, format, currentText, topic, tone, language } = req.body;
+    const lang = language || 'en';
+    const isHe = lang === 'he' || /[\u0590-\u05FF]/.test(topic || currentText || '');
+
+    // 1. EDITING / POLISHING ACTIONS
+    if (action === 'edit') {
+      const text = currentText || '';
+      if (!text.trim()) {
+        return res.status(400).json({ error: 'Text to edit is required' });
+      }
+
+      let resultText = text;
+
+      if (tone === 'conversational') {
+        if (isHe) {
+          resultText = text
+            .replace(/\bשלום\b/g, 'היי לכולם, מה שלומכם? ')
+            .replace(/\bאמר\b/g, 'שיתף בהתרגשות')
+            .replace(/\./g, '... ') + ' תחשבו על זה רגע, איזה יופי!';
+        } else {
+          resultText = `Hey everyone, check this out... ${text.replace(/\. /g, '—and you know what? ')} Pretty fascinating, right?`;
+        }
+      } else if (tone === 'news') {
+        if (isHe) {
+          resultText = `מבזק חדשות מיוחד: ${text.replace(/\.\s*/g, '. ')} כאן מוקד הדיווחים, נמשיך לעדכן.`;
+        } else {
+          resultText = `Breaking News Bulletin: ${text.replace(/\.\s*/g, '. ')} Reporting live from the studio, stay tuned for further updates.`;
+        }
+      } else if (tone === 'shorten') {
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        resultText = sentences.slice(0, Math.max(1, Math.ceil(sentences.length / 2))).join('. ').trim() + '.';
+      } else if (tone === 'pauses') {
+        resultText = text
+          .replace(/,/g, ', ...')
+          .replace(/\./g, '. \n\n')
+          .replace(/—/g, ' — ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      } else {
+        // General polish
+        if (isHe) {
+          resultText = text.trim().replace(/\s+/g, ' ') + ' שיהיה יום מבורך ומלא השראה.';
+        } else {
+          resultText = text.trim().replace(/\s+/g, ' ');
+          if (!/[.!?]$/.test(resultText)) resultText += '.';
+        }
+      }
+
+      return res.json({
+        success: true,
+        action: 'edit',
+        tone: tone || 'polish',
+        text: resultText
+      });
+    }
+
+    // 2. CREATIVE GENERATION (Podcasts, News, Commercials, Narrations, Custom Ideas)
+    const customTopic = topic && topic.trim() ? topic.trim() : 'the future of artificial intelligence';
+
+    const GENERATED_TEMPLATES = {
+      en: {
+        podcast: `Welcome back to The Daily Frequency! Today we're diving into an incredible topic: ${customTopic}. Grab your coffee, settle in, and let's explore what this means for the world ahead.`,
+        news: `Top Story of the Hour: New developments emerge regarding ${customTopic}. Industry leaders and analysts report significant progress, marking a pivotal moment in today's broadcast. Reporting live, more details at the top of the hour.`,
+        commercial: `Are you ready for the next big breakthrough? Discover the power of ${customTopic}. Designed for creators, thinkers, and innovators who demand the absolute best. Try it today and experience the difference.`,
+        narration: `In a world shaped by rapid change and quiet wonders, ${customTopic} emerged as a guiding light. As dawn broke across the horizon, a new chapter of discovery had officially begun.`,
+        interview: `Joining us today in the studio is our special guest to talk about ${customTopic}. Thanks for being here—tell us, what was the initial spark behind this whole project?`
+      },
+      he: {
+        podcast: `שלום וברוכים הבאים לפודקאסט של היום! בפרק הזה אנחנו צוללים לנושא מרתק במיוחד: ${customTopic}. קחו כוס קפה, התרווחו, ובואו נתחיל במסע שלנו.`,
+        news: `מבזק חדשות מיוחד: התפתחויות משמעותיות נרשמו סביב ${customTopic}. גורמים בכירים ומומחים מדווחים על פריצת דרך חשובה. נמשיך לעקוב ולדווח לאורך כל היום.`,
+        commercial: `מוכנים לשלב הבא? הכירו את הפתרון המוביל עבור ${customTopic}. איכות ללא פשרות, ביצועים יוצאי דופן וחוויה מתקדמת. נסו עכשיו והרגישו בהבדל.`,
+        narration: `בעולם שנע במהירות בלתי פוסקת, צץ לפתע רגע של בהירות סביב ${customTopic}. כשהאור הראשון של הבוקר עלה, היה ברור שדבר לא יישאר כפי שהיה.`,
+        interview: `איתנו באולפן היום אורח מיוחד שמגיע לדבר איתנו על ${customTopic}. שלום לך, ספר לנו מה בעצם הוביל לרעיון המהפכני הזה?`
+      }
+    };
+
+    const langTemplates = isHe ? GENERATED_TEMPLATES.he : GENERATED_TEMPLATES.en;
+    const selectedFormat = format || 'podcast';
+    const generatedScript = langTemplates[selectedFormat] || langTemplates['podcast'];
+
+    res.json({
+      success: true,
+      action: 'generate',
+      format: selectedFormat,
+      topic: customTopic,
+      text: generatedScript
+    });
+  } catch (err) {
+    console.error('[VoiceOver] AI Script Assistant error:', err);
+    res.status(500).json({ error: err.message || 'AI Script Assistant failed' });
+  }
+});
+
 // POST generate voiceover with auto-routing to 30 Hebrew Models, Bucket Clones, OR 30 Multilingual Personas
 router.post('/generate', async (req, res) => {
   try {
