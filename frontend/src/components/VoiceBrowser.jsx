@@ -45,7 +45,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [voiceSimilarity, setVoiceSimilarity] = useState(0.80);
   const [voiceSpeed, setVoiceSpeed] = useState(1.05);
 
-  // ⏱️ Target Script Length State ('15s', '30s', '60s', '120s')
+  // ⏱️ Target Script Length State ('15s', '30s', '60s', '5m', '10m', '15m', '30m')
   const [targetLength, setTargetLength] = useState('30s');
 
   // 🤖 AI Script Assistant & Creative Generator States
@@ -105,30 +105,30 @@ export default function VoiceBrowser({ onSelectVoice }) {
         fr: 'Flash info : De nouvelles avancées majeures viennent d\'être annoncées aujourd\'hui par les experts.'
       }
     },
+    video: {
+      label: '🎬 Video & YouTube Storyboard',
+      desc: 'Dynamic pacing with cues for on-screen B-roll, motion graphics, and audio sync',
+      stability: 0.55,
+      similarity: 0.80,
+      speed: 1.05,
+      phrases: {
+        en: '[SCENE 1: Studio Shot] What if you could produce complete audio documentaries in seconds? [SCENE 2: Cut to B-Roll] Today we reveal the revolutionary workflow.',
+        he: '[סצינה 1: צילום אולפן] מה אם הייתם יכולים ליצור סרטי שמע ודוקו בתוך דקות? [סצינה 2: מעבר להדגמה] היום נחשוף את שיטת העבודה המלאה.',
+        es: '[ESCENA 1: En estudio] ¿Qué pasaría si pudieras crear audio profesional en segundos? Hoy te mostramos cómo.',
+        fr: '[SCÈNE 1 : En studio] Et si vous pouviez produire des documentaires audio en quelques secondes ? Découvrez la méthode.'
+      }
+    },
     bedtime: {
-      label: '🌙 Bedtime Story & Lullaby',
-      desc: 'Gentle, soothing pacing with high vocal stability for restful sleep',
+      label: '🧒 15-Min Kids Bedtime Story',
+      desc: 'Gentle, soothing pacing with chaptered lullabies for peaceful sleep',
       stability: 0.80,
       similarity: 0.85,
       speed: 0.90,
       phrases: {
-        en: 'Close your eyes, little adventurer. The moon is painting the sky in shades of silver and lavender, watching over your sweet dreams.',
-        he: 'לילה טוב ילד שלי. עצום את העיניים והקשב לשיר הערש שהכוכבים שרים לך בשמיים. חלומות פז ושינה מתוקה.',
-        es: 'Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.',
-        fr: 'Bonne nuit mon petit ange, dors bien et fais de très beaux rêves étoilés.'
-      }
-    },
-    fantasy: {
-      label: '✨ Fantasy Quest & Narration',
-      desc: 'Expressive intonation and dynamic energy for magical audiobooks and documentaries',
-      stability: 0.55,
-      similarity: 0.80,
-      speed: 1.00,
-      phrases: {
-        en: 'Deep within the whispering sapphire woods, the golden star-dragon soared above the clouds, lighting up the enchanted forest with magic.',
-        he: 'בלב היער הקסום, במקום שבו הציפורים שרות בלילה, מצאנו שביל של אור זוהר שהוביל אל טירת העננים הקסומה.',
-        es: 'En lo profundo del bosque encantado, el dragón de las estrellas iluminó el cielo con chispas de oro y magia.',
-        fr: 'Au cœur de la forêt enchantée, le dragon des étoiles illuminait la nuit d\'une merveilleuse poussière d\'or.'
+        en: 'Chapter 1: The Whispering Meadow. Close your eyes, little adventurer. The moon is painting the sky in shades of silver and lavender, watching over your sweet dreams.',
+        he: 'פרק 1: אחו הלוחשים. לילה טוב ילד שלי. עצום את העיניים והקשב לשיר הערש שהכוכבים שרים לך בשמיים. חלומות פז ושינה מתוקה.',
+        es: 'Capítulo 1: El bosque susurrante. Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.',
+        fr: 'Chapitre 1 : La prairie magique. Bonne nuit mon petit ange, dors bien et fais de très beaux rêves étoilés.'
       }
     },
     commercial: {
@@ -321,7 +321,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 🤖 AI Script Assistant Handlers with Target Length Calibration
+  // 🤖 AI Script Assistant Handlers with Target Length & Long-Form Support
   const handleAiGenerate = async (formatKey, lenKey) => {
     const chosenFormat = formatKey || aiFormat;
     const chosenLength = lenKey || targetLength;
@@ -377,6 +377,21 @@ export default function VoiceBrowser({ onSelectVoice }) {
     } finally {
       setAiLoading(false);
     }
+  };
+
+  // 🎬 Strip [VISUAL: ...] cues from video scripts for clean audio recording
+  const handleStripVisualCues = () => {
+    const cleaned = ttsText
+      .replace(/\[VISUAL:[^\]]*\]/gi, '')
+      .replace(/\[SCENE[^\]]*\]/gi, '')
+      .replace(/\[VOICEOVER\]:?/gi, '')
+      .replace(/\[ויז'ואל:[^\]]*\]/gi, '')
+      .replace(/\[סצינה[^\]]*\]/gi, '')
+      .replace(/\[קריינות\]:?/gi, '')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+    setTtsText(cleaned);
+    setAiSuccessMsg('🎙️ Visual directions removed. Clean voiceover ready for synthesis!');
   };
 
   // 🔊 Instant Play & Stop Toggle for any voice
@@ -729,12 +744,22 @@ export default function VoiceBrowser({ onSelectVoice }) {
     setSynthesizing(true);
     setSynthesizedEngineUsed(null);
 
+    // Auto-clean visual cues if synthesizing raw audio
+    const scriptToSynthesize = ttsText
+      .replace(/\[VISUAL:[^\]]*\]/gi, '')
+      .replace(/\[SCENE[^\]]*\]/gi, '')
+      .replace(/\[VOICEOVER\]:?/gi, '')
+      .replace(/\[ויז'ואל:[^\]]*\]/gi, '')
+      .replace(/\[סצינה[^\]]*\]/gi, '')
+      .replace(/\[קריינות\]:?/gi, '')
+      .trim();
+
     try {
       const res = await fetch('/api/voiceover/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          script: ttsText,
+          script: scriptToSynthesize,
           voice: selectedVoiceId,
           emotion: 'neutral',
           stability: voiceStability,
@@ -851,9 +876,27 @@ export default function VoiceBrowser({ onSelectVoice }) {
   // Live real-time audio length calculation
   const wordCount = ttsText.trim() ? ttsText.trim().split(/\s+/).length : 0;
   const charCount = ttsText.length;
-  const estimatedSeconds = Math.max(1, Math.round(wordCount / (2.4 * voiceSpeed)));
-  const targetSeconds = targetLength === '15s' ? 15 : targetLength === '30s' ? 30 : targetLength === '60s' ? 60 : 120;
-  const isDurationOnTarget = Math.abs(estimatedSeconds - targetSeconds) <= 5;
+  const rawSeconds = Math.max(1, Math.round(wordCount / (2.4 * voiceSpeed)));
+  
+  const formatAudioTime = (secs) => {
+    if (secs < 60) return `~${secs}s`;
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `~${m}m ${s > 0 ? `${s}s` : ''}`;
+  };
+
+  const targetSecondsMap = {
+    '15s': 15,
+    '30s': 30,
+    '60s': 60,
+    '5m': 300,
+    '10m': 600,
+    '15m': 900,
+    '30m': 1800
+  };
+  const targetSeconds = targetSecondsMap[targetLength] || 30;
+  const isDurationOnTarget = Math.abs(rawSeconds - targetSeconds) <= (targetSeconds > 120 ? 120 : 10);
+  const isVideoScriptFormat = /\[VISUAL:|\[SCENE|\[ויז'ואל:|\[סצינה/i.test(ttsText);
 
   return (
     <div className="fable-studio-page">
@@ -870,7 +913,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <span className="brand-text-main">FableVoice</span>
               <span className="brand-badge-yellow">STUDIO</span>
             </div>
-            <div className="brand-text-sub">AI VOICE CLONING • PODCASTS • NEWS • NARRATION • AUDIO STORIES</div>
+            <div className="brand-text-sub">UNIVERSAL AI AUDIO • VIDEO SCRIPTS • 15-MIN KIDS STORIES • PODCASTS • NEWS</div>
           </div>
         </div>
 
@@ -910,9 +953,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
           {/* STUDIO RACK 01 BANNER */}
           <div className="studio-rack-banner">
             <div className="rack-info">
-              <div className="rack-label">UNIVERSAL VOICE STUDIO</div>
-              <h1 className="rack-title">Voice Cloner & Creative Audio Production</h1>
-              <p className="rack-subtitle">Synthesize audiobooks, podcasts, news briefings, radio promos, or clone custom voices into persistent bucket storage.</p>
+              <div className="rack-label">UNIVERSAL AUDIO & VIDEO STUDIO</div>
+              <h1 className="rack-title">Voice Cloner & Full-Length Audio Production</h1>
+              <p className="rack-subtitle">Create short promo hooks, 5-minute video scripts, 10-minute news specials, 15-minute children stories, or full 30-minute podcast deep-dives.</p>
             </div>
 
             <div className="rack-actions">
@@ -1216,14 +1259,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
 
               {/* ============================================================ */}
-              {/* 🤖 2. INTEGRATED AI SCRIPT ASSISTANT WITH TARGET DURATION    */}
+              {/* 🤖 2. UNIVERSAL AI SCRIPT ASSISTANT (VIDEO, KIDS, PODCASTS) */}
               {/* ============================================================ */}
               <div className="ai-script-assistant-card" style={{ marginBottom: '14px' }}>
                 <div className="ai-assistant-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '18px' }}>🤖</span>
-                    <strong style={{ fontSize: '13px', color: '#f59e0b' }}>AI Creative Script Assistant</strong>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>• Idea Generator & Length Calibrator</span>
+                    <strong style={{ fontSize: '13px', color: '#f59e0b' }}>Universal AI Creative Assistant</strong>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>• Video Scripts, Long-Form Audio, Stories & News</span>
                   </div>
 
                   {aiSuccessMsg && (
@@ -1231,40 +1274,72 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   )}
                 </div>
 
-                {/* ⏱️ TARGET AUDIO LENGTH SELECTOR */}
+                {/* ⏱️ EXTENDED TARGET AUDIO LENGTH SELECTOR */}
                 <div className="duration-picker-bar" style={{ marginTop: '10px' }}>
-                  <span className="ai-mini-label">⏱️ Target Audio Length:</span>
+                  <span className="ai-mini-label">⏱️ Target Duration:</span>
                   <div className="duration-pill-buttons">
                     <button 
                       className={`duration-pill-btn ${targetLength === '15s' ? 'active-duration-pill' : ''}`}
                       onClick={() => { setTargetLength('15s'); handleAiGenerate(aiFormat, '15s'); }}
                     >
-                      ⚡ 15s (Quick Hook / Ad)
+                      ⚡ 15s (Ad Hook)
                     </button>
                     <button 
                       className={`duration-pill-btn ${targetLength === '30s' ? 'active-duration-pill' : ''}`}
                       onClick={() => { setTargetLength('30s'); handleAiGenerate(aiFormat, '30s'); }}
                     >
-                      ⏱️ 30s (Promo / Spot)
+                      ⏱️ 30s (Promo)
                     </button>
                     <button 
                       className={`duration-pill-btn ${targetLength === '60s' ? 'active-duration-pill' : ''}`}
                       onClick={() => { setTargetLength('60s'); handleAiGenerate(aiFormat, '60s'); }}
                     >
-                      ⏳ 60s (1 Min Story / News)
+                      ⏳ 1 Min
                     </button>
                     <button 
-                      className={`duration-pill-btn ${targetLength === '120s' ? 'active-duration-pill' : ''}`}
-                      onClick={() => { setTargetLength('120s'); handleAiGenerate(aiFormat, '120s'); }}
+                      className={`duration-pill-btn ${targetLength === '5m' ? 'active-duration-pill' : ''}`}
+                      onClick={() => { setTargetLength('5m'); handleAiGenerate(aiFormat, '5m'); }}
                     >
-                      📖 120s (2 Min Deep-Dive)
+                      🎬 5 Min (YouTube)
+                    </button>
+                    <button 
+                      className={`duration-pill-btn ${targetLength === '10m' ? 'active-duration-pill' : ''}`}
+                      onClick={() => { setTargetLength('10m'); handleAiGenerate(aiFormat, '10m'); }}
+                    >
+                      📻 10 Min (Deep-Dive)
+                    </button>
+                    <button 
+                      className={`duration-pill-btn ${targetLength === '15m' ? 'active-duration-pill' : ''}`}
+                      onClick={() => { setTargetLength('15m'); setAiFormat('kids_story'); handleAiGenerate('kids_story', '15m'); }}
+                    >
+                      🧒 15 Min (Kids Story)
+                    </button>
+                    <button 
+                      className={`duration-pill-btn ${targetLength === '30m' ? 'active-duration-pill' : ''}`}
+                      onClick={() => { setTargetLength('30m'); handleAiGenerate(aiFormat, '30m'); }}
+                    >
+                      🎙️ 30 Min (Master Episode)
                     </button>
                   </div>
                 </div>
 
                 {/* Creative Format Ideas */}
                 <div className="ai-formats-row" style={{ marginTop: '10px' }}>
-                  <span className="ai-mini-label">💡 Generate Format:</span>
+                  <span className="ai-mini-label">💡 Format:</span>
+                  <button 
+                    className={`ai-format-pill ${aiFormat === 'video_script' ? 'active-ai-pill' : ''}`}
+                    onClick={() => { setAiFormat('video_script'); handleAiGenerate('video_script', targetLength); }}
+                    disabled={aiLoading}
+                  >
+                    🎬 Video Script (Visual Cues + VO)
+                  </button>
+                  <button 
+                    className={`ai-format-pill ${aiFormat === 'kids_story' ? 'active-ai-pill' : ''}`}
+                    onClick={() => { setAiFormat('kids_story'); handleAiGenerate('kids_story', targetLength); }}
+                    disabled={aiLoading}
+                  >
+                    🧒 Kids Bedtime Story
+                  </button>
                   <button 
                     className={`ai-format-pill ${aiFormat === 'podcast' ? 'active-ai-pill' : ''}`}
                     onClick={() => { setAiFormat('podcast'); handleAiGenerate('podcast', targetLength); }}
@@ -1291,14 +1366,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     onClick={() => { setAiFormat('narration'); handleAiGenerate('narration', targetLength); }}
                     disabled={aiLoading}
                   >
-                    📖 Narration & Fables
-                  </button>
-                  <button 
-                    className={`ai-format-pill ${aiFormat === 'interview' ? 'active-ai-pill' : ''}`}
-                    onClick={() => { setAiFormat('interview'); handleAiGenerate('interview', targetLength); }}
-                    disabled={aiLoading}
-                  >
-                    💬 Interview Banter
+                    📖 Narration & Audiobooks
                   </button>
                 </div>
 
@@ -1307,7 +1375,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   <input
                     type="text"
                     className="dark-input-field ai-prompt-input"
-                    placeholder={`Enter any topic (e.g. "Space exploration", "Morning tech briefing", "Electric cars")...`}
+                    placeholder={`Enter any topic (e.g. "The Magic Star Dragon", "Tech in 2030", "Morning Financial News")...`}
                     value={aiPromptTopic}
                     onChange={(e) => setAiPromptTopic(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleAiGenerate(aiFormat, targetLength); }}
@@ -1317,13 +1385,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     onClick={() => handleAiGenerate(aiFormat, targetLength)}
                     disabled={aiLoading}
                   >
-                    {aiLoading ? '⏳ Generating...' : `✨ Generate ${targetLength} Script`}
+                    {aiLoading ? '⏳ Generating...' : `✨ Generate ${targetLength} ${aiFormat.replace('_', ' ')}`}
                   </button>
                 </div>
 
                 {/* Smart Polishing & Editing Tools */}
                 <div className="ai-edit-tools-row" style={{ marginTop: '10px' }}>
-                  <span className="ai-mini-label">⚡ Polish & Fit:</span>
+                  <span className="ai-mini-label">⚡ Tools:</span>
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('polish')} disabled={aiLoading}>
                     ✨ Polish & Flow
                   </button>
@@ -1333,14 +1401,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('news')} disabled={aiLoading}>
                     📰 News Bulletin Tone
                   </button>
-                  <button 
-                    className="ai-tool-btn fit-btn" 
-                    onClick={() => handleAiEdit(targetLength === '15s' ? 'fit_15s' : targetLength === '30s' ? 'fit_30s' : 'shorten')} 
-                    disabled={aiLoading}
-                    title="Automatically adjusts sentence structure to fit target length"
-                  >
-                    📐 Fit to {targetLength}
-                  </button>
+                  {isVideoScriptFormat && (
+                    <button className="ai-tool-btn fit-btn" onClick={handleStripVisualCues} title="Removes bracketed camera & scene directions before audio recording">
+                      🎙️ Strip [Visual Cues]
+                    </button>
+                  )}
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('pauses')} disabled={aiLoading}>
                     ⚡ Add Natural Pauses
                   </button>
@@ -1350,14 +1415,21 @@ export default function VoiceBrowser({ onSelectVoice }) {
               {/* 📝 SCRIPT TEXT SENTENCE AREA WITH REAL-TIME AUDIO DURATION METER */}
               <div style={{ marginBottom: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <label className="input-label-uppercase" style={{ margin: 0 }}>
-                      📝 Voiceover Script ({targetLength} Target)
+                      📝 Script Content ({targetLength} Target)
                     </label>
-                    {/* Live Duration Meter */}
+
+                    {/* Live Duration & Word Count Meter */}
                     <span className={`live-meter-badge ${isDurationOnTarget ? 'meter-good' : 'meter-warn'}`}>
-                      ⏱️ Est. Audio: ~{estimatedSeconds}s ({wordCount} words • {charCount} chars) • Target: {targetSeconds}s
+                      ⏱️ Est. Audio: {formatAudioTime(rawSeconds)} ({wordCount} words • {charCount} chars) • Target: {targetLength}
                     </span>
+
+                    {isVideoScriptFormat && (
+                      <span className="video-format-tag">
+                        🎬 Video Storyboard Mode Active
+                      </span>
+                    )}
                   </div>
 
                   <button 
@@ -1373,7 +1445,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   value={ttsText}
                   dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
                   onChange={(e) => setTtsText(e.target.value)}
-                  rows={4}
+                  rows={targetLength === '15m' || targetLength === '30m' ? 12 : targetLength === '5m' || targetLength === '10m' ? 8 : 5}
                   placeholder="Enter script text or generate with AI assistant above..."
                 />
               </div>

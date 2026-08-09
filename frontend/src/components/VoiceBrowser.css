@@ -866,6 +866,16 @@
   font-family: monospace;
 }
 
+.video-format-tag {
+  background: #3b0764;
+  border: 1px solid #a855f7;
+  color: #d8b4fe;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .meter-good {
   background: #064e3b;
   border: 1px solid #10b981;
