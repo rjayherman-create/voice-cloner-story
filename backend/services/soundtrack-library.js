@@ -1,6 +1,15 @@
 // backend/services/soundtrack-library.js
 // 20-Track Royalty-Free Soundtrack & Ambient Music Library for FableVoice Audio Studio
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { generateSoundtrackLibrary } from './sound-generator.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SOUNDTRACKS_DIR = path.join(__dirname, '../../uploads/soundtracks');
+
 const SOUNDTRACK_CATALOG = [
   // ==========================================
   // 🌙 CATEGORY 1: BEDTIME, LULLABY & SLEEP (4 Tracks)
@@ -14,7 +23,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Soothing & Calming',
     instrumentation: 'Acoustic Harp, Ambient String Quartet',
     previewNote: 'Soft soothing harp notes for restful bedtime sleep and tranquil storytelling.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=soft-lullaby-piano-112199.mp3'
+    url: '/uploads/soundtracks/lullaby-harp.wav'
   },
   {
     id: 'cosmic-wonder',
@@ -25,7 +34,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Magical & Peaceful',
     instrumentation: 'Music Box, Celestial Chimes, Warm Pads',
     previewNote: 'Delicate music box bells floating through starry skies for children.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f792cb.mp3?filename=lullaby-music-box-12345.mp3'
+    url: '/uploads/soundtracks/cosmic-wonder.wav'
   },
   {
     id: 'gentle-rain-piano',
@@ -36,7 +45,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Relaxing & Intimate',
     instrumentation: 'Felt Piano, Ambient Rainscape',
     previewNote: 'Warm acoustic piano chords accompanied by soft natural rainfall.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_b287518596.mp3?filename=peaceful-piano-10707.mp3'
+    url: '/uploads/soundtracks/gentle-rain-piano.wav'
   },
   {
     id: 'warm-blanket-ambient',
@@ -47,7 +56,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Hypnotic & Restful',
     instrumentation: 'Deep Analog Synthesizer, Drone Pads',
     previewNote: 'Binaural-style relaxing harmonic hums designed for deep sleep.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/03/24/audio_026778f6ea.mp3?filename=deep-relaxation-11470.mp3'
+    url: '/uploads/soundtracks/warm-blanket-ambient.wav'
   },
 
   // ==========================================
@@ -62,7 +71,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Warm & Conversational',
     instrumentation: 'Electric Piano (Rhodes), Dusty Drum Loops',
     previewNote: 'Relaxed groove perfect for conversational podcasts and creator commentary.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/05/16/audio_db6591201e.mp3?filename=lofi-study-112191.mp3'
+    url: '/uploads/soundtracks/lofi-chill-talk.wav'
   },
   {
     id: 'acoustic-morning',
@@ -73,7 +82,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Optimistic & Friendly',
     instrumentation: 'Acoustic Guitar, Fingerpicked Bass',
     previewNote: 'Warm acoustic morning vibes for lifestyle and interview shows.',
-    url: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_34d193ef2d.mp3?filename=acoustic-guitars-ambient-9646.mp3'
+    url: '/uploads/soundtracks/acoustic-morning.wav'
   },
   {
     id: 'upbeat-indie-groove',
@@ -84,7 +93,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Energetic & Inspiring',
     instrumentation: 'Indie Bassline, Shakers, Clean Electric Guitar',
     previewNote: 'Engaging pulse for technology discussions, tutorials, and YouTube intros.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/11/06/audio_106758c0c4.mp3?filename=good-night-160166.mp3'
+    url: '/uploads/soundtracks/upbeat-indie-groove.wav'
   },
   {
     id: 'late-night-jazz',
@@ -95,7 +104,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Sophisticated & Classy',
     instrumentation: 'Muted Trumpet, Upright Bass, Soft Brushes',
     previewNote: 'Noir and storytelling jazz atmosphere for evening audio shows.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=smooth-waters-1159.mp3'
+    url: '/uploads/soundtracks/late-night-jazz.wav'
   },
 
   // ==========================================
@@ -110,7 +119,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Analytical & Serious',
     instrumentation: 'Digital Arpeggiator, Sub Bass, Tech Ticks',
     previewNote: 'Neutral, clean electronic pacing for journalism and technology briefings.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_5f2d01db9c.mp3?filename=technology-background-10255.mp3'
+    url: '/uploads/soundtracks/broadcast-tech-pulse.wav'
   },
   {
     id: 'breaking-news-urgency',
@@ -121,7 +130,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Authoritative & Dynamic',
     instrumentation: 'Cinematic Staccato Strings, Newsroom Synth',
     previewNote: 'High-authority background drive for fast-paced bulletins and financial reports.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/01/26/audio_d0c6ff1101.mp3?filename=news-corporate-14309.mp3'
+    url: '/uploads/soundtracks/breaking-news-urgency.wav'
   },
   {
     id: 'corporate-vision',
@@ -132,7 +141,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Confident & Forward-Looking',
     instrumentation: 'Muted Guitar Strum, Uplifting Synth Pads',
     previewNote: 'Professional presentation underscore for corporate overviews and keynote narrations.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/04/27/audio_145625bf94.mp3?filename=corporate-motivational-111394.mp3'
+    url: '/uploads/soundtracks/corporate-vision.wav'
   },
   {
     id: 'data-stream-synth',
@@ -143,7 +152,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Futuristic & Focused',
     instrumentation: 'Ambient Synth Plucks, Glitch Percussion',
     previewNote: 'Modern scientific and AI narrative background underscore.',
-    url: 'https://cdn.pixabay.com/download/audio/2021/11/24/audio_33c9444ef5.mp3?filename=cyber-ambient-8636.mp3'
+    url: '/uploads/soundtracks/data-stream-synth.wav'
   },
 
   // ==========================================
@@ -158,7 +167,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Vibrant & Viral',
     instrumentation: 'Punchy Synth Chords, Claps, Dance Kick',
     previewNote: 'Immediate listener attention grabber for TikTok, Instagram Reels, and YouTube ads.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_7314a457c1.mp3?filename=uplifting-future-bass-10338.mp3'
+    url: '/uploads/soundtracks/high-energy-hook.wav'
   },
   {
     id: 'funky-summer-vibe',
@@ -169,7 +178,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Playful & Catchy',
     instrumentation: 'Slap Bass, Brass Stabs, Funk Guitar',
     previewNote: 'Joyful, upbeat vibe for consumer product promos and lifestyle commercials.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/05/05/audio_1cd5eb9687.mp3?filename=summer-funk-111867.mp3'
+    url: '/uploads/soundtracks/funky-summer-vibe.wav'
   },
   {
     id: 'motivational-anthem',
@@ -180,7 +189,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Triumphant & Inspiring',
     instrumentation: 'Stomp Box, Handclaps, Electric Piano',
     previewNote: 'Empowering narrative drive for brand stories and motivational promotions.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/03/24/audio_d0e4056262.mp3?filename=corporate-uplifting-11475.mp3'
+    url: '/uploads/soundtracks/motivational-anthem.wav'
   },
   {
     id: 'retail-happy-acoustic',
@@ -191,7 +200,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Whimsical & Carefree',
     instrumentation: 'Ukulele, Whistling Melody, Glockenspiel',
     previewNote: 'Lighthearted and friendly music for family ads, retail promos, and app teasers.',
-    url: 'https://cdn.pixabay.com/download/audio/2021/09/06/audio_924e2e2ca1.mp3?filename=happy-ukulele-10023.mp3'
+    url: '/uploads/soundtracks/retail-happy-acoustic.wav'
   },
 
   // ==========================================
@@ -206,7 +215,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Mystical & Adventurous',
     instrumentation: 'Wooden Flute, Wind Chimes, Lush Strings',
     previewNote: 'Gentle night breeze and twinkling chimes for magical quests and fairytales.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8bbf73301.mp3?filename=magical-story-10339.mp3'
+    url: '/uploads/soundtracks/enchanted-forest.wav'
   },
   {
     id: 'deep-space-odyssey',
@@ -217,7 +226,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Awe-Inspiring & Deep',
     instrumentation: 'Solo Cello, Cosmic Reverb Swells',
     previewNote: 'Immense cosmic atmospheres for sci-fi adventures and philosophical narrations.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_c874f63d04.mp3?filename=space-ambient-1158.mp3'
+    url: '/uploads/soundtracks/deep-space-odyssey.wav'
   },
   {
     id: 'epic-hero-quest',
@@ -228,7 +237,7 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Noble & Epic',
     instrumentation: 'Full Symphonic Orchestra, French Horns, Timpani',
     previewNote: 'Grand orchestral swell for epic audiobooks and heroic storytelling.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/05/16/audio_c39d8924b1.mp3?filename=epic-cinematic-112192.mp3'
+    url: '/uploads/soundtracks/epic-hero-quest.wav'
   },
   {
     id: 'ancient-mystery',
@@ -239,13 +248,27 @@ const SOUNDTRACK_CATALOG = [
     mood: 'Mysterious & Intriguing',
     instrumentation: 'Ethnic Percussion, Bamboo Flute, Drone',
     previewNote: 'Subtle suspense and discovery underscore for investigative audio dramas.',
-    url: 'https://cdn.pixabay.com/download/audio/2022/02/07/audio_65cf1f3fa1.mp3?filename=mysterious-ambient-10645.mp3'
+    url: '/uploads/soundtracks/ancient-mystery.wav'
   }
 ];
 
 class SoundtrackLibraryService {
   constructor() {
     this.catalog = SOUNDTRACK_CATALOG;
+    this.ensureAudioFilesExist();
+  }
+
+  // Ensure all 20 WAV files are generated and ready on disk
+  ensureAudioFilesExist() {
+    try {
+      const firstTrackPath = path.join(SOUNDTRACKS_DIR, 'lullaby-harp.wav');
+      if (!fs.existsSync(firstTrackPath)) {
+        console.log('[SoundtrackLibrary] Generating 20 soundtrack audio files...');
+        generateSoundtrackLibrary();
+      }
+    } catch (e) {
+      console.error('[SoundtrackLibrary] Error ensuring audio files:', e.message);
+    }
   }
 
   // Get all 20 tracks or filter by category

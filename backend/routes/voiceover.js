@@ -29,42 +29,6 @@ console.log(`[VoiceOver] 30 Native Israeli Hebrew Neural Voice Models: READY`);
 console.log(`[VoiceOver] 30-Persona Multilingual Voice Engine (All Languages): READY`);
 console.log(`[VoiceOver] Persistent Voice Clone Bucket Storage: ACTIVE`);
 
-// Curated Ambient Soundtracks for Bedtime & Children Stories
-const SOUNDTRACK_CATALOG = [
-  {
-    id: 'lullaby-harp',
-    title: 'Lullaby Harp & Celestial Strings',
-    category: 'Bedtime',
-    tempo: 'Slow & Gentle (60 BPM)',
-    previewNote: 'Soft soothing harp notes for restful bedtime sleep',
-    url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=soft-lullaby-piano-112199.mp3'
-  },
-  {
-    id: 'enchanted-forest',
-    title: 'Enchanted Forest Whispers',
-    category: 'Fantasy',
-    tempo: 'Atmospheric (72 BPM)',
-    previewNote: 'Gentle night breeze, twinkling chimes, and distant magical flutes',
-    url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8bbf73301.mp3?filename=magical-story-10339.mp3'
-  },
-  {
-    id: 'cosmic-wonder',
-    title: 'Starlight Music Box & Dreams',
-    category: 'Wonder',
-    tempo: 'Calm & Dreamy (64 BPM)',
-    previewNote: 'Delicate music box bells floating through starry skies',
-    url: 'https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f792cb.mp3?filename=lullaby-music-box-12345.mp3'
-  },
-  {
-    id: 'gentle-rain-piano',
-    title: 'Gentle Rain & Cozy Piano',
-    category: 'Relaxation',
-    tempo: 'Serene (55 BPM)',
-    previewNote: 'Warm piano chords accompanied by soft rainfall',
-    url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_b287518596.mp3?filename=peaceful-piano-10707.mp3'
-  }
-];
-
 // Multilingual language catalog with Hebrew positioned at the end
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
