@@ -20,21 +20,31 @@ function getElevenLabsService() {
   return new ElevenLabsService(apiKey.trim());
 }
 
-// Directories
-const VOICE_LIBRARY_DIR = path.join(__dirname, '../../voice-library');
-const UPLOADS_CLONED_DIR = path.join(__dirname, '../../uploads/cloned-voices');
+// Persistent Storage Bucket Directories
+const BUCKET_BASE_DIR = process.env.STORAGE_BUCKET_PATH || 
+                        process.env.BUCKET_PATH || 
+                        process.env.RAILWAY_VOLUME_MOUNT_PATH || 
+                        process.env.DATA_DIR || 
+                        path.join(__dirname, '../../');
 
-// Ensure directories exist
-if (!fs.existsSync(VOICE_LIBRARY_DIR)) {
-  fs.mkdirSync(VOICE_LIBRARY_DIR, { recursive: true });
-}
-if (!fs.existsSync(UPLOADS_CLONED_DIR)) {
-  fs.mkdirSync(UPLOADS_CLONED_DIR, { recursive: true });
-}
+const VOICE_LIBRARY_DIR = path.join(BUCKET_BASE_DIR, 'voice-library');
+const UPLOADS_CLONED_DIR = path.join(BUCKET_BASE_DIR, 'uploads/cloned-voices');
 
-// Multer storage configuration for audio samples
+// Ensure bucket directories exist
+function ensureBucketDirs() {
+  if (!fs.existsSync(VOICE_LIBRARY_DIR)) {
+    fs.mkdirSync(VOICE_LIBRARY_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(UPLOADS_CLONED_DIR)) {
+    fs.mkdirSync(UPLOADS_CLONED_DIR, { recursive: true });
+  }
+}
+ensureBucketDirs();
+
+// Multer storage configuration for audio sample uploads to bucket
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    ensureBucketDirs();
     cb(null, UPLOADS_CLONED_DIR);
   },
   filename: (req, file, cb) => {
@@ -44,16 +54,40 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 } // 25MB max
+  limits: { fileSize: 35 * 1024 * 1024 } // 35MB max
 });
 
-// GET all voice presets / custom family voices
+// GET bucket storage status
+router.get('/voice-library/bucket-status', (req, res) => {
+  try {
+    ensureBucketDirs();
+    const files = fs.readdirSync(VOICE_LIBRARY_DIR).filter(f => f.endsWith('.json'));
+    const samples = fs.existsSync(UPLOADS_CLONED_DIR) ? fs.readdirSync(UPLOADS_CLONED_DIR) : [];
+    
+    let totalSizeBytes = 0;
+    samples.forEach(s => {
+      try {
+        const stat = fs.statSync(path.join(UPLOADS_CLONED_DIR, s));
+        totalSizeBytes += stat.size;
+      } catch (e) {}
+    });
+
+    res.json({
+      status: 'active',
+      bucketLocation: VOICE_LIBRARY_DIR,
+      clonedVoicesCount: files.length,
+      sampleFilesCount: samples.length,
+      totalStorageSizeMB: (totalSizeBytes / (1024 * 1024)).toFixed(2)
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to inspect bucket: ' + err.message });
+  }
+});
+
+// GET all voice presets / custom family voices from bucket
 router.get('/voice-library', (req, res) => {
   try {
-    if (!fs.existsSync(VOICE_LIBRARY_DIR)) {
-      return res.json([]);
-    }
-
+    ensureBucketDirs();
     const files = fs.readdirSync(VOICE_LIBRARY_DIR);
     const presets = files
       .filter(file => file.endsWith('.json'))
@@ -67,22 +101,24 @@ router.get('/voice-library', (req, res) => {
           return null;
         }
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
     res.json(presets);
   } catch (error) {
-    console.error('Error getting voice library:', error);
+    console.error('Error getting voice library from bucket:', error);
     res.status(500).json({ error: 'Failed to get voice library' });
   }
 });
 
-// CLONE / CREATE a new family or custom voice
+// CLONE / CREATE a new family or custom voice and save in bucket
 router.post('/voice-library/clone', upload.single('sampleFile'), async (req, res) => {
   try {
+    ensureBucketDirs();
     const { name, description, gender, accent, style, relationship } = req.body;
 
-    if (!name) {
-      return res.status(400).json({ error: 'Voice name is required' });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Voice name is required (e.g. Mom, Dad, Grandma Sarah)' });
     }
 
     const presetId = `family-${Date.now()}`;
@@ -108,8 +144,8 @@ router.post('/voice-library/clone', upload.single('sampleFile'), async (req, res
         
         const labelsObj = {
           gender: gender || 'neutral',
-          accent: accent || 'American',
-          style: style || 'Family Member',
+          accent: accent || 'Israeli Hebrew / Cloned',
+          style: style || 'Family Member Storyteller',
           relationship: relationship || 'Family'
         };
         formData.append('labels', JSON.stringify(labelsObj));
@@ -130,33 +166,35 @@ router.post('/voice-library/clone', upload.single('sampleFile'), async (req, res
         if (elResponse.ok) {
           const elData = await elResponse.json();
           elevenLabsVoiceId = elData.voice_id;
-          console.log(`ElevenLabs voice created successfully with ID: ${elevenLabsVoiceId}`);
+          console.log(`[VoiceBucket] ElevenLabs voice cloned successfully: ID=${elevenLabsVoiceId}`);
         } else {
           const errText = await elResponse.text();
-          console.warn(`ElevenLabs API add voice warning (${elResponse.status}): ${errText}`);
+          console.warn(`[VoiceBucket] ElevenLabs API add voice response (${elResponse.status}): ${errText}`);
         }
       } catch (elErr) {
-        console.error('Error calling ElevenLabs voice clone API:', elErr);
+        console.error('[VoiceBucket] ElevenLabs voice clone attempt error:', elErr.message);
       }
     }
 
+    // Voice record saved in bucket
     const voiceRecord = {
       id: presetId,
       voiceId: elevenLabsVoiceId || presetId,
       name: name.trim(),
-      description: description || '',
+      description: description || `${name.trim()} (${relationship || 'Family Member'}) cloned voice model saved in bucket storage.`,
       category: 'family',
       isCloned: true,
       isFamily: true,
       gender: gender || 'neutral',
-      accent: accent || 'American',
-      style: style || 'Conversational',
+      accent: accent || 'Israeli Hebrew / Cloned',
+      style: style || 'Warm Storyteller',
       relationship: relationship || 'Family Member',
       previewUrl: sampleUrl,
       samplePath: samplePath,
+      bucketStorage: 'active',
       labels: {
         gender: gender || 'neutral',
-        accent: accent || 'American',
+        accent: accent || 'Israeli Hebrew / Cloned',
         descriptive: style || 'Family Member',
         relationship: relationship || 'Family'
       },
@@ -167,16 +205,18 @@ router.post('/voice-library/clone', upload.single('sampleFile'), async (req, res
     const filepath = path.join(VOICE_LIBRARY_DIR, `${presetId}.json`);
     fs.writeFileSync(filepath, JSON.stringify(voiceRecord, null, 2));
 
+    console.log(`[VoiceBucket] Cloned voice saved to bucket: "${voiceRecord.name}" (${filepath})`);
     res.json(voiceRecord);
   } catch (error) {
-    console.error('Error cloning custom voice:', error);
+    console.error('Error cloning custom voice to bucket:', error);
     res.status(500).json({ error: 'Failed to clone voice: ' + error.message });
   }
 });
 
-// CREATE a regular voice preset
+// CREATE a regular voice preset in bucket
 router.post('/voice-library', (req, res) => {
   try {
+    ensureBucketDirs();
     const { name, voiceId, voiceName, emotion, category, description, gender, accent, style, relationship } = req.body;
 
     if (!name) {
@@ -198,6 +238,7 @@ router.post('/voice-library', (req, res) => {
       accent: accent || 'American',
       style: style || 'Professional',
       relationship: relationship || 'Family',
+      bucketStorage: 'active',
       labels: {
         gender: gender || 'neutral',
         accent: accent || 'American',
@@ -212,38 +253,40 @@ router.post('/voice-library', (req, res) => {
 
     res.json(preset);
   } catch (error) {
-    console.error('Error creating voice preset:', error);
+    console.error('Error creating voice preset in bucket:', error);
     res.status(500).json({ error: 'Failed to create voice preset' });
   }
 });
 
-// GET a specific voice preset
+// GET a specific voice preset from bucket
 router.get('/voice-library/:presetId', (req, res) => {
   try {
+    ensureBucketDirs();
     const { presetId } = req.params;
     const filepath = path.join(VOICE_LIBRARY_DIR, `${presetId}.json`);
 
     if (!fs.existsSync(filepath)) {
-      return res.status(404).json({ error: 'Preset not found' });
+      return res.status(404).json({ error: 'Preset not found in bucket' });
     }
 
     const preset = JSON.parse(fs.readFileSync(filepath, 'utf8'));
     res.json(preset);
   } catch (error) {
-    console.error('Error getting voice preset:', error);
+    console.error('Error getting voice preset from bucket:', error);
     res.status(500).json({ error: 'Failed to get voice preset' });
   }
 });
 
-// UPDATE a voice preset
+// UPDATE a voice preset in bucket
 router.put('/voice-library/:presetId', (req, res) => {
   try {
+    ensureBucketDirs();
     const { presetId } = req.params;
     const { name, description, emotion } = req.body;
     const filepath = path.join(VOICE_LIBRARY_DIR, `${presetId}.json`);
 
     if (!fs.existsSync(filepath)) {
-      return res.status(404).json({ error: 'Preset not found' });
+      return res.status(404).json({ error: 'Preset not found in bucket' });
     }
 
     let preset = JSON.parse(fs.readFileSync(filepath, 'utf8'));
@@ -256,14 +299,15 @@ router.put('/voice-library/:presetId', (req, res) => {
     fs.writeFileSync(filepath, JSON.stringify(preset, null, 2));
     res.json(preset);
   } catch (error) {
-    console.error('Error updating voice preset:', error);
+    console.error('Error updating voice preset in bucket:', error);
     res.status(500).json({ error: 'Failed to update voice preset' });
   }
 });
 
-// DELETE a voice preset & clean up files & delete from ElevenLabs API
+// DELETE a voice preset from bucket & clean up audio sample & delete from ElevenLabs API
 router.delete('/voice-library/:presetId', async (req, res) => {
   try {
+    ensureBucketDirs();
     const { presetId } = req.params;
     
     // Check if preset ID maps to a file in VOICE_LIBRARY_DIR
@@ -282,13 +326,13 @@ router.delete('/voice-library/:presetId', async (req, res) => {
       }
     }
 
-    // Delete sample file if saved locally in bucket storage
+    // Delete sample audio file if saved in bucket storage
     if (voiceData && voiceData.samplePath && fs.existsSync(voiceData.samplePath)) {
       try {
         fs.unlinkSync(voiceData.samplePath);
-        console.log(`Deleted audio sample file: ${voiceData.samplePath}`);
+        console.log(`[VoiceBucket] Deleted audio sample file: ${voiceData.samplePath}`);
       } catch (err) {
-        console.error('Error deleting audio sample file:', err);
+        console.error('[VoiceBucket] Error deleting audio sample file:', err);
       }
     }
 
@@ -299,14 +343,15 @@ router.delete('/voice-library/:presetId', async (req, res) => {
       await elevenlabsService.deleteVoice(remoteVoiceId);
     }
 
-    // Unlink the preset json file
+    // Unlink the preset json file from bucket
     if (filepath && fs.existsSync(filepath)) {
       fs.unlinkSync(filepath);
     }
 
-    res.json({ message: 'Voice deleted successfully from app and storage', id: presetId });
+    console.log(`[VoiceBucket] Voice ${presetId} deleted from bucket storage.`);
+    res.json({ message: 'Voice deleted successfully from bucket and storage', id: presetId });
   } catch (error) {
-    console.error('Error deleting voice preset:', error);
+    console.error('Error deleting voice preset from bucket:', error);
     res.status(500).json({ error: 'Failed to delete voice preset: ' + error.message });
   }
 });
@@ -314,6 +359,7 @@ router.delete('/voice-library/:presetId', async (req, res) => {
 // INCREMENT usage count
 router.post('/voice-library/:presetId/use', (req, res) => {
   try {
+    ensureBucketDirs();
     const { presetId } = req.params;
     const filepath = path.join(VOICE_LIBRARY_DIR, `${presetId}.json`);
 

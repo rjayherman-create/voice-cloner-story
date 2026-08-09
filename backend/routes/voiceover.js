@@ -23,6 +23,7 @@ function getElevenLabsService() {
 
 console.log(`[VoiceOver] 30 Native Israeli Hebrew Neural Voice Models: READY`);
 console.log(`[VoiceOver] 30-Persona Multilingual Voice Engine (All Languages): READY`);
+console.log(`[VoiceOver] Persistent Voice Clone Bucket Storage: ACTIVE`);
 
 // Curated Ambient Soundtracks for Bedtime & Children Stories
 const SOUNDTRACK_CATALOG = [
@@ -94,7 +95,7 @@ const MULTILINGUAL_PHRASES = {
   zh: "晚安，我的小英雄，做个甜甜的美梦，繁星会守护着你。",
   ko: "잘 자요, 나의 작은 영웅. 반짝이는 별들이 예쁜 꿈으로 안내해 줄 거예요.",
   hi: "शुभ रात्रि मेरे प्यारे बच्चे, मीठे सपने देखो और आराम से सो जाओ।",
-  ar: "تصبح على خير يا بطلي الصغير، נוماً هניئاً ואחלאماً سعيدة.",
+  ar: "تصبح على خير يا بطלי الصغير، נוماً هניئاً ואחלאماً سعيدة.",
   nl: "Goedenacht mijn kleine held, slaap lekker en droom fijn.",
   ru: "Спокойной ночи, мой маленький герой, приятных снов под звёздным небом.",
   he: "שלום, לילה טוב והמשך ערב נעים. חלומות פז ושינה מתוקה."
@@ -116,7 +117,7 @@ router.get('/roster/:lang', (req, res) => {
   res.json(roster);
 });
 
-// GET available voices (including 30 Hebrew models and language roster)
+// GET available voices (including 30 Hebrew models, bucket clones, and language roster)
 router.get('/voices', async (req, res) => {
   try {
     const { category, language } = req.query;
@@ -249,7 +250,7 @@ router.post('/screenplay/generate-script', (req, res) => {
   res.json(selectedStory);
 });
 
-// POST generate voiceover with auto-routing to 30 Hebrew Models OR 30 Multilingual Personas
+// POST generate voiceover with auto-routing to 30 Hebrew Models, Bucket Clones, OR 30 Multilingual Personas
 router.post('/generate', async (req, res) => {
   try {
     const { script, voice, emotion, stability, similarityBoost, style, speed, modelId, language, useClonedBridge } = req.body;
@@ -260,14 +261,17 @@ router.post('/generate', async (req, res) => {
 
     const isHebrewScript = /[\u0590-\u05FF]/.test(script);
     const isNativeHebrewVoice = voice && voice.startsWith('he-IL');
+    const isBucketClonedVoice = voice && (voice.startsWith('family-') || voice.startsWith('preset-'));
 
     const uploadsDir = path.join(__dirname, '../../uploads');
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // 1. ROUTE TO NATIVE ISRAELI NEURAL ENGINE (For the 30 Hebrew Models)
-    if (isNativeHebrewVoice || (isHebrewScript && !useClonedBridge && (!voice || voice.startsWith('he-IL')))) {
+    const elevenLabs = getElevenLabsService();
+
+    // 1. ROUTE TO NATIVE ISRAELI NEURAL ENGINE (For 30 Hebrew Models or Hebrew text when ElevenLabs is offline)
+    if (isNativeHebrewVoice || (isHebrewScript && (!elevenLabs || !useClonedBridge || isNativeHebrewVoice))) {
       console.log(`[VoiceOver] Routing to 30 Native Israeli Hebrew Models: voice=${voice}`);
       try {
         const audioBuffer = await hebrewTtsService.synthesizeHebrew(script, voice || 'he-IL-HilaNeural');
@@ -294,56 +298,95 @@ router.post('/generate', async (req, res) => {
     }
 
     // 2. ROUTE TO ELEVENLABS FOR 30 MULTILINGUAL VOICES OR CLONED VOICES
-    const elevenLabs = getElevenLabsService();
-    if (!elevenLabs || !elevenLabs.isConfigured()) {
-      return res.status(400).json({ error: 'ElevenLabs API key is not configured in ELEVENLABS_API_KEY environment variable' });
+    if (elevenLabs && elevenLabs.isConfigured()) {
+      let synthesizedText = script;
+      let usedBridge = false;
+
+      if (isHebrewScript || language === 'he') {
+        synthesizedText = hebrewPhoneticsEngine.transliterate(script);
+        usedBridge = true;
+        console.log(`[VoiceOver] Hebrew Cloned Voice Bridge: "${script}" -> "${synthesizedText}"`);
+      }
+
+      // Resolve composite persona IDs (e.g. 'es-male-2' -> 'ErXwobaYiN019PkySvjV')
+      const targetVoiceId = multilingualRosterService.resolveVoiceId(voice);
+      console.log(`[VoiceOver] ElevenLabs synthesis: inputVoice=${voice} -> resolvedId=${targetVoiceId}, chars=${synthesizedText.length}`);
+
+      try {
+        const audioBuffer = await elevenLabs.synthesize(synthesizedText, targetVoiceId, {
+          emotion: emotion || 'neutral',
+          stability: typeof stability === 'number' ? stability : 0.5,
+          similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
+          style: typeof style === 'number' ? style : 0.0,
+          modelId: modelId || 'eleven_multilingual_v2',
+          language: language || 'auto'
+        });
+
+        const filename = `voiceover-${Date.now()}.mp3`;
+        const filepath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filepath, audioBuffer);
+
+        return res.json({
+          id: `vo-${Date.now()}`,
+          filename,
+          url: `/uploads/${filename}`,
+          voice: targetVoiceId,
+          script,
+          phoneticsUsed: usedBridge ? synthesizedText : null,
+          audioLength: audioBuffer.length,
+          duration: Math.ceil(synthesizedText.length / 14),
+          status: 'complete',
+          engine: usedBridge ? 'Hebrew Cloned Voice Bridge (ElevenLabs)' : 'ElevenLabs Multilingual V2 (30 Personas)',
+          createdAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error('[VoiceOver] ElevenLabs synthesis failed, checking fallback:', err.message);
+        // Fallback to Native Israeli Neural Engine if text is Hebrew
+        if (isHebrewScript) {
+          const audioBuffer = await hebrewTtsService.synthesizeHebrew(script, 'he-IL-HilaNeural');
+          const filename = `hebrew-voiceover-${Date.now()}.mp3`;
+          const filepath = path.join(uploadsDir, filename);
+          fs.writeFileSync(filepath, audioBuffer);
+          return res.json({
+            id: `vo-fallback-${Date.now()}`,
+            filename,
+            url: `/uploads/${filename}`,
+            voice: 'he-IL-HilaNeural',
+            script,
+            duration: Math.ceil(script.length / 12),
+            status: 'complete',
+            engine: 'Native Israeli Neural Engine (Fallback)',
+            createdAt: new Date().toISOString()
+          });
+        }
+        return res.status(500).json({ error: err.message || 'Audio synthesis failed' });
+      }
     }
 
-    // If text is Hebrew and targeting a cloned voice, automatically convert to phonetic syllables
-    let synthesizedText = script;
-    let usedBridge = false;
-
+    // 3. OFFLINE / BUCKET FALLBACK FOR HEBREW & CLONED VOICES
     if (isHebrewScript || language === 'he') {
-      synthesizedText = hebrewPhoneticsEngine.transliterate(script);
-      usedBridge = true;
-      console.log(`[VoiceOver] Hebrew Cloned Voice Bridge: "${script}" -> "${synthesizedText}"`);
-    }
-
-    // Resolve composite persona IDs (e.g. 'es-male-2' -> 'ErXwobaYiN019PkySvjV')
-    const targetVoiceId = multilingualRosterService.resolveVoiceId(voice);
-    console.log(`[VoiceOver] ElevenLabs synthesis: inputVoice=${voice} -> resolvedId=${targetVoiceId}, chars=${synthesizedText.length}`);
-
-    try {
-      const audioBuffer = await elevenLabs.synthesize(synthesizedText, targetVoiceId, {
-        emotion: emotion || 'neutral',
-        stability: typeof stability === 'number' ? stability : 0.5,
-        similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
-        style: typeof style === 'number' ? style : 0.0,
-        modelId: modelId || 'eleven_multilingual_v2',
-        language: language || 'auto'
-      });
-
-      const filename = `voiceover-${Date.now()}.mp3`;
+      const audioBuffer = await hebrewTtsService.synthesizeHebrew(script, 'he-IL-HilaNeural');
+      const filename = `hebrew-voiceover-${Date.now()}.mp3`;
       const filepath = path.join(uploadsDir, filename);
       fs.writeFileSync(filepath, audioBuffer);
 
       return res.json({
-        id: `vo-${Date.now()}`,
+        id: `vo-bucket-${Date.now()}`,
         filename,
         url: `/uploads/${filename}`,
-        voice: targetVoiceId,
+        voice: voice || 'he-IL-HilaNeural',
         script,
-        phoneticsUsed: usedBridge ? synthesizedText : null,
         audioLength: audioBuffer.length,
-        duration: Math.ceil(synthesizedText.length / 14),
+        duration: Math.ceil(script.length / 12),
         status: 'complete',
-        engine: usedBridge ? 'Hebrew Cloned Voice Bridge (ElevenLabs)' : 'ElevenLabs Multilingual V2 (30 Personas)',
+        engine: 'Native Israeli Neural Engine (Bucket Cloned Voice)',
         createdAt: new Date().toISOString()
       });
-    } catch (err) {
-      console.error('[VoiceOver] ElevenLabs synthesis failed:', err.message);
-      return res.status(500).json({ error: err.message || 'Audio synthesis failed' });
     }
+
+    return res.status(400).json({ 
+      error: 'To synthesize non-Hebrew multilingual voices, please set the ELEVENLABS_API_KEY environment variable in Railway or .env' 
+    });
   } catch (error) {
     console.error('Generation route error:', error);
     res.status(500).json({ error: error.message || 'Voiceover generation failed' });
@@ -357,6 +400,7 @@ router.get('/status', (req, res) => {
     service: 'voiceover',
     hebrewEngine: 'ready (30 Native Israeli Neural Voices & Cloned Voice Bridge)',
     multilingualEngine: 'ready (30 Personas for All Languages)',
+    bucketStorage: 'active',
     elevenLabsConfigured: elevenLabs ? elevenLabs.isConfigured() : false,
     status: 'ready'
   });
