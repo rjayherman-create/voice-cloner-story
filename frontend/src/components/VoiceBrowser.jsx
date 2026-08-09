@@ -12,7 +12,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [familyVoices, setFamilyVoices] = useState([]);
   const [elevenLabsVoices, setElevenLabsVoices] = useState([]);
   const [currentRosterVoices, setCurrentRosterVoices] = useState([]);
-  const [selectedVoiceId, setSelectedVoiceId] = useState('he-IL-HilaNeural');
+  const [selectedVoiceId, setSelectedVoiceId] = useState('en-fem-1');
   const [loading, setLoading] = useState(true);
 
   // Collapsible toggle for Dynamic 30-Voice Library (at bottom)
@@ -156,13 +156,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
   // 4. Screenplay Workshop (Multi-Character Story Generator) states
   const [storyTheme, setStoryTheme] = useState('bedtime');
-  const [childName, setChildName] = useState('דניאל');
+  const [childName, setChildName] = useState('Leo');
   const [screenplayCharacters, setScreenplayCharacters] = useState({
-    Narrator: 'he-IL-AvriNeural',
-    Mother: 'he-IL-HilaNeural',
-    Father: 'he-IL-YonatanNeural',
-    Child: 'he-IL-DanielChild',
-    'Wise Elder': 'he-IL-DoronNeural'
+    Narrator: 'en-male-1',
+    Mother: 'en-fem-1',
+    Father: 'en-male-2',
+    Child: 'en-girl-1',
+    'Wise Elder': 'en-male-6'
   });
   const [screenplayScript, setScreenplayScript] = useState(null);
   const [generatingScript, setGeneratingScript] = useState(false);
@@ -269,11 +269,16 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const elList = Array.isArray(elData) ? elData.filter(v => v.category !== 'hebrew' && !v.id.startsWith('he-IL')) : [];
 
       setFamilyVoices(famList);
-      if (heList.length > 0) setCurrentRosterVoices(heList);
       setElevenLabsVoices(elList);
 
-      const defaultId = elList[0]?.id || famList[0]?.id || heList[0]?.id || 'en-fem-1';
-      setSelectedVoiceId(defaultId);
+      // Only set roster to heList if language is Hebrew; otherwise load English roster
+      if (selectedLanguage === 'he' && heList.length > 0) {
+        setCurrentRosterVoices(heList);
+        setSelectedVoiceId('he-IL-HilaNeural');
+      } else {
+        loadRosterForLanguage(selectedLanguage || 'en');
+        setSelectedVoiceId('en-fem-1');
+      }
     } catch (err) {
       console.error('Error loading voice data:', err);
     } finally {
