@@ -15,7 +15,7 @@ class TranslationService {
     
     // Map standard language codes if needed (e.g. iw -> he, zh-cn -> zh)
     const langMap = {
-      'he': 'iw', // Google Translate uses 'iw' for Hebrew
+      'he': 'iw',
       'iw': 'iw',
       'en': 'en',
       'es': 'es',
@@ -29,7 +29,23 @@ class TranslationService {
       'hi': 'hi',
       'ar': 'ar',
       'nl': 'nl',
-      'ru': 'ru'
+      'ru': 'ru',
+      'pl': 'pl',
+      'tr': 'tr',
+      'sv': 'sv',
+      'id': 'id',
+      'vi': 'vi',
+      'tl': 'tl',
+      'uk': 'uk',
+      'el': 'el',
+      'cs': 'cs',
+      'fi': 'fi',
+      'ro': 'ro',
+      'da': 'da',
+      'no': 'no',
+      'hu': 'hu',
+      'th': 'th',
+      'ms': 'ms'
     };
 
     const target = langMap[cleanTarget] || cleanTarget;

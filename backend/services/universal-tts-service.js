@@ -18,7 +18,23 @@ class UniversalTtsService {
       'hi': 'hi',
       'ar': 'ar',
       'nl': 'nl',
-      'ru': 'ru'
+      'ru': 'ru',
+      'pl': 'pl',
+      'tr': 'tr',
+      'sv': 'sv',
+      'id': 'id',
+      'vi': 'vi',
+      'tl': 'tl',
+      'uk': 'uk',
+      'el': 'el',
+      'cs': 'cs',
+      'fi': 'fi',
+      'ro': 'ro',
+      'da': 'da',
+      'no': 'no',
+      'hu': 'hu',
+      'th': 'th',
+      'ms': 'ms'
     };
   }
 

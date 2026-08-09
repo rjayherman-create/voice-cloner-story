@@ -61,10 +61,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [engineMode, setEngineMode] = useState('free');
   const recognitionRef = useRef(null);
 
-  // 🌐 Multilingual states (Hebrew positioned LAST on the list)
+  // 🌐 Full 30+ Global World Languages (Hebrew positioned LAST on the list)
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [supportedLanguages, setSupportedLanguages] = useState([
-    { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
+    { code: 'en', name: 'English (US / UK / AU)', flag: '🇺🇸' },
     { code: 'es', name: 'Spanish (Español)', flag: '🇪🇸' },
     { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },
     { code: 'de', name: 'German (Deutsch)', flag: '🇩🇪' },
@@ -75,8 +75,24 @@ export default function VoiceBrowser({ onSelectVoice }) {
     { code: 'ko', name: 'Korean (한국어)', flag: '🇰🇷' },
     { code: 'hi', name: 'Hindi (हिन्दी)', flag: '🇮🇳' },
     { code: 'ar', name: 'Arabic (العربية)', flag: '🇸🇦' },
-    { code: 'nl', name: 'Dutch (Nederlands)', flag: '🇳🇱' },
     { code: 'ru', name: 'Russian (Русский)', flag: '🇷🇺' },
+    { code: 'nl', name: 'Dutch (Nederlands)', flag: '🇳🇱' },
+    { code: 'pl', name: 'Polish (Polski)', flag: '🇵🇱' },
+    { code: 'tr', name: 'Turkish (Türkçe)', flag: '🇹🇷' },
+    { code: 'sv', name: 'Swedish (Svenska)', flag: '🇸🇪' },
+    { code: 'id', name: 'Indonesian (Bahasa Indonesia)', flag: '🇮🇩' },
+    { code: 'vi', name: 'Vietnamese (Tiếng Việt)', flag: '🇻🇳' },
+    { code: 'tl', name: 'Filipino (Tagalog)', flag: '🇵🇭' },
+    { code: 'uk', name: 'Ukrainian (Українська)', flag: '🇺🇦' },
+    { code: 'el', name: 'Greek (Ελληνικά)', flag: '🇬🇷' },
+    { code: 'cs', name: 'Czech (Čeština)', flag: '🇨🇿' },
+    { code: 'fi', name: 'Finnish (Suomi)', flag: '🇫🇮' },
+    { code: 'ro', name: 'Romanian (Română)', flag: '🇷🇴' },
+    { code: 'da', name: 'Danish (Dansk)', flag: '🇩🇰' },
+    { code: 'no', name: 'Norwegian (Norsk)', flag: '🇳🇴' },
+    { code: 'hu', name: 'Hungarian (Magyar)', flag: '🇭🇺' },
+    { code: 'th', name: 'Thai (ไทย)', flag: '🇹🇭' },
+    { code: 'ms', name: 'Malay (Bahasa Melayu)', flag: '🇲🇾' },
     { code: 'he', name: 'Hebrew (עברית ישראלית)', flag: '🇮🇱' }
   ]);
   const [multilingualPhrases, setMultilingualPhrases] = useState({
@@ -1705,45 +1721,85 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              {/* 🌐 2. BIDIRECTIONAL TRANSLATION STRIP (ENGLISH <-> HEBREW / ANY LANGUAGE) */}
+              {/* 🌐 2. UNIVERSAL BIDIRECTIONAL TRANSLATION STRIP (ALL 30+ WORLD LANGUAGES) */}
               <div className="bidirectional-translation-card" style={{ marginBottom: '14px' }}>
                 <div className="translation-strip-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px' }}>🌐</span>
-                    <strong style={{ fontSize: '12px', color: '#60a5fa' }}>Bidirectional Translation:</strong>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Translate between English & Hebrew or any language vice versa</span>
+                    <strong style={{ fontSize: '12px', color: '#60a5fa' }}>Universal Neural Translation (30+ World Languages):</strong>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Translate between ANY language pair instantly ($0.00 Free)</span>
                   </div>
 
-                  {/* 1-Click Common Translation Buttons */}
+                  {/* 1-Click Common Translation Quick Pills */}
                   <div className="quick-translate-actions">
                     <button 
                       className="quick-trans-btn"
-                      onClick={() => handleBidirectionalTranslate('he', 'en')}
+                      onClick={() => handleBidirectionalTranslate('es', 'auto')}
                       disabled={translating || !ttsText.trim()}
-                      title="Translate English script into Hebrew"
+                      title="Translate script into Spanish"
                     >
-                      🇺🇸 English ➔ 🇮🇱 Hebrew (עברית)
+                      🇪🇸 Spanish
                     </button>
                     <button 
                       className="quick-trans-btn"
-                      onClick={() => handleBidirectionalTranslate('en', 'he')}
+                      onClick={() => handleBidirectionalTranslate('fr', 'auto')}
                       disabled={translating || !ttsText.trim()}
-                      title="Translate Hebrew script into English"
+                      title="Translate script into French"
                     >
-                      🇮🇱 Hebrew ➔ 🇺🇸 English
+                      🇫🇷 French
                     </button>
                     <button 
-                      className="quick-trans-btn swap-action-btn"
-                      onClick={handleSwapTranslate}
+                      className="quick-trans-btn"
+                      onClick={() => handleBidirectionalTranslate('de', 'auto')}
                       disabled={translating || !ttsText.trim()}
-                      title="Swap between current language and English / vice versa"
+                      title="Translate script into German"
                     >
-                      ⇄ {selectedLanguage === 'en' ? 'Swap to 🇮🇱 Hebrew' : 'Swap to 🇺🇸 English'}
+                      🇩🇪 German
+                    </button>
+                    <button 
+                      className="quick-trans-btn"
+                      onClick={() => handleBidirectionalTranslate('ja', 'auto')}
+                      disabled={translating || !ttsText.trim()}
+                      title="Translate script into Japanese"
+                    >
+                      🇯🇵 Japanese
+                    </button>
+                    <button 
+                      className="quick-trans-btn"
+                      onClick={() => handleBidirectionalTranslate('zh', 'auto')}
+                      disabled={translating || !ttsText.trim()}
+                      title="Translate script into Chinese"
+                    >
+                      🇨🇳 Chinese
+                    </button>
+                    <button 
+                      className="quick-trans-btn"
+                      onClick={() => handleBidirectionalTranslate('ar', 'auto')}
+                      disabled={translating || !ttsText.trim()}
+                      title="Translate script into Arabic"
+                    >
+                      🇸🇦 Arabic
+                    </button>
+                    <button 
+                      className="quick-trans-btn"
+                      onClick={() => handleBidirectionalTranslate('he', 'auto')}
+                      disabled={translating || !ttsText.trim()}
+                      title="Translate script into Hebrew"
+                    >
+                      🇮🇱 Hebrew
+                    </button>
+                    <button 
+                      className="quick-trans-btn"
+                      onClick={() => handleBidirectionalTranslate('en', 'auto')}
+                      disabled={translating || !ttsText.trim()}
+                      title="Translate script into English"
+                    >
+                      🇺🇸 English
                     </button>
                   </div>
                 </div>
 
-                {/* Custom Language Pair Selector */}
+                {/* Full 30-Language Pair Selector & Live Swap */}
                 <div className="custom-lang-pair-row" style={{ marginTop: '8px' }}>
                   <div className="pair-select-group">
                     <span className="pair-label">From:</span>
@@ -1765,11 +1821,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
                       const prevSource = sourceTranslateLang === 'auto' ? 'en' : sourceTranslateLang;
                       const prevTarget = selectedLanguage;
                       setSourceTranslateLang(prevTarget);
+                      setSelectedLanguage(prevSource);
                       handleBidirectionalTranslate(prevSource, prevTarget);
                     }}
                     title="Swap From and To languages and translate"
                   >
-                    ⇄
+                    ⇄ Swap
                   </button>
 
                   <div className="pair-select-group">
