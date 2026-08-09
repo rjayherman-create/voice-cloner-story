@@ -1,7 +1,7 @@
 {
-  "name": "voice-over-system",
+  "name": "fablevoice-audio-studio",
   "version": "1.0.0",
-  "description": "Professional Voice Over System for Cartoons & Commercials",
+  "description": "FableVoice - AI Voice Cloning, Bedtime Stories & Multilingual Studio",
   "type": "module",
   "scripts": {
     "start": "node backend/server.js",
