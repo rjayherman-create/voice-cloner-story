@@ -54,6 +54,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuccessMsg, setAiSuccessMsg] = useState('');
   const [translating, setTranslating] = useState(false);
+  const [sourceTranslateLang, setSourceTranslateLang] = useState('auto');
 
   // 🌐 Multilingual states (Hebrew positioned LAST on the list)
   const [selectedLanguage, setSelectedLanguage] = useState('en');
@@ -446,30 +447,52 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 🌐 Neural Auto-Translation for Script Content
-  const translateScriptText = async (textToTranslate, targetLang) => {
-    if (!textToTranslate || !textToTranslate.trim()) return;
+  // 🌐 Neural Bidirectional Translation for Script Content
+  const handleBidirectionalTranslate = async (targetLang, sourceLang = 'auto') => {
+    if (!ttsText || !ttsText.trim()) return;
     setTranslating(true);
     const targetLangObj = supportedLanguages.find(l => l.code === targetLang) || { name: targetLang };
-    setAiSuccessMsg(`🌐 Auto-translating script to ${targetLangObj.name}...`);
+    const sourceLangObj = supportedLanguages.find(l => l.code === sourceLang) || { name: 'Auto' };
+    setAiSuccessMsg(`🌐 Translating (${sourceLangObj.name} ➔ ${targetLangObj.name})...`);
     try {
       const res = await fetch('/api/voiceover/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: textToTranslate,
-          targetLanguage: targetLang
+          text: ttsText,
+          targetLanguage: targetLang,
+          sourceLanguage: sourceLang
         })
       });
       const data = await res.json();
       if (data && data.translatedText) {
         setTtsText(data.translatedText);
-        setAiSuccessMsg(`✅ Translated to ${targetLangObj.name}!`);
+        setSelectedLanguage(targetLang);
+        setAiSuccessMsg(`✅ Translated (${sourceLangObj.name} ➔ ${targetLangObj.name})!`);
       }
     } catch (err) {
       console.error('Translation error:', err);
+      alert('Translation error: ' + err.message);
     } finally {
       setTranslating(false);
+    }
+  };
+
+  // ⇄ Swap Languages & Translate (English <-> Hebrew / Spanish / etc.)
+  const handleSwapTranslate = async () => {
+    if (!ttsText || !ttsText.trim()) return;
+    const isCurrentlyHebrew = selectedLanguage === 'he' || /[\u0590-\u05FF]/.test(ttsText);
+    const isCurrentlyEnglish = selectedLanguage === 'en';
+
+    if (isCurrentlyEnglish) {
+      // English -> Hebrew
+      await handleBidirectionalTranslate('he', 'en');
+    } else if (isCurrentlyHebrew) {
+      // Hebrew -> English
+      await handleBidirectionalTranslate('en', 'he');
+    } else {
+      // Other language -> English
+      await handleBidirectionalTranslate('en', selectedLanguage);
     }
   };
 
@@ -478,7 +501,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
     // If user has written or generated text, automatically translate it to the newly selected language!
     if (ttsText && ttsText.trim()) {
-      await translateScriptText(ttsText, langCode);
+      await handleBidirectionalTranslate(langCode, 'auto');
     } else {
       const preset = WORKFLOW_PRESETS[activeWorkflow];
       if (preset && preset.phrases[langCode]) {
@@ -1426,14 +1449,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 {/* Smart Polishing & Editing Tools */}
                 <div className="ai-edit-tools-row" style={{ marginTop: '10px' }}>
                   <span className="ai-mini-label">⚡ Tools:</span>
-                  <button 
-                    className="ai-tool-btn translate-btn" 
-                    onClick={() => translateScriptText(ttsText, selectedLanguage)} 
-                    disabled={translating || !ttsText.trim()}
-                    title={`Automatically translate current script to ${selectedLangObj.name}`}
-                  >
-                    {translating ? '⏳ Translating...' : `🌐 Translate to ${selectedLangObj.name.split(' ')[0]}`}
-                  </button>
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('polish')} disabled={aiLoading}>
                     ✨ Polish & Flow
                   </button>
@@ -1450,6 +1465,96 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   )}
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('pauses')} disabled={aiLoading}>
                     ⚡ Add Natural Pauses
+                  </button>
+                </div>
+              </div>
+
+              {/* 🌐 2.5 BIDIRECTIONAL TRANSLATION STRIP (ENGLISH <-> HEBREW / ANY LANGUAGE) */}
+              <div className="bidirectional-translation-card" style={{ marginBottom: '14px' }}>
+                <div className="translation-strip-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '16px' }}>🌐</span>
+                    <strong style={{ fontSize: '12px', color: '#60a5fa' }}>Bidirectional Translation:</strong>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Translate between English & Hebrew or any language vice versa</span>
+                  </div>
+
+                  {/* 1-Click Common Translation Buttons */}
+                  <div className="quick-translate-actions">
+                    <button 
+                      className="quick-trans-btn"
+                      onClick={() => handleBidirectionalTranslate('he', 'en')}
+                      disabled={translating || !ttsText.trim()}
+                      title="Translate English script into Hebrew"
+                    >
+                      🇺🇸 English ➔ 🇮🇱 Hebrew (עברית)
+                    </button>
+                    <button 
+                      className="quick-trans-btn"
+                      onClick={() => handleBidirectionalTranslate('en', 'he')}
+                      disabled={translating || !ttsText.trim()}
+                      title="Translate Hebrew script into English"
+                    >
+                      🇮🇱 Hebrew ➔ 🇺🇸 English
+                    </button>
+                    <button 
+                      className="quick-trans-btn swap-action-btn"
+                      onClick={handleSwapTranslate}
+                      disabled={translating || !ttsText.trim()}
+                      title="Swap between current language and English / vice versa"
+                    >
+                      ⇄ {selectedLanguage === 'en' ? 'Swap to 🇮🇱 Hebrew' : 'Swap to 🇺🇸 English'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Language Pair Selector */}
+                <div className="custom-lang-pair-row" style={{ marginTop: '8px' }}>
+                  <div className="pair-select-group">
+                    <span className="pair-label">From:</span>
+                    <select 
+                      className="dark-input-field mini-lang-dropdown"
+                      value={sourceTranslateLang}
+                      onChange={(e) => setSourceTranslateLang(e.target.value)}
+                    >
+                      <option value="auto">✨ Auto-Detect</option>
+                      {supportedLanguages.map(l => (
+                        <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button 
+                    className="pair-swap-icon-btn"
+                    onClick={() => {
+                      const prevSource = sourceTranslateLang === 'auto' ? 'en' : sourceTranslateLang;
+                      const prevTarget = selectedLanguage;
+                      setSourceTranslateLang(prevTarget);
+                      handleBidirectionalTranslate(prevSource, prevTarget);
+                    }}
+                    title="Swap From and To languages and translate"
+                  >
+                    ⇄
+                  </button>
+
+                  <div className="pair-select-group">
+                    <span className="pair-label">To:</span>
+                    <select 
+                      className="dark-input-field mini-lang-dropdown"
+                      value={selectedLanguage}
+                      onChange={(e) => handleBidirectionalTranslate(e.target.value, sourceTranslateLang)}
+                    >
+                      {supportedLanguages.map(l => (
+                        <option key={l.code} value={l.code}>{l.flag} {l.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button 
+                    className="btn-do-translate"
+                    onClick={() => handleBidirectionalTranslate(selectedLanguage, sourceTranslateLang)}
+                    disabled={translating || !ttsText.trim()}
+                  >
+                    {translating ? '⏳ Translating...' : `⚡ Translate Text`}
                   </button>
                 </div>
               </div>

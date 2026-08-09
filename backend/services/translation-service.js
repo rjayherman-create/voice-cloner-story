@@ -33,6 +33,8 @@ class TranslationService {
     };
 
     const target = langMap[cleanTarget] || cleanTarget;
+    const cleanSource = (sourceLang || 'auto').toLowerCase().split('-')[0];
+    const source = cleanSource === 'auto' ? 'auto' : (langMap[cleanSource] || cleanSource);
 
     try {
       // Chunk into manageable blocks if text is very long
@@ -40,7 +42,7 @@ class TranslationService {
       const translatedChunks = [];
 
       for (const chunk of chunks) {
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${target}&dt=t&q=${encodeURIComponent(chunk)}`;
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(chunk)}`;
         
         const response = await fetch(url, {
           headers: {

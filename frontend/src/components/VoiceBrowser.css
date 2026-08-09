@@ -846,18 +846,6 @@
   color: #f59e0b;
 }
 
-.ai-tool-btn.translate-btn {
-  background: #1e3a8a;
-  border-color: #3b82f6;
-  color: #60a5fa;
-  font-weight: 700;
-}
-
-.ai-tool-btn.translate-btn:hover {
-  background: #2563eb;
-  color: #ffffff;
-}
-
 .ai-tool-btn.fit-btn {
   background: #1e3a8a;
   border-color: #3b82f6;
@@ -870,6 +858,130 @@
   color: #ffffff;
 }
 
+/* ========================================================================== */
+/* 🌐 BIDIRECTIONAL TRANSLATION STRIP                                         */
+/* ========================================================================== */
+.bidirectional-translation-card {
+  background: #080d1a;
+  border: 1px solid #1d4ed8;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.translation-strip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-translate-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quick-trans-btn {
+  background: #1e293b;
+  border: 1px solid #3b82f6;
+  color: #93c5fd;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-trans-btn:hover:not(:disabled) {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.quick-trans-btn.swap-action-btn {
+  background: #3b0764;
+  border-color: #a855f7;
+  color: #e9d5ff;
+}
+
+.quick-trans-btn.swap-action-btn:hover:not(:disabled) {
+  background: #7e22ce;
+  color: #ffffff;
+}
+
+.quick-trans-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.custom-lang-pair-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pair-select-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pair-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.mini-lang-dropdown {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+  background: #0f172a;
+}
+
+.pair-swap-icon-btn {
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #f59e0b;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pair-swap-icon-btn:hover {
+  background: #f59e0b;
+  color: #000000;
+}
+
+.btn-do-translate {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-do-translate:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.btn-do-translate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========================================================================== */
+/* REAL-TIME DURATION BADGES                                                  */
+/* ========================================================================== */
 .live-meter-badge {
   padding: 3px 8px;
   border-radius: 6px;
