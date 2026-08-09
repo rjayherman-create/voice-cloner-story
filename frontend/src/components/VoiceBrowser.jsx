@@ -45,8 +45,8 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [voiceSimilarity, setVoiceSimilarity] = useState(0.75);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
 
-  // 🌐 Multilingual states (Hebrew positioned last)
-  const [selectedLanguage, setSelectedLanguage] = useState('he');
+  // 🌐 Multilingual states (Hebrew positioned LAST on the list)
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [supportedLanguages, setSupportedLanguages] = useState([
     { code: 'en', name: 'English (US / UK)', flag: '🇺🇸' },
     { code: 'es', name: 'Spanish (Español)', flag: '🇪🇸' },
@@ -985,11 +985,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   </select>
                 </div>
 
-                {/* Quick Bedtime Phrases with Hebrew */}
+                {/* Quick Bedtime Phrases with Hebrew Last */}
                 <div className="quick-phrases-bar">
                   <span className="quick-label">⚡ Quick Language Switch:</span>
                   <div className="quick-pill-buttons">
-                    {['he', 'en', 'es', 'fr', 'de', 'ja', 'it', 'pt', 'ar'].map(code => {
+                    {['en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'zh', 'ar', 'ru', 'he'].map(code => {
                       const lObj = supportedLanguages.find(l => l.code === code);
                       if (!lObj) return null;
                       return (
