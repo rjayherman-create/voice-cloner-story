@@ -250,14 +250,15 @@ router.post('/screenplay/generate-script', (req, res) => {
   res.json(selectedStory);
 });
 
-// POST AI Script Assistant (Ideas, Podcast Hooks, News Items, Commercials, Polishing & Editing)
+// POST AI Script Assistant (Ideas, Podcast Hooks, News Items, Commercials, Length Calibration & Smart Editing)
 router.post('/ai-script-assistant', async (req, res) => {
   try {
-    const { action, format, currentText, topic, tone, language } = req.body;
+    const { action, format, currentText, topic, tone, targetLength, language } = req.body;
     const lang = language || 'en';
     const isHe = lang === 'he' || /[\u0590-\u05FF]/.test(topic || currentText || '');
+    const len = targetLength || '30s';
 
-    // 1. EDITING / POLISHING ACTIONS
+    // 1. EDITING / POLISHING / LENGTH FIT ACTIONS
     if (action === 'edit') {
       const text = currentText || '';
       if (!text.trim()) {
@@ -281,9 +282,12 @@ router.post('/ai-script-assistant', async (req, res) => {
         } else {
           resultText = `Breaking News Bulletin: ${text.replace(/\.\s*/g, '. ')} Reporting live from the studio, stay tuned for further updates.`;
         }
-      } else if (tone === 'shorten') {
+      } else if (tone === 'shorten' || tone === 'fit_15s') {
         const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-        resultText = sentences.slice(0, Math.max(1, Math.ceil(sentences.length / 2))).join('. ').trim() + '.';
+        resultText = sentences.slice(0, Math.max(1, Math.min(2, sentences.length))).join('. ').trim() + '.';
+      } else if (tone === 'fit_30s') {
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        resultText = sentences.slice(0, Math.max(2, Math.min(4, sentences.length))).join('. ').trim() + '.';
       } else if (tone === 'pauses') {
         resultText = text
           .replace(/,/g, ', ...')
@@ -305,31 +309,79 @@ router.post('/ai-script-assistant', async (req, res) => {
         success: true,
         action: 'edit',
         tone: tone || 'polish',
+        targetLength: len,
         text: resultText
       });
     }
 
-    // 2. CREATIVE GENERATION (Podcasts, News, Commercials, Narrations, Custom Ideas)
-    const customTopic = topic && topic.trim() ? topic.trim() : 'the future of artificial intelligence';
+    // 2. CREATIVE GENERATION CALIBRATED BY TARGET LENGTH
+    const customTopic = topic && topic.trim() ? topic.trim() : (isHe ? 'עתיד הבינה המלאכותית והטכנולוגיה' : 'the future of artificial intelligence');
 
-    const GENERATED_TEMPLATES = {
+    const GENERATED_TEMPLATES_BY_LENGTH = {
       en: {
-        podcast: `Welcome back to The Daily Frequency! Today we're diving into an incredible topic: ${customTopic}. Grab your coffee, settle in, and let's explore what this means for the world ahead.`,
-        news: `Top Story of the Hour: New developments emerge regarding ${customTopic}. Industry leaders and analysts report significant progress, marking a pivotal moment in today's broadcast. Reporting live, more details at the top of the hour.`,
-        commercial: `Are you ready for the next big breakthrough? Discover the power of ${customTopic}. Designed for creators, thinkers, and innovators who demand the absolute best. Try it today and experience the difference.`,
-        narration: `In a world shaped by rapid change and quiet wonders, ${customTopic} emerged as a guiding light. As dawn broke across the horizon, a new chapter of discovery had officially begun.`,
-        interview: `Joining us today in the studio is our special guest to talk about ${customTopic}. Thanks for being here—tell us, what was the initial spark behind this whole project?`
+        '15s': {
+          podcast: `Welcome back to The Daily Frequency! Today we're breaking down ${customTopic} in 60 seconds. Let's get right into it!`,
+          news: `Breaking News: Major developments announced today regarding ${customTopic}. Analysts report significant market impact. Stay tuned for details.`,
+          commercial: `Discover the breakthrough power of ${customTopic}. Built for high performance and unmatched quality. Try it today!`,
+          narration: `In a world of constant motion, ${customTopic} sparked a quiet revolution that would change everything.`,
+          interview: `Today in the studio, our guest breaks down ${customTopic}. Welcome to the show!`
+        },
+        '30s': {
+          podcast: `Welcome back to The Daily Frequency! Today we're exploring an incredible breakthrough: ${customTopic}. Whether you're listening on your morning commute or relaxing at home, this is one story you don't want to miss. Let's dive in!`,
+          news: `Top Story of the Hour: New developments emerge regarding ${customTopic}. Industry leaders and analysts report significant progress, marking a pivotal moment in today's broadcast. Reporting live, more updates at the top of the hour.`,
+          commercial: `Are you ready for the next big breakthrough? Discover the power of ${customTopic}. Designed for creators, thinkers, and innovators who demand the absolute best. Try it today and experience the difference for yourself!`,
+          narration: `In a world shaped by rapid change and quiet wonders, ${customTopic} emerged as a guiding light. As dawn broke across the horizon, a new chapter of discovery and inspiration had officially begun.`,
+          interview: `Joining us today in the studio is our special guest to talk about ${customTopic}. Thanks for being here—tell us, what was the initial spark that brought this whole project to life?`
+        },
+        '60s': {
+          podcast: `Welcome back to The Daily Frequency! Today we have an extraordinary episode lined up as we examine ${customTopic}. Over the past few weeks, we've seen immense curiosity and debate around what this means for creators, innovators, and our daily lives.\n\nWe're going to unpack the key takeaways, separate the hype from reality, and look at where things are heading next. Settle in with your favorite coffee and let's jump right into the story!`,
+          news: `Good morning, this is your special news briefing. Our lead story today centers on groundbreaking updates surrounding ${customTopic}.\n\nAccording to officials and industry observers, recent milestones represent a major leap forward, bringing both new opportunities and important strategic discussions to the forefront. Regulatory bodies and international partners are closely monitoring the rollout. We will bring you live expert commentary and on-the-ground reactions as this story continues to unfold throughout the day.`,
+          commercial: `Every once in a while, a tool comes along that completely transforms the way you work and create. Meet the next generation of ${customTopic}.\n\nBuilt from the ground up with studio-grade precision, lightning-fast performance, and an intuitive design that puts you in total control. Join thousands of top creators and professionals who have already upgraded their workflow. Visit our website today to claim your exclusive trial and experience the difference!`,
+          narration: `Deep across the horizon, where curiosity meets the edge of the unknown, the journey into ${customTopic} took its first bold steps. Generations of seekers had dreamed of this moment, yet few imagined how swiftly the world would transform.\n\nAs the golden morning light bathed the valleys, whispers of anticipation filled the air. A timeless chapter was unfolding—one where courage, wonder, and imagination forged an unbreakable legacy.`,
+          interview: `Welcome back to our studio spotlight series. Today we're thrilled to welcome our featured guest to discuss the groundbreaking work behind ${customTopic}.\n\nFrom the early design sketches to the latest international rollout, this initiative has captivated attention across the industry. Thank you so much for joining us—let's start from the very beginning. What inspired you to take on this ambitious challenge?`
+        },
+        '120s': {
+          podcast: `Welcome back to The Daily Frequency, your daily audio guide to the ideas shaping tomorrow. Today we're dedicating our entire deep-dive to ${customTopic}.\n\nIf you've been following the news, you know that this topic has sparked passionate conversations across the globe. But what is really happening beneath the headlines? Today, we're cutting through the noise to explore the three biggest factors driving this movement forward.\n\nFirst, we'll look at the fundamental technology that makes it all possible. Next, we'll hear what leading creators and analysts are saying on the ground. And finally, we'll discuss the practical impact on how we work, live, and create.\n\nGrab your headphones, relax, and join us for this special extended conversation.`,
+          news: `Special Extended Report: We bring you comprehensive coverage on the developing situation surrounding ${customTopic}.\n\nOver the past twenty-four hours, key stakeholders, academic researchers, and industry leaders have released collaborative findings indicating a transformative shift across multiple sectors. Early indicators suggest widespread adoption and measurable efficiency gains.\n\nEconomic analysts point out that while early milestones have exceeded forecasts, long-term implementation will require robust infrastructure and clear guidelines. In response, global working groups have convened to establish standardized frameworks for sustainable growth.\n\nWe will continue to track incoming statements from official briefings and provide live updates as new details emerge.`,
+          commercial: `What if you could turn your most ambitious creative vision into reality in just minutes? Discover the revolutionary power of ${customTopic}.\n\nEngineered for professionals, visionaries, and storytellers who refuse to compromise on quality. Our cutting-edge platform combines state-of-the-art neural intelligence with unmatched ease of use, giving you the power to produce studio-caliber audio on demand.\n\nWhether you're producing a top-tier podcast, broadcasting daily news, or building immersive audiobooks, this is the all-in-one studio you've been waiting for.\n\nJoin over one hundred thousand creators worldwide. Experience the next era of creative sound today.`,
+          narration: `Long before the great towers rose above the silver plains, the ancient chroniclers spoke of a time when ${customTopic} would awaken the world. It was written that true mastery arrives not through force, but through patient understanding and relentless curiosity.\n\nThrough winding mountain trails and whispering forests, the journey continued. Every step brought fresh revelations, illuminating the forgotten paths that connected the past to an extraordinary future.\n\nAnd as the dusk settled into a tapestry of celestial violet and gold, the travelers looked out upon the vast valley below, knowing that their story had only just begun.`,
+          interview: `Thank you for tuning in to today's extended studio conversation. Today, we're joined by one of the visionary minds leading the revolution in ${customTopic}.\n\nOver the past year, your work has consistently pushed the boundaries of what is possible, earning praise from both industry veterans and newcomers alike. We're honored to have you with us.\n\nTo kick things off, take us back to that pivotal moment when you realized this wasn't just a prototype, but something that could redefine the entire landscape. What were those early days like?`
+        }
       },
       he: {
-        podcast: `שלום וברוכים הבאים לפודקאסט של היום! בפרק הזה אנחנו צוללים לנושא מרתק במיוחד: ${customTopic}. קחו כוס קפה, התרווחו, ובואו נתחיל במסע שלנו.`,
-        news: `מבזק חדשות מיוחד: התפתחויות משמעותיות נרשמו סביב ${customTopic}. גורמים בכירים ומומחים מדווחים על פריצת דרך חשובה. נמשיך לעקוב ולדווח לאורך כל היום.`,
-        commercial: `מוכנים לשלב הבא? הכירו את הפתרון המוביל עבור ${customTopic}. איכות ללא פשרות, ביצועים יוצאי דופן וחוויה מתקדמת. נסו עכשיו והרגישו בהבדל.`,
-        narration: `בעולם שנע במהירות בלתי פוסקת, צץ לפתע רגע של בהירות סביב ${customTopic}. כשהאור הראשון של הבוקר עלה, היה ברור שדבר לא יישאר כפי שהיה.`,
-        interview: `איתנו באולפן היום אורח מיוחד שמגיע לדבר איתנו על ${customTopic}. שלום לך, ספר לנו מה בעצם הוביל לרעיון המהפכני הזה?`
+        '15s': {
+          podcast: `שלום וברוכים הבאים לפודקאסט היומי שלנו! היום נדבר על ${customTopic} בתוך 60 שניות. בואו נתחיל!`,
+          news: `מבזק חדשות: התפתחויות משמעותיות נרשמו סביב ${customTopic}. מומחים מדווחים על פריצת דרך חשובה. פרטים נוספים בהמשך.`,
+          commercial: `מוכנים לעתיד? גלו את העוצמה של ${customTopic}. איכות ללא פשרות וביצועים יוצאי דופן. נסו עכשיו!`,
+          narration: `בעולם שנע במהירות, ${customTopic} הביא רגע של בהירות ששינה את פני הדברים.`,
+          interview: `היום באולפן נארח מומחה מיוחד שיספר לנו על ${customTopic}. ברוך הבא!`
+        },
+        '30s': {
+          podcast: `שלום וברוכים הבאים לפודקאסט היומי שלנו! בפרק הזה אנחנו צוללים לנושא מרתק במיוחד: ${customTopic}. בין אם אתם בדרכים או בבית, יש לנו סיפור מעורר השראה עבורכם. קחו כוס קפה ובואו נצא לדרך!`,
+          news: `מבזק חדשות מיוחד: התפתחויות משמעותיות נרשמו היום סביב ${customTopic}. גורמים בכירים ומומחים מדווחים על פריצת דרך חשובה ושינוי מגמה בשווקים. נמשיך לעקוב ולדווח לאורך כל היום.`,
+          commercial: `מוכנים לשלב הבא? הכירו את הפתרון המוביל עבור ${customTopic}. איכות ללא פשרות, ביצועים יוצאי דופן וחוויה מתקדמת שמותאמת בדיוק עבורכם. נסו עכשיו והרגישו בהבדל!`,
+          narration: `בעולם שנע במהירות בלתי פוסקת, צץ לפתע רגע של בהירות והשראה סביב ${customTopic}. כשהאור הראשון של הבוקר עלה מעל ההרים, היה ברור שפרק חדש ומרתק נפתח.`,
+          interview: `איתנו באולפן היום אורח מיוחד שמגיע לדבר איתנו על ${customTopic}. שלום לך, ספר לנו מה בעצם הוביל לרעיון המהפכני הזה ואיך הכל התחיל?`
+        },
+        '60s': {
+          podcast: `שלום וברוכים הבאים לפרק מיוחד של הפודקאסט שלנו! היום אנחנו מקדישים את השיחה לנושא שמעסיק רבים: ${customTopic}.\n\nבשבועות האחרונים שמענו המון דעות ורעיונות, אבל היום אנחנו רוצים לעשות סדר, להבין מה עומד מאחורי הקלעים ומה המשמעות האמיתית של המהלך הזה עבור כולנו.\n\nהתרווחו בכיסא, קחו נשימה עמוקה, ובואו נצלול יחד אל תוך הסיפור המלא והמרתק הזה.`,
+          news: `בוקר טוב, כאן מבזק חדשות מורחב. הסיפור המרכזי של היום מתמקד בהתפתחויות חסרות תקדים בנושא ${customTopic}.\n\nעל פי דיווחי מומחים וגורמים בכירים, מדובר בצעד משמעותי שצפוי להשפיע על מגוון תחומים רחב במשק. צוותי מחקר ופיתוח מלווים את התהליך מקרוב ומציינים כי התוצאות הראשוניות עולות על כל הציפיות.\n\nנמשיך לעדכן בדיווחים חיים מהשטח ובתגובות המומחים לאורך כל שעות היממה.`,
+          commercial: `לפעמים מגיע מוצר אחד שמשנה לחלוטין את הדרך שבה אנחנו יוצרים, עובדים וחושבים. הכירו את הדור הבא של ${customTopic}.\n\nפיתוח חדשני, דיוק בלתי מתפשר וממשק מתקדם שמעניק לכם שליטה מלאה על כל פרט. אלפי יוצרים ואנשי מקצוע מובילים כבר הצטרפו למהפכה.\n\nבקרו באתר שלנו עוד היום, קבלו גישה מיידית והתחילו ליצור באיכות הגבוהה ביותר.`,
+          narration: `בלב הנופים הקסומים, במקום שבו הרוח לוחשת סיפורים עתיקים, התגלה השביל שהוביל אל ${customTopic}. דורות של חולמים חיכו לרגע שבו האור יפציע מחדש מעל האופק.\n\nהצעדים היו בטוחים והלב היה מלא תקווה. כל גילוי קטן הביא עמו הבנה עמוקה יותר של הכוח הטמון ברוח האנושית, בסקרנות ובחיפוש אחר הטוב והיפה.`,
+          interview: `שלום לכם וברוכים הבאים לתוכנית הראיונות שלנו. היום נמצא איתנו אחד האנשים המובילים את השינוי סביב ${customTopic}.\n\nהפרויקט שלך זוכה לשבחים רבים ולהתעניינות בינלאומית עצומה. תודה שהצטרפת אלינו היום.\n\nבוא נחזור להתחלה—מה היה הרגע המדויק שבו הבנת שיש בידיך רעיון שיכול לשנות סדרי עולם?`
+        },
+        '120s': {
+          podcast: `שלום לכל המאזינים שלנו וברוכים הבאים לפרק עומק מיוחד! היום אנחנו מקדישים את כל הזמן לנושא שמשנה את כללי המשחק: ${customTopic}.\n\nכולנו רואים את הכותרות המהירות ברשתות, אבל לעיתים נדירות יוצא לנו לעצור, להתעמק ולהבין את התמונה המלאה. בפרק הזה נבחן שלושה היבטים מרכזיים: ראשית, מה הבסיס הטכנולוגי שמאפשר את השינוי הזה. שנית, מה אומרים האנשים שפועלים בשטח. ושלישית, איך כל זה משפיע באופן ישיר על היום-יום שלנו.\n\nשימו אוזניות, קחו כוס קפה חמה, ובואו נתחיל במסע המשותף שלנו.`,
+          news: `דיווח חדשותי מורחב ומיוחד: אנו מביאים בפניכם סקירה מקיפה של פריצת הדרך הגדולה סביב ${customTopic}.\n\nביממה האחרונה פורסמו ממצאים ראשוניים המצביעים על שינוי מבני עמוק. אנליסטים בכירים מדגישים כי מדובר במהלך אסטרטגי בעל השלכות מרחיקות לכת, הן ברמה הלאומית והן ברמה הבינלאומית.\n\nגופים מקצועיים מתכנסים כעת כדי לגבש מדיניות אחידה שתאפשר יישום בטוח, אחראי ויעיל של הטכנולוגיה החדשה. נמשיך לספק לכם פרשנויות מומחים ועדכונים שוטפים מהאולפן לאורך כל היום.`,
+          commercial: `מה אם הייתם יכולים להפוך כל רעיון יצירתי למציאות מוחשית בתוך שניות ספורות? הכירו את הפלטפורמה המתקדמת ביותר עבור ${customTopic}.\n\nמערכת חכמה, מבוססת בינה מלאכותית מהדור החדש, שתוכננה במיוחד עבור יוצרים, אנשי תקשורת ומספרי סיפורים שלא מתפשרים על פחות ממושלם.\n\nאיכות סאונד של אולפן מקצועי, גמישות מלאה ודיוק קולי שאין שני לו. הצטרפו עכשיו למאות אלפי משתמשים ברחבי העולם וגלו חוויית יצירה חדשה לחלוטין.`,
+          narration: `עוד לפני שהערים הגדולות נבנו על גדות הנהר, סיפרו זקני העם על היום שבו ${customTopic} יאיר מחדש את העולם. הייתה זו אגדה שנלחשה בלילות זרועי כוכבים, מעבירה מסר של חוכמה וסבלנות.\n\nהמסע בשבילים המתפתלים דרש אומץ ואמונה. כל אבן וכל צעד גילו סודות ישנים שהתחברו יחד לכדי תובנה חדשה ומאירה.\n\nוכשהערב ירד והשמיים נצבעו בגווני ארגמן וזהב, ידעו כולם כי זהו רק תחילתו של סיפור נפלא שייזכר לדורות.`,
+          interview: `ברוכים הבאים לתוכנית הזרקור השבועית שלנו. היום יש לנו הכבוד לארח באולפן יוצר וחוקר מוביל בתחום של ${customTopic}.\n\nהדרך שעברת בשנים האחרונות מעוררת השראה אצל רבים. העבודה שלך שילבה חדשנות טכנולוגית לצד חזון חברתי יוצא דופן.\n\nתודה רבה שהגעת. בוא נתחיל מהצעד הראשון—כשעמדת מול הדף הריק לפני כמה שנים, מה היה הדבר שהניע אותך להאמין שהבלתי אפשרי הוא למעשה בר-השגה?`
+        }
       }
     };
 
-    const langTemplates = isHe ? GENERATED_TEMPLATES.he : GENERATED_TEMPLATES.en;
+    const targetKey = ['15s', '30s', '60s', '120s'].includes(len) ? len : '30s';
+    const langTemplates = isHe ? GENERATED_TEMPLATES_BY_LENGTH.he[targetKey] : GENERATED_TEMPLATES_BY_LENGTH.en[targetKey];
     const selectedFormat = format || 'podcast';
     const generatedScript = langTemplates[selectedFormat] || langTemplates['podcast'];
 
@@ -337,6 +389,7 @@ router.post('/ai-script-assistant', async (req, res) => {
       success: true,
       action: 'generate',
       format: selectedFormat,
+      targetLength: targetKey,
       topic: customTopic,
       text: generatedScript
     });

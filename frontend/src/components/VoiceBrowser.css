@@ -690,7 +690,7 @@
 }
 
 /* ========================================================================== */
-/* 🤖 AI CREATIVE SCRIPT ASSISTANT CARD                                       */
+/* 🤖 AI CREATIVE SCRIPT ASSISTANT CARD & DURATION BAR                        */
 /* ========================================================================== */
 .ai-script-assistant-card {
   background: #080c16;
@@ -716,6 +716,42 @@
   border-radius: 12px;
   font-size: 11px;
   font-weight: 700;
+}
+
+.duration-picker-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.duration-pill-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.duration-pill-btn {
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.duration-pill-btn:hover {
+  background: #334155;
+  border-color: #f59e0b;
+}
+
+.duration-pill-btn.active-duration-pill {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #000000;
 }
 
 .ai-formats-row {
@@ -808,6 +844,38 @@
   background: #1f2937;
   border-color: #f59e0b;
   color: #f59e0b;
+}
+
+.ai-tool-btn.fit-btn {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.ai-tool-btn.fit-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.live-meter-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.meter-good {
+  background: #064e3b;
+  border: 1px solid #10b981;
+  color: #34d399;
+}
+
+.meter-warn {
+  background: #451a03;
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
 }
 
 .toggle-text-btn {

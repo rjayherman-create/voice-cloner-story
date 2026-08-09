@@ -40,10 +40,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const animationFrameRef = useRef(null);
 
   // 2. Voice Tuning Sliders states & Workflow Choices
-  const [activeWorkflow, setActiveWorkflow] = useState('bedtime');
-  const [voiceStability, setVoiceStability] = useState(0.80);
-  const [voiceSimilarity, setVoiceSimilarity] = useState(0.85);
-  const [voiceSpeed, setVoiceSpeed] = useState(0.90);
+  const [activeWorkflow, setActiveWorkflow] = useState('podcast');
+  const [voiceStability, setVoiceStability] = useState(0.50);
+  const [voiceSimilarity, setVoiceSimilarity] = useState(0.80);
+  const [voiceSpeed, setVoiceSpeed] = useState(1.05);
+
+  // ⏱️ Target Script Length State ('15s', '30s', '60s', '120s')
+  const [targetLength, setTargetLength] = useState('30s');
 
   // 🤖 AI Script Assistant & Creative Generator States
   const [aiPromptTopic, setAiPromptTopic] = useState('');
@@ -76,19 +79,6 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
   // Workflow sample texts dictionary for all modes in En and He
   const WORKFLOW_PRESETS = {
-    bedtime: {
-      label: '🌙 Bedtime Story & Lullaby',
-      desc: 'Gentle, soothing pacing with high vocal stability for restful sleep',
-      stability: 0.80,
-      similarity: 0.85,
-      speed: 0.90,
-      phrases: {
-        en: 'Close your eyes, little adventurer. The moon is painting the sky in shades of silver and lavender, watching over your sweet dreams.',
-        he: 'לילה טוב ילד שלי. עצום את העיניים והקשב לשיר הערש שהכוכבים שרים לך בשמיים. חלומות פז ושינה מתוקה.',
-        es: 'Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.',
-        fr: 'Bonne nuit mon petit ange, dors bien et fais de très beaux rêves étoilés.'
-      }
-    },
     podcast: {
       label: '🎙️ Podcast & Audio Show',
       desc: 'Engaging conversational pacing with warm vocal presence for interviews & hosts',
@@ -113,6 +103,19 @@ export default function VoiceBrowser({ onSelectVoice }) {
         he: 'מבזק חדשות מיוחד: פריצת דרך משמעותית נרשמה היום בתחום האנרגיה הירוקה. מומחים מדווחים על שינוי מגמה בשווקים הבינלאומיים.',
         es: 'Boletín de última hora: Importantes avances en tecnología energética marcan la jornada de hoy.',
         fr: 'Flash info : De nouvelles avancées majeures viennent d\'être annoncées aujourd\'hui par les experts.'
+      }
+    },
+    bedtime: {
+      label: '🌙 Bedtime Story & Lullaby',
+      desc: 'Gentle, soothing pacing with high vocal stability for restful sleep',
+      stability: 0.80,
+      similarity: 0.85,
+      speed: 0.90,
+      phrases: {
+        en: 'Close your eyes, little adventurer. The moon is painting the sky in shades of silver and lavender, watching over your sweet dreams.',
+        he: 'לילה טוב ילד שלי. עצום את העיניים והקשב לשיר הערש שהכוכבים שרים לך בשמיים. חלומות פז ושינה מתוקה.',
+        es: 'Buenas noches mi pequeño héroe, que descanses y que las estrellas guíen tus hermosos sueños.',
+        fr: 'Bonne nuit mon petit ange, dors bien et fais de très beaux rêves étoilés.'
       }
     },
     fantasy: {
@@ -145,21 +148,21 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
   // 3. Multi-Sample Voice Quality Booster states
   const [sampleSlots, setSampleSlots] = useState([
-    { id: 1, label: 'Sample 1: Calm Bedtime Reading', file: null, name: '' },
-    { id: 2, label: 'Sample 2: Playful Dialogue', file: null, name: '' },
-    { id: 3, label: 'Sample 3: Natural Conversation', file: null, name: '' }
+    { id: 1, label: 'Sample 1: Studio Reading / Voice Clip', file: null, name: '' },
+    { id: 2, label: 'Sample 2: Dynamic Dialogue', file: null, name: '' },
+    { id: 3, label: 'Sample 3: Conversational Tone', file: null, name: '' }
   ]);
 
-  // Modal for "+ Clone New Family Voice"
+  // Modal for "+ Clone New Voice"
   const [showFamilyCloneModal, setShowFamilyCloneModal] = useState(false);
   const [familyCloneLoading, setFamilyCloneLoading] = useState(false);
   const [familyCloneError, setFamilyCloneError] = useState('');
   const [familyForm, setFamilyForm] = useState({
     name: '',
-    relationship: 'Mother',
+    relationship: 'Podcast Host',
     gender: 'female',
-    accent: 'Israeli Hebrew',
-    style: 'Warm & Caring Storyteller',
+    accent: 'Israeli Hebrew / English',
+    style: 'Warm & Dynamic Storyteller',
     description: '',
     sampleFile: null
   });
@@ -170,13 +173,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [cloneStatusMsg, setCloneStatusMsg] = useState({ type: '', text: '' });
 
   // TTS Synthesis Test state (defaulting to clean text)
-  const [ttsText, setTtsText] = useState('Close your eyes, little adventurer. The moon is painting the sky in shades of silver and lavender, watching over your sweet dreams.');
+  const [ttsText, setTtsText] = useState('Welcome back to The Daily Frequency! Today we have an incredible episode breaking down the future of creative AI and storytelling. Let’s jump right in.');
   const [synthesizing, setSynthesizing] = useState(false);
   const [synthesizedAudioUrl, setSynthesizedAudioUrl] = useState(null);
   const [synthesizedEngineUsed, setSynthesizedEngineUsed] = useState(null);
   const [deletingVoiceId, setDeletingVoiceId] = useState(null);
 
-  // 4. Screenplay Workshop (Multi-Character Story Generator) states
+  // 4. Multi-Voice Screenplay Workshop states
   const [storyTheme, setStoryTheme] = useState('bedtime');
   const [childName, setChildName] = useState('Leo');
   const [screenplayCharacters, setScreenplayCharacters] = useState({
@@ -273,11 +276,11 @@ export default function VoiceBrowser({ onSelectVoice }) {
         id: v.id || v.voiceId,
         voiceId: v.voiceId || v.id,
         name: v.name,
-        relationship: v.relationship || v.labels?.relationship || 'Family Member',
+        relationship: v.relationship || v.labels?.relationship || 'Voice Model',
         gender: v.gender || v.labels?.gender || 'Custom',
         accent: v.accent || v.labels?.accent || 'Israeli Hebrew / Cloned',
         style: v.style || v.labels?.descriptive || 'Conversational',
-        description: v.description || `${v.name}'s custom cloned family voice model saved in persistent bucket.`,
+        description: v.description || `${v.name}'s custom cloned voice model saved in persistent bucket.`,
         previewUrl: v.previewUrl || null,
         date: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : '8/9/2026',
         source: 'cloned bucket',
@@ -318,9 +321,10 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  // 🤖 AI Script Assistant Handlers
-  const handleAiGenerate = async (formatKey) => {
+  // 🤖 AI Script Assistant Handlers with Target Length Calibration
+  const handleAiGenerate = async (formatKey, lenKey) => {
     const chosenFormat = formatKey || aiFormat;
+    const chosenLength = lenKey || targetLength;
     setAiLoading(true);
     setAiSuccessMsg('');
     try {
@@ -330,6 +334,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
         body: JSON.stringify({
           action: 'generate',
           format: chosenFormat,
+          targetLength: chosenLength,
           topic: aiPromptTopic,
           language: selectedLanguage
         })
@@ -337,7 +342,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
       const data = await res.json();
       if (data.text) {
         setTtsText(data.text);
-        setAiSuccessMsg(`✨ Generated ${chosenFormat.toUpperCase()} script on "${data.topic}"!`);
+        setAiSuccessMsg(`✨ Generated ${chosenLength} ${chosenFormat.toUpperCase()} script on "${data.topic}"!`);
       }
     } catch (err) {
       alert('AI Assistant error: ' + err.message);
@@ -357,6 +362,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
         body: JSON.stringify({
           action: 'edit',
           tone: toneKey,
+          targetLength: targetLength,
           currentText: ttsText,
           language: selectedLanguage
         })
@@ -673,9 +679,9 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
       setFamilyForm({
         name: '',
-        relationship: 'Mother',
+        relationship: 'Podcast Host',
         gender: 'female',
-        accent: 'Israeli Hebrew',
+        accent: 'Israeli Hebrew / English',
         style: 'Warm & Caring Storyteller',
         description: '',
         sampleFile: null
@@ -842,6 +848,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const activeVoiceObj = familyVoices.find(v => v.id === selectedVoiceId) || currentRosterVoices.find(v => v.id === selectedVoiceId) || elevenLabsVoices.find(v => v.id === selectedVoiceId) || currentRosterVoices[0] || familyVoices[0];
   const allAvailableVoices = [...familyVoices, ...currentRosterVoices, ...elevenLabsVoices];
 
+  // Live real-time audio length calculation
+  const wordCount = ttsText.trim() ? ttsText.trim().split(/\s+/).length : 0;
+  const charCount = ttsText.length;
+  const estimatedSeconds = Math.max(1, Math.round(wordCount / (2.4 * voiceSpeed)));
+  const targetSeconds = targetLength === '15s' ? 15 : targetLength === '30s' ? 30 : targetLength === '60s' ? 60 : 120;
+  const isDurationOnTarget = Math.abs(estimatedSeconds - targetSeconds) <= 5;
+
   return (
     <div className="fable-studio-page">
       {/* ==================================================================== */}
@@ -991,7 +1004,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <input
                   type="text"
                   className="dark-input-field"
-                  placeholder='e.g. "Sarah — Podcast Host" or "Grandpa Dan"'
+                  placeholder='e.g. "Alex — Podcast Host" or "Sarah (Reporter)"'
                   value={voiceModelLabel}
                   onChange={(e) => setVoiceModelLabel(e.target.value)}
                 />
@@ -1203,14 +1216,14 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
 
               {/* ============================================================ */}
-              {/* 🤖 2. INTEGRATED AI SCRIPT ASSISTANT (IDEA GENERATION & EDITING) */}
+              {/* 🤖 2. INTEGRATED AI SCRIPT ASSISTANT WITH TARGET DURATION    */}
               {/* ============================================================ */}
               <div className="ai-script-assistant-card" style={{ marginBottom: '14px' }}>
                 <div className="ai-assistant-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '18px' }}>🤖</span>
                     <strong style={{ fontSize: '13px', color: '#f59e0b' }}>AI Creative Script Assistant</strong>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>• Idea Generator & Smart Audio Editor</span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>• Idea Generator & Length Calibrator</span>
                   </div>
 
                   {aiSuccessMsg && (
@@ -1218,40 +1231,71 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   )}
                 </div>
 
+                {/* ⏱️ TARGET AUDIO LENGTH SELECTOR */}
+                <div className="duration-picker-bar" style={{ marginTop: '10px' }}>
+                  <span className="ai-mini-label">⏱️ Target Audio Length:</span>
+                  <div className="duration-pill-buttons">
+                    <button 
+                      className={`duration-pill-btn ${targetLength === '15s' ? 'active-duration-pill' : ''}`}
+                      onClick={() => { setTargetLength('15s'); handleAiGenerate(aiFormat, '15s'); }}
+                    >
+                      ⚡ 15s (Quick Hook / Ad)
+                    </button>
+                    <button 
+                      className={`duration-pill-btn ${targetLength === '30s' ? 'active-duration-pill' : ''}`}
+                      onClick={() => { setTargetLength('30s'); handleAiGenerate(aiFormat, '30s'); }}
+                    >
+                      ⏱️ 30s (Promo / Spot)
+                    </button>
+                    <button 
+                      className={`duration-pill-btn ${targetLength === '60s' ? 'active-duration-pill' : ''}`}
+                      onClick={() => { setTargetLength('60s'); handleAiGenerate(aiFormat, '60s'); }}
+                    >
+                      ⏳ 60s (1 Min Story / News)
+                    </button>
+                    <button 
+                      className={`duration-pill-btn ${targetLength === '120s' ? 'active-duration-pill' : ''}`}
+                      onClick={() => { setTargetLength('120s'); handleAiGenerate(aiFormat, '120s'); }}
+                    >
+                      📖 120s (2 Min Deep-Dive)
+                    </button>
+                  </div>
+                </div>
+
                 {/* Creative Format Ideas */}
-                <div className="ai-formats-row" style={{ marginTop: '8px' }}>
-                  <span className="ai-mini-label">💡 Generate Creative Format:</span>
+                <div className="ai-formats-row" style={{ marginTop: '10px' }}>
+                  <span className="ai-mini-label">💡 Generate Format:</span>
                   <button 
                     className={`ai-format-pill ${aiFormat === 'podcast' ? 'active-ai-pill' : ''}`}
-                    onClick={() => { setAiFormat('podcast'); handleAiGenerate('podcast'); }}
+                    onClick={() => { setAiFormat('podcast'); handleAiGenerate('podcast', targetLength); }}
                     disabled={aiLoading}
                   >
-                    🎙️ Podcast Intro Hook
+                    🎙️ Podcast Episode
                   </button>
                   <button 
                     className={`ai-format-pill ${aiFormat === 'news' ? 'active-ai-pill' : ''}`}
-                    onClick={() => { setAiFormat('news'); handleAiGenerate('news'); }}
+                    onClick={() => { setAiFormat('news'); handleAiGenerate('news', targetLength); }}
                     disabled={aiLoading}
                   >
                     📰 News Bulletin
                   </button>
                   <button 
                     className={`ai-format-pill ${aiFormat === 'commercial' ? 'active-ai-pill' : ''}`}
-                    onClick={() => { setAiFormat('commercial'); handleAiGenerate('commercial'); }}
+                    onClick={() => { setAiFormat('commercial'); handleAiGenerate('commercial', targetLength); }}
                     disabled={aiLoading}
                   >
                     📢 Commercial / Promo
                   </button>
                   <button 
                     className={`ai-format-pill ${aiFormat === 'narration' ? 'active-ai-pill' : ''}`}
-                    onClick={() => { setAiFormat('narration'); handleAiGenerate('narration'); }}
+                    onClick={() => { setAiFormat('narration'); handleAiGenerate('narration', targetLength); }}
                     disabled={aiLoading}
                   >
-                    📖 Audio Narration
+                    📖 Narration & Fables
                   </button>
                   <button 
                     className={`ai-format-pill ${aiFormat === 'interview' ? 'active-ai-pill' : ''}`}
-                    onClick={() => { setAiFormat('interview'); handleAiGenerate('interview'); }}
+                    onClick={() => { setAiFormat('interview'); handleAiGenerate('interview', targetLength); }}
                     disabled={aiLoading}
                   >
                     💬 Interview Banter
@@ -1266,20 +1310,20 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     placeholder={`Enter any topic (e.g. "Space exploration", "Morning tech briefing", "Electric cars")...`}
                     value={aiPromptTopic}
                     onChange={(e) => setAiPromptTopic(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleAiGenerate(aiFormat); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAiGenerate(aiFormat, targetLength); }}
                   />
                   <button 
                     className="ai-gen-btn"
-                    onClick={() => handleAiGenerate(aiFormat)}
+                    onClick={() => handleAiGenerate(aiFormat, targetLength)}
                     disabled={aiLoading}
                   >
-                    {aiLoading ? '⏳ Generating...' : '✨ Generate with AI'}
+                    {aiLoading ? '⏳ Generating...' : `✨ Generate ${targetLength} Script`}
                   </button>
                 </div>
 
                 {/* Smart Polishing & Editing Tools */}
                 <div className="ai-edit-tools-row" style={{ marginTop: '10px' }}>
-                  <span className="ai-mini-label">⚡ Polish Script:</span>
+                  <span className="ai-mini-label">⚡ Polish & Fit:</span>
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('polish')} disabled={aiLoading}>
                     ✨ Polish & Flow
                   </button>
@@ -1289,8 +1333,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('news')} disabled={aiLoading}>
                     📰 News Bulletin Tone
                   </button>
-                  <button className="ai-tool-btn" onClick={() => handleAiEdit('shorten')} disabled={aiLoading}>
-                    ⏳ Shorten & Punchy
+                  <button 
+                    className="ai-tool-btn fit-btn" 
+                    onClick={() => handleAiEdit(targetLength === '15s' ? 'fit_15s' : targetLength === '30s' ? 'fit_30s' : 'shorten')} 
+                    disabled={aiLoading}
+                    title="Automatically adjusts sentence structure to fit target length"
+                  >
+                    📐 Fit to {targetLength}
                   </button>
                   <button className="ai-tool-btn" onClick={() => handleAiEdit('pauses')} disabled={aiLoading}>
                     ⚡ Add Natural Pauses
@@ -1298,12 +1347,19 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 </div>
               </div>
 
-              {/* 📝 STORY / SCRIPT TEXT SENTENCE AREA (RIGHT UNDER CONTROLS) */}
+              {/* 📝 SCRIPT TEXT SENTENCE AREA WITH REAL-TIME AUDIO DURATION METER */}
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label className="input-label-uppercase" style={{ margin: 0 }}>
-                    📝 Script / Voiceover Text to Synthesize
-                  </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <label className="input-label-uppercase" style={{ margin: 0 }}>
+                      📝 Voiceover Script ({targetLength} Target)
+                    </label>
+                    {/* Live Duration Meter */}
+                    <span className={`live-meter-badge ${isDurationOnTarget ? 'meter-good' : 'meter-warn'}`}>
+                      ⏱️ Est. Audio: ~{estimatedSeconds}s ({wordCount} words • {charCount} chars) • Target: {targetSeconds}s
+                    </span>
+                  </div>
+
                   <button 
                     className="toggle-text-btn"
                     onClick={() => setIsStoriesExpanded(!isStoriesExpanded)}
@@ -1641,9 +1697,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
         </main>
       )}
 
-      {/* ==================================================================== */}
-      {/* TAB 2: MULTI-VOICE WORKSHOP                                          */}
-      {/* ==================================================================== */}
+      {/* TAB 2: MULTI-VOICE WORKSHOP */}
       {activeNav === 'screenplay' && (
         <main className="screenplay-tab-content fable-box">
           <div className="screenplay-header">
