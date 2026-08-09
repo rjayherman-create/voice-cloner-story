@@ -9,6 +9,7 @@ import hebrewPhoneticsEngine from '../services/hebrew-phonetics.js';
 import multilingualRosterService from '../services/multilingual-roster.js';
 import translationService from '../services/translation-service.js';
 import universalTtsService from '../services/universal-tts-service.js';
+import soundtrackLibraryService from '../services/soundtrack-library.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -176,9 +177,18 @@ router.post('/transliterate-hebrew', (req, res) => {
   res.json({ original: text, phonetics });
 });
 
-// GET soundtrack catalog
+// GET soundtrack catalog (20 tracks across 5 categories with search)
 router.get('/soundtracks', (req, res) => {
-  res.json(SOUNDTRACK_CATALOG);
+  const { category, search } = req.query;
+  let tracks = soundtrackLibraryService.getAll(category);
+  if (search) {
+    tracks = soundtrackLibraryService.search(search);
+  }
+  res.json({
+    total: tracks.length,
+    categories: soundtrackLibraryService.getCategories(),
+    soundtracks: tracks
+  });
 });
 
 // GET multilingual catalog & phrases

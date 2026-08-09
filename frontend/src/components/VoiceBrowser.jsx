@@ -228,10 +228,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [synthesizingScreenplay, setSynthesizingScreenplay] = useState(false);
   const [screenplayAudioLines, setScreenplayAudioLines] = useState([]);
 
-  // 5. Soundtrack Console & Ambience Mixer states
+  // 5. Soundtrack Console & Ambience Mixer states (20-Track Library)
   const [soundtracks, setSoundtracks] = useState([]);
   const [selectedSoundtrack, setSelectedSoundtrack] = useState(null);
-  const [soundtrackVolume, setSoundtrackVolume] = useState(0.4);
+  const [soundtrackCategory, setSoundtrackCategory] = useState('all');
+  const [soundtrackSearch, setSoundtrackSearch] = useState('');
+  const [soundtrackCategories, setSoundtrackCategories] = useState([]);
+  const [soundtrackVolume, setSoundtrackVolume] = useState(0.35);
   const [autoDucking, setAutoDucking] = useState(true);
   const [playingSoundtrackId, setPlayingSoundtrackId] = useState(null);
   const soundtrackAudioRef = useRef(null);
@@ -342,17 +345,28 @@ export default function VoiceBrowser({ onSelectVoice }) {
     }
   };
 
-  const loadSoundtracks = async () => {
+  const loadSoundtracks = async (cat = 'all', query = '') => {
     try {
-      const res = await fetch('/api/voiceover/soundtracks');
+      const url = `/api/voiceover/soundtracks?category=${encodeURIComponent(cat)}${query ? '&search=' + encodeURIComponent(query) : ''}`;
+      const res = await fetch(url);
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setSoundtracks(data);
-        if (data.length > 0) setSelectedSoundtrack(data[0]);
-      }
+      const list = Array.isArray(data) ? data : (data.soundtracks || []);
+      setSoundtracks(list);
+      if (data.categories) setSoundtrackCategories(data.categories);
+      if (list.length > 0 && !selectedSoundtrack) setSelectedSoundtrack(list[0]);
     } catch (err) {
       console.error('Error loading soundtracks:', err);
     }
+  };
+
+  const handleSelectSoundtrackCategory = (cat) => {
+    setSoundtrackCategory(cat);
+    loadSoundtracks(cat, soundtrackSearch);
+  };
+
+  const handleSearchSoundtracks = (query) => {
+    setSoundtrackSearch(query);
+    loadSoundtracks(soundtrackCategory, query);
   };
 
   // 🤖 AI Script Assistant Handlers with Target Length & Exact Time Setter Support
@@ -2624,21 +2638,61 @@ export default function VoiceBrowser({ onSelectVoice }) {
         </main>
       )}
 
-      {/* TAB 3: AMBIENCE CONSOLE */}
+      {/* TAB 3: AMBIENCE CONSOLE (20-TRACK MUSIC LIBRARY) */}
       {activeNav === 'soundtrack' && (
         <main className="soundtrack-tab-content fable-box">
           <audio ref={soundtrackAudioRef} loop />
 
           <div className="soundtrack-header">
             <div>
-              <h2 className="screenplay-title">🎼 Background Ambience & Music Mixer</h2>
-              <p className="screenplay-sub">Mix calming ambient soundscapes, podcast intro pads, and music tracks with your voiceovers.</p>
+              <h2 className="screenplay-title">🎼 20-Track Royalty-Free Music & Ambience Library</h2>
+              <p className="screenplay-sub">Layer calming bedtime lullabies, lo-fi podcast grooves, broadcast tech pulses, and cinematic strings under your voiceovers.</p>
+            </div>
+            {selectedSoundtrack && (
+              <span className="badge-selected-green" style={{ fontSize: '12px', padding: '6px 12px' }}>
+                🎵 Active Soundtrack: {selectedSoundtrack.title}
+              </span>
+            )}
+          </div>
+
+          {/* Category Filter Pills & Search Bar */}
+          <div className="soundtrack-filter-bar" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '18px', background: '#0b1120', padding: '12px', borderRadius: '10px', border: '1px solid #1e293b' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
+              {[
+                { key: 'all', label: '🌟 All 20 Tracks' },
+                { key: 'Bedtime', label: '🌙 Bedtime & Sleep' },
+                { key: 'Podcast', label: '🎙️ Podcast & Talk Show' },
+                { key: 'News & Tech', label: '📰 News & Tech' },
+                { key: 'Commercial', label: '📢 Commercial & Ads' },
+                { key: 'Cinematic', label: '🎬 Cinematic & Fantasy' }
+              ].map(cat => (
+                <button
+                  key={cat.key}
+                  className={`nav-pill-btn ${soundtrackCategory === cat.key ? 'active-pill' : ''}`}
+                  style={{ fontSize: '11px', padding: '6px 12px' }}
+                  onClick={() => handleSelectSoundtrackCategory(cat.key)}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ minWidth: '240px' }}>
+              <input
+                type="text"
+                className="dark-input-field"
+                placeholder="🔍 Search mood, instrument, genre..."
+                style={{ padding: '6px 12px', fontSize: '11.5px', width: '100%' }}
+                value={soundtrackSearch}
+                onChange={(e) => handleSearchSoundtracks(e.target.value)}
+              />
             </div>
           </div>
 
-          <div className="ambience-mixer-bar">
+          {/* Volume & Ducking Bar */}
+          <div className="ambience-mixer-bar" style={{ marginBottom: '20px' }}>
             <div className="mixer-control-group">
-              <label>Background Ambience Volume: {Math.round(soundtrackVolume * 100)}%</label>
+              <label>Background Ambience Volume: <strong style={{ color: '#f59e0b' }}>{Math.round(soundtrackVolume * 100)}%</strong></label>
               <input 
                 type="range" min="0.05" max="1.0" step="0.05"
                 className="fable-range"
@@ -2658,30 +2712,57 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   checked={autoDucking}
                   onChange={(e) => setAutoDucking(e.target.checked)}
                 />
-                <span>✨ Voiceover Auto-Ducking (Ducks music 75% when voice speaks)</span>
+                <span>✨ Voiceover Auto-Ducking (Ducks music 75% during speech)</span>
               </label>
             </div>
           </div>
 
-          <div className="soundtracks-grid">
+          {/* 20-Track Music Grid */}
+          <div className="soundtracks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
             {soundtracks.map((st) => {
               const isPlaying = playingSoundtrackId === st.id;
               const isSelected = selectedSoundtrack?.id === st.id;
               return (
-                <div key={st.id} className={`soundtrack-card ${isSelected ? 'selected-st-card' : ''}`}>
+                <div 
+                  key={st.id} 
+                  className={`soundtrack-card ${isSelected ? 'selected-st-card' : ''}`}
+                  style={{ background: '#0f172a', border: isSelected ? '2px solid #f59e0b' : '1px solid #334155', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                >
                   <div className="st-info">
-                    <span className="st-cat-badge">{st.category}</span>
-                    <h3 className="st-title">{st.title}</h3>
-                    <p className="st-tempo">{st.tempo}</p>
-                    <p className="st-note">{st.previewNote}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span className="st-cat-badge" style={{ background: '#1e293b', color: '#f59e0b', padding: '3px 8px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 800 }}>
+                        {st.category}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{st.tempo}</span>
+                    </div>
+
+                    <h3 className="st-title" style={{ fontSize: '15px', fontWeight: 800, color: '#f8fafc', marginBottom: '6px' }}>{st.title}</h3>
+                    {st.instrumentation && (
+                      <p style={{ fontSize: '11px', color: '#38bdf8', marginBottom: '6px' }}>
+                        🎻 {st.instrumentation}
+                      </p>
+                    )}
+                    <p className="st-note" style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.4, marginBottom: '14px' }}>{st.previewNote}</p>
                   </div>
 
-                  <div className="st-actions">
+                  <div className="st-actions" style={{ display: 'flex', gap: '8px' }}>
                     <button 
                       className={`st-play-btn ${isPlaying ? 'st-playing' : ''}`}
                       onClick={() => toggleSoundtrackPlay(st)}
+                      style={{ flex: 1, padding: '8px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', background: isPlaying ? '#ef4444' : '#1e293b', color: '#ffffff', border: '1px solid #334155' }}
                     >
-                      {isPlaying ? '⏹️ Pause Ambience' : '▶️ Play Preview'}
+                      {isPlaying ? '⏹️ Stop Ambience' : '▶️ Play Preview'}
+                    </button>
+
+                    <button 
+                      className="btn-use-template"
+                      onClick={() => {
+                        setSelectedSoundtrack(st);
+                        setAiSuccessMsg(`🎵 Background track set to: ${st.title}`);
+                      }}
+                      style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', background: isSelected ? '#10b981' : '#f59e0b', color: '#000000', border: 'none' }}
+                    >
+                      {isSelected ? '✓ Active Track' : '⚡ Use Track'}
                     </button>
                   </div>
                 </div>
