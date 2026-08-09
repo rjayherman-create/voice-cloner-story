@@ -154,8 +154,8 @@ class ElevenLabsService {
       const styleVal = typeof options.style === 'number' ? options.style : 0.0;
       const speedVal = typeof options.speed === 'number' ? Math.max(0.7, Math.min(1.25, options.speed)) : 1.0;
 
-      // eleven_multilingual_v2 is the official model for 32+ native languages including Hebrew
-      const modelId = options.modelId || 'eleven_multilingual_v2';
+      // eleven_flash_v2_5 cuts character costs in half with ultra-fast latency (~75ms)
+      const modelId = options.modelId || process.env.ELEVENLABS_DEFAULT_MODEL || 'eleven_flash_v2_5';
 
       // Strict schema compliance for ElevenLabs API
       const payload = {

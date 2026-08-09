@@ -1,12 +1,14 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import ElevenLabsService from '../services/elevenlab-service.js';
 import hebrewTtsService from '../services/hebrew-tts-service.js';
 import hebrewPhoneticsEngine from '../services/hebrew-phonetics.js';
 import multilingualRosterService from '../services/multilingual-roster.js';
 import translationService from '../services/translation-service.js';
+import universalTtsService from '../services/universal-tts-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -522,16 +524,27 @@ router.post('/ai-script-assistant', async (req, res) => {
   }
 });
 
-// POST generate voiceover with auto-routing to 30 Hebrew Models, Bucket Clones, OR 30 Multilingual Personas
+// POST generate voiceover with auto-routing to Universal Free Neural Engine ($0.00 All Languages), Bucket Clones, OR ElevenLabs
 router.post('/generate', async (req, res) => {
   try {
-    const { script, voice, emotion, stability, similarityBoost, style, speed, modelId, language, useClonedBridge } = req.body;
+    const { script, voice, emotion, stability, similarityBoost, style, speed, modelId, language, useClonedBridge, engineMode } = req.body;
 
     if (!script || !script.trim()) {
       return res.status(400).json({ error: 'Script text is required' });
     }
 
-    const isHebrewScript = /[\u0590-\u05FF]/.test(script);
+    // 1. AUTO-STRIP NON-SPOKEN VISUAL CUES TO SAVE CHARACTER COSTS
+    const cleanScript = script
+      .replace(/\[VISUAL:[^\]]*\]/gi, '')
+      .replace(/\[SCENE[^\]]*\]/gi, '')
+      .replace(/\[VOICEOVER\]:?/gi, '')
+      .replace(/\[ויז'ואל:[^\]]*\]/gi, '')
+      .replace(/\[סצינה[^\]]*\]/gi, '')
+      .replace(/\[קריינות\]:?/gi, '')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+
+    const isHebrewScript = /[\u0590-\u05FF]/.test(cleanScript);
     const isNativeHebrewVoice = voice && voice.startsWith('he-IL');
     const isBucketClonedVoice = voice && (voice.startsWith('family-') || voice.startsWith('preset-'));
 
@@ -540,49 +553,77 @@ router.post('/generate', async (req, res) => {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    const elevenLabs = getElevenLabsService();
+    // 2. 💰 MD5 HASH AUDIO CACHING - Zero-Cost Instant Playback Reuse
+    const hashPayload = `${cleanScript}_${voice}_${language || 'auto'}_${engineMode || 'auto'}_${speed || 1.0}_${modelId || 'flash'}`;
+    const cacheHash = crypto.createHash('md5').update(hashPayload).digest('hex');
+    const cachedFilename = `cached-vo-${cacheHash}.mp3`;
+    const cachedFilepath = path.join(uploadsDir, cachedFilename);
 
-    // 1. ROUTE TO NATIVE ISRAELI NEURAL ENGINE (For 30 Hebrew Models or Hebrew text when ElevenLabs is offline)
-    if (isNativeHebrewVoice || (isHebrewScript && (!elevenLabs || !useClonedBridge || isNativeHebrewVoice))) {
-      console.log(`[VoiceOver] Routing to 30 Native Israeli Hebrew Models: voice=${voice}`);
+    if (fs.existsSync(cachedFilepath)) {
+      console.log(`[VoiceOver] 💰 CACHE HIT ($0.00 zero-cost audio reuse): hash=${cacheHash}`);
+      return res.json({
+        id: `vo-cached-${cacheHash}`,
+        filename: cachedFilename,
+        url: `/uploads/${cachedFilename}`,
+        voice: voice || 'Standard',
+        script: cleanScript,
+        duration: Math.ceil(cleanScript.length / 14),
+        status: 'complete',
+        cached: true,
+        engine: '⚡ Instant Zero-Cost Cache ($0.00 - Saved API Credits)',
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    const elevenLabs = getElevenLabsService();
+    const wantsFreeMode = engineMode === 'free' || !elevenLabs || !elevenLabs.isConfigured();
+
+    // 3. 🟢 100% FREE UNIVERSAL NEURAL ENGINE ($0.00 for ALL 30+ Languages: English, Spanish, French, German, Japanese, Hebrew, etc.)
+    if (wantsFreeMode || isNativeHebrewVoice) {
+      console.log(`[VoiceOver] 🟢 Routing to Universal Free Neural Engine ($0.00 Zero-Cost): lang=${language || 'en'}, voice=${voice}`);
       try {
-        const audioBuffer = await hebrewTtsService.synthesizeHebrew(script, voice || 'he-IL-HilaNeural');
-        const filename = `hebrew-voiceover-${Date.now()}.mp3`;
-        const filepath = path.join(uploadsDir, filename);
-        fs.writeFileSync(filepath, audioBuffer);
+        let audioBuffer;
+        if (isHebrewScript || language === 'he' || isNativeHebrewVoice) {
+          audioBuffer = await hebrewTtsService.synthesizeHebrew(cleanScript, voice || 'he-IL-HilaNeural');
+        } else {
+          audioBuffer = await universalTtsService.synthesize(cleanScript, language || 'en', voice || 'Standard');
+        }
+
+        fs.writeFileSync(cachedFilepath, audioBuffer);
 
         return res.json({
-          id: `vo-he-${Date.now()}`,
-          filename,
-          url: `/uploads/${filename}`,
-          voice: voice || 'he-IL-HilaNeural',
-          script,
+          id: `vo-free-${Date.now()}`,
+          filename: cachedFilename,
+          url: `/uploads/${cachedFilename}`,
+          voice: voice || 'Standard',
+          script: cleanScript,
           audioLength: audioBuffer.length,
-          duration: Math.ceil(script.length / 12),
+          duration: Math.ceil(cleanScript.length / 14),
           status: 'complete',
-          engine: 'Native Israeli Neural Engine (30 Hebrew Voices)',
+          cached: false,
+          engine: `🟢 Universal Free Neural Engine ($0.00 Zero-Cost - ${language ? language.toUpperCase() : 'ALL'})`,
           createdAt: new Date().toISOString()
         });
-      } catch (heErr) {
-        console.error('[VoiceOver] Native Hebrew synthesis error:', heErr);
-        return res.status(500).json({ error: `Hebrew synthesis error: ${heErr.message}` });
+      } catch (freeErr) {
+        console.error('[VoiceOver] Universal Free Neural synthesis error:', freeErr);
       }
     }
 
-    // 2. ROUTE TO ELEVENLABS FOR 30 MULTILINGUAL VOICES OR CLONED VOICES
+    // 4. 💎 ELEVENLABS STUDIO MODE (Uses Flash v2.5 for 50% Cheaper Character Rate)
     if (elevenLabs && elevenLabs.isConfigured()) {
-      let synthesizedText = script;
+      let synthesizedText = cleanScript;
       let usedBridge = false;
 
       if (isHebrewScript || language === 'he') {
-        synthesizedText = hebrewPhoneticsEngine.transliterate(script);
+        synthesizedText = hebrewPhoneticsEngine.transliterate(cleanScript);
         usedBridge = true;
-        console.log(`[VoiceOver] Hebrew Cloned Voice Bridge: "${script}" -> "${synthesizedText}"`);
+        console.log(`[VoiceOver] Hebrew Cloned Voice Bridge: "${cleanScript}" -> "${synthesizedText}"`);
       }
 
       // Resolve composite persona IDs (e.g. 'es-male-2' -> 'ErXwobaYiN019PkySvjV')
       const targetVoiceId = multilingualRosterService.resolveVoiceId(voice);
-      console.log(`[VoiceOver] ElevenLabs synthesis: inputVoice=${voice} -> resolvedId=${targetVoiceId}, chars=${synthesizedText.length}`);
+      const chosenModel = modelId || process.env.ELEVENLABS_DEFAULT_MODEL || 'eleven_flash_v2_5';
+      console.log(`[VoiceOver] ElevenLabs synthesis: inputVoice=${voice} -> resolvedId=${targetVoiceId}, model=${chosenModel}, chars=${synthesizedText.length}`);
 
       try {
         const audioBuffer = await elevenLabs.synthesize(synthesizedText, targetVoiceId, {
@@ -591,74 +632,65 @@ router.post('/generate', async (req, res) => {
           similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
           style: typeof style === 'number' ? style : 0.0,
           speed: typeof speed === 'number' ? speed : 1.0,
-          modelId: modelId || 'eleven_multilingual_v2',
+          modelId: chosenModel,
           language: language || 'auto'
         });
 
-        const filename = `voiceover-${Date.now()}.mp3`;
-        const filepath = path.join(uploadsDir, filename);
-        fs.writeFileSync(filepath, audioBuffer);
+        fs.writeFileSync(cachedFilepath, audioBuffer);
 
         return res.json({
           id: `vo-${Date.now()}`,
-          filename,
-          url: `/uploads/${filename}`,
+          filename: cachedFilename,
+          url: `/uploads/${cachedFilename}`,
           voice: targetVoiceId,
-          script,
+          script: cleanScript,
           phoneticsUsed: usedBridge ? synthesizedText : null,
           audioLength: audioBuffer.length,
           duration: Math.ceil(synthesizedText.length / 14),
           status: 'complete',
-          engine: usedBridge ? 'Hebrew Cloned Voice Bridge (ElevenLabs)' : 'ElevenLabs Multilingual V2 (30 Personas)',
+          cached: false,
+          engine: usedBridge ? 'Hebrew Cloned Voice Bridge (ElevenLabs)' : `ElevenLabs Studio Flash (${chosenModel})`,
           createdAt: new Date().toISOString()
         });
       } catch (err) {
-        console.error('[VoiceOver] ElevenLabs synthesis failed, checking fallback:', err.message);
-        // Fallback to Native Israeli Neural Engine if text is Hebrew
-        if (isHebrewScript) {
-          const audioBuffer = await hebrewTtsService.synthesizeHebrew(script, 'he-IL-HilaNeural');
-          const filename = `hebrew-voiceover-${Date.now()}.mp3`;
-          const filepath = path.join(uploadsDir, filename);
-          fs.writeFileSync(filepath, audioBuffer);
+        console.error('[VoiceOver] ElevenLabs synthesis failed, falling back to Universal Free Neural Engine:', err.message);
+        // Fallback to Universal Free Neural Engine for ANY language
+        try {
+          const fallbackBuffer = await universalTtsService.synthesize(cleanScript, language || 'en', voice || 'Standard');
+          fs.writeFileSync(cachedFilepath, fallbackBuffer);
           return res.json({
             id: `vo-fallback-${Date.now()}`,
-            filename,
-            url: `/uploads/${filename}`,
-            voice: 'he-IL-HilaNeural',
-            script,
-            duration: Math.ceil(script.length / 12),
+            filename: cachedFilename,
+            url: `/uploads/${cachedFilename}`,
+            voice: voice || 'Standard',
+            script: cleanScript,
+            duration: Math.ceil(cleanScript.length / 14),
             status: 'complete',
-            engine: 'Native Israeli Neural Engine (Fallback)',
+            cached: false,
+            engine: '🟢 Universal Free Neural Engine ($0.00 Fallback)',
             createdAt: new Date().toISOString()
           });
+        } catch (fbErr) {
+          return res.status(500).json({ error: err.message || 'Audio synthesis failed' });
         }
-        return res.status(500).json({ error: err.message || 'Audio synthesis failed' });
       }
     }
 
-    // 3. OFFLINE / BUCKET FALLBACK FOR HEBREW & CLONED VOICES
-    if (isHebrewScript || language === 'he') {
-      const audioBuffer = await hebrewTtsService.synthesizeHebrew(script, 'he-IL-HilaNeural');
-      const filename = `hebrew-voiceover-${Date.now()}.mp3`;
-      const filepath = path.join(uploadsDir, filename);
-      fs.writeFileSync(filepath, audioBuffer);
+    // 5. OFFLINE / BUCKET FALLBACK
+    const audioBuffer = await universalTtsService.synthesize(cleanScript, language || 'en', voice || 'Standard');
+    fs.writeFileSync(cachedFilepath, audioBuffer);
 
-      return res.json({
-        id: `vo-bucket-${Date.now()}`,
-        filename,
-        url: `/uploads/${filename}`,
-        voice: voice || 'he-IL-HilaNeural',
-        script,
-        audioLength: audioBuffer.length,
-        duration: Math.ceil(script.length / 12),
-        status: 'complete',
-        engine: 'Native Israeli Neural Engine (Bucket Cloned Voice)',
-        createdAt: new Date().toISOString()
-      });
-    }
-
-    return res.status(400).json({ 
-      error: 'To synthesize non-Hebrew multilingual voices, please set the ELEVENLABS_API_KEY environment variable in Railway or .env' 
+    return res.json({
+      id: `vo-bucket-${Date.now()}`,
+      filename: cachedFilename,
+      url: `/uploads/${cachedFilename}`,
+      voice: voice || 'Standard',
+      script: cleanScript,
+      audioLength: audioBuffer.length,
+      duration: Math.ceil(cleanScript.length / 14),
+      status: 'complete',
+      engine: 'Universal Free Neural Engine (Zero-Cost)',
+      createdAt: new Date().toISOString()
     });
   } catch (error) {
     console.error('Generation route error:', error);

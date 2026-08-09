@@ -58,6 +58,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [isDictating, setIsDictating] = useState(false);
   const [customMinutes, setCustomMinutes] = useState(1);
   const [customSeconds, setCustomSeconds] = useState(0);
+  const [engineMode, setEngineMode] = useState('free');
   const recognitionRef = useRef(null);
 
   // 🌐 Multilingual states (Hebrew positioned LAST on the list)
@@ -529,6 +530,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           script: demoPhrase,
           voice: voiceObj.id,
           language: selectedLanguage,
+          engineMode: engineMode,
           useClonedBridge: true
         })
       });
@@ -927,6 +929,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           similarityBoost: voiceSimilarity,
           speed: voiceSpeed,
           language: selectedLanguage,
+          engineMode: engineMode,
           useClonedBridge: true
         })
       });
@@ -1319,7 +1322,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
           {/* ================================================================ */}
           {activeVoiceObj && (
             <section className="fable-box tts-console-box" style={{ border: '2px solid #f59e0b', marginBottom: '24px', boxShadow: '0 0 24px rgba(245, 158, 11, 0.15)' }}>
-              <div className="tts-console-header" style={{ borderBottom: '1px solid #1e293b', paddingBottom: '14px', marginBottom: '18px' }}>
+              <div className="tts-console-header" style={{ borderBottom: '1px solid #1e293b', paddingBottom: '14px', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <div className="brand-logo-badge" style={{ width: '38px', height: '38px' }}>
                     <span style={{ fontSize: '18px' }}>🎛️</span>
@@ -1342,6 +1345,48 @@ export default function VoiceBrowser({ onSelectVoice }) {
                   >
                     {loadingPreviewId === activeVoiceObj.id ? '⏳ Loading...' : playingVoiceId === activeVoiceObj.id ? '⏹️ Stop Preview' : '▶️ Play Voice Preview'}
                   </button>
+                </div>
+              </div>
+
+              {/* 💰 3 FREE ZERO-COST TOOLS ACTIVE FOR ALL LANGUAGES + ENGINE SWITCHER */}
+              <div className="zero-cost-engine-banner" style={{ marginBottom: '16px' }}>
+                <div className="zero-cost-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="zero-cost-icon">💰</span>
+                    <strong style={{ fontSize: '12.5px', color: '#10b981' }}>
+                      3 Free Zero-Cost Tools Active for ALL 30+ Languages ($0.00):
+                    </strong>
+                  </div>
+
+                  {/* Engine Mode Toggle */}
+                  <div className="engine-toggle-pills">
+                    <button 
+                      className={`engine-pill-btn ${engineMode === 'free' ? 'active-free-pill' : ''}`}
+                      onClick={() => setEngineMode('free')}
+                      title="100% Free Google Neural Engine for all languages ($0.00 cost, zero API credits consumed)"
+                    >
+                      🟢 100% Free Neural Mode ($0.00)
+                    </button>
+                    <button 
+                      className={`engine-pill-btn ${engineMode === 'elevenlabs' ? 'active-studio-pill' : ''}`}
+                      onClick={() => setEngineMode('elevenlabs')}
+                      title="Studio ElevenLabs Flash v2.5 (50% cheaper character rate with instant caching)"
+                    >
+                      💎 ElevenLabs Studio Flash (50% Off)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="zero-cost-pills-row" style={{ marginTop: '8px' }}>
+                  <div className="zero-feature-pill">
+                    <span className="pill-check">✓</span> <strong>Free Neural Audio ($0.00):</strong> Unlimited speech in {selectedLangObj.name.split(' ')[0]} & all 30+ languages
+                  </div>
+                  <div className="zero-feature-pill">
+                    <span className="pill-check">✓</span> <strong>Free Neural Translation ($0.00):</strong> Instant bidirectional translation across 30+ languages
+                  </div>
+                  <div className="zero-feature-pill">
+                    <span className="pill-check">✓</span> <strong>Free Microphone Dictation ($0.00):</strong> Native device speech recognition
+                  </div>
                 </div>
               </div>
 
