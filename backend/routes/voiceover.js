@@ -318,6 +318,7 @@ router.post('/generate', async (req, res) => {
           stability: typeof stability === 'number' ? stability : 0.5,
           similarityBoost: typeof similarityBoost === 'number' ? similarityBoost : 0.75,
           style: typeof style === 'number' ? style : 0.0,
+          speed: typeof speed === 'number' ? speed : 1.0,
           modelId: modelId || 'eleven_multilingual_v2',
           language: language || 'auto'
         });

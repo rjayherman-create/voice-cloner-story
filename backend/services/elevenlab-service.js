@@ -152,11 +152,12 @@ class ElevenLabsService {
         : this.mapEmotionToSimilarity(options.emotion || 'neutral');
 
       const styleVal = typeof options.style === 'number' ? options.style : 0.0;
+      const speedVal = typeof options.speed === 'number' ? Math.max(0.7, Math.min(1.25, options.speed)) : 1.0;
 
       // eleven_multilingual_v2 is the official model for 32+ native languages including Hebrew
       const modelId = options.modelId || 'eleven_multilingual_v2';
 
-      // Strict schema compliance for ElevenLabs API (no unsupported extra fields)
+      // Strict schema compliance for ElevenLabs API
       const payload = {
         text: cleanText,
         model_id: modelId,
@@ -164,7 +165,8 @@ class ElevenLabsService {
           stability: isHebrew ? Math.max(0.45, stabilityVal) : stabilityVal,
           similarity_boost: similarityVal,
           style: styleVal,
-          use_speaker_boost: true
+          use_speaker_boost: true,
+          speed: speedVal
         }
       };
 

@@ -1262,7 +1262,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
 
                 {synthesizedAudioUrl && (
                   <div className="synthesized-player-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <audio controls autoPlay src={synthesizedAudioUrl} />
+                    <audio 
+                      controls 
+                      autoPlay 
+                      src={synthesizedAudioUrl} 
+                      onPlay={(e) => { e.currentTarget.playbackRate = voiceSpeed; }}
+                    />
                     {synthesizedEngineUsed && (
                       <span className="badge-selected-green" style={{ fontSize: '11px', padding: '6px 10px' }}>
                         ✨ {synthesizedEngineUsed}
