@@ -226,6 +226,42 @@ router.delete('/soundtracks/:id', (req, res) => {
   }
 });
 
+// PUT Replace audio file of any soundtrack by ID
+router.put('/soundtracks/:id/replace', soundtrackUpload.single('audioFile'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Please select an audio file (.mp3, .wav, .m4a, .ogg) to replace this track.' });
+    }
+
+    const { id } = req.params;
+    const track = soundtrackLibraryService.getById(id);
+    if (!track) {
+      return res.status(404).json({ error: `Soundtrack "${id}" not found in catalog.` });
+    }
+
+    // Determine target file path
+    const targetFilename = path.basename(track.url.split('?')[0]);
+    const targetPath = path.join(SOUNDTRACKS_DIR, targetFilename);
+
+    // Overwrite the file on disk with the uploaded file
+    fs.copyFileSync(req.file.path, targetPath);
+    try { fs.unlinkSync(req.file.path); } catch (e) {}
+
+    console.log(`[SoundtrackLibrary] Replaced audio file for track "${track.title}" (${id}) with uploaded file: ${req.file.originalname}`);
+
+    res.json({
+      success: true,
+      trackId: id,
+      title: track.title,
+      url: `${track.url.split('?')[0]}?v=${Date.now()}`,
+      message: `Audio for "${track.title}" has been successfully replaced!`
+    });
+  } catch (err) {
+    console.error('[SoundtrackLibrary] Replace error:', err);
+    res.status(500).json({ error: err.message || 'Failed to replace track audio.' });
+  }
+});
+
 // POST Mix Voiceover + Ambient Soundtrack (Auto & Manual Studio Mixer)
 router.post('/mix-audio', async (req, res) => {
   try {

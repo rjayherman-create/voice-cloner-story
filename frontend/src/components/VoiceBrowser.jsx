@@ -266,6 +266,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [dragOverSceneIndex, setDragOverSceneIndex] = useState(null);
   const [isDraggingAudio, setIsDraggingAudio] = useState(false);
   const [slotDragActive, setSlotDragActive] = useState({});
+  const [replacingTrackId, setReplacingTrackId] = useState(null);
 
   // Refs for recording & timer
   const mediaRecorderRef = useRef(null);
@@ -1288,6 +1289,37 @@ export default function VoiceBrowser({ onSelectVoice }) {
       }
     } catch (err) {
       alert('Delete error: ' + err.message);
+    }
+  };
+
+  // 🔄 Replace Track Audio File (1-Click Overwrite with New Creation)
+  const handleReplaceTrackAudio = async (trackId, file, trackTitle) => {
+    if (!file) return;
+    setReplacingTrackId(trackId);
+    try {
+      const formData = new FormData();
+      formData.append('audioFile', file);
+
+      const res = await fetch(`/api/voiceover/soundtracks/${trackId}/replace`, {
+        method: 'PUT',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAiSuccessMsg(`🎉 ${data.message}`);
+        await loadSoundtracks(soundtrackCategory, soundtrackSearch);
+        if (playingSoundtrackId === trackId && soundtrackAudioRef.current) {
+          soundtrackAudioRef.current.src = data.url;
+          soundtrackAudioRef.current.play().catch(() => {});
+        }
+      } else {
+        alert(data.error || 'Failed to replace audio file');
+      }
+    } catch (err) {
+      alert('Replace error: ' + err.message);
+    } finally {
+      setReplacingTrackId(null);
     }
   };
 
@@ -2991,6 +3023,38 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     >
                       {isSelected ? '✓ Active Track' : '⚡ Use Track'}
                     </button>
+
+                    <label 
+                      className="btn-replace-audio"
+                      title={`Replace audio file for ${st.title} with your new music`}
+                      style={{ 
+                        padding: '8px 10px', 
+                        borderRadius: '6px', 
+                        fontSize: '11.5px', 
+                        fontWeight: 700, 
+                        cursor: 'pointer', 
+                        background: '#1e293b', 
+                        color: '#38bdf8', 
+                        border: '1px solid #334155',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        margin: 0
+                      }}
+                    >
+                      <input 
+                        type="file" 
+                        accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" 
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleReplaceTrackAudio(st.id, e.target.files[0], st.title);
+                          }
+                        }}
+                      />
+                      <span>{replacingTrackId === st.id ? '⏳' : '🔄'}</span>
+                      <span>{replacingTrackId === st.id ? 'Saving...' : 'Replace'}</span>
+                    </label>
 
                     {st.isCustom && (
                       <button
