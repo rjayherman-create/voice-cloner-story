@@ -1,6 +1,6 @@
-# 🌙 6 Bedtime & Children’s Story Soundtracks (Suno AI Prompts)
+# 🌙 10 Bedtime & Children’s Story Soundtracks (Suno AI Prompts)
 
-This guide contains **6 tested, ultra-soothing Suno AI instrumental prompts** designed specifically for children's bedtime stories, fairytale narration, and sleep audiobooks in **FableVoice Studio**.
+This guide contains **10 tested, ultra-soothing Suno AI instrumental prompts** designed specifically for children's bedtime stories, fairytale narration, and sleep audiobooks in **FableVoice Studio**.
 
 ---
 
@@ -106,4 +106,69 @@ This guide contains **6 tested, ultra-soothing Suno AI instrumental prompts** de
   [Sustained warm drone]
   [Gentle acoustic guitar fingerpicking pattern]
   [Infinite peaceful sleep decay]
+  ```
+
+---
+
+### 7. 🚂 The Little Train to Dreamland (Rhythmic Hypnotic Rocking)
+* **Story Mood**: A magical bedtime steam train gliding peacefully along rainbow tracks across starry night skies.
+* **Instrumentation**: Soft Brushed Snare Rhythm, Acoustic Steel Guitar, Muted Upright Bass, Distant Flute.
+* **Tempo / Tuning**: `56 BPM • Hypnotic Rocking Rhythm`
+* **Suno Style Prompt**:
+  `Soft brushed snare train rhythm, warm acoustic guitar strumming, upright bass, gentle bedtime train to dreamland, soothing rhythmic motion, 56 BPM, studio master`
+* **Suno Structure Tags**:
+  ```text
+  [Instrumental]
+  [Intro: Soft rhythmic brushed snare and acoustic guitar]
+  [Theme: Warm melodic acoustic guitar strum]
+  [Bridge: Distant gentle wooden whistle note]
+  [Outro: Slowing train rhythm, peaceful fading chords]
+  ```
+
+---
+
+### 8. 🧸 The Moonlit Treehouse & Woodwind Trio (Winnie-the-Pooh Cozy Warmth)
+* **Story Mood**: Cozy woodland treehouse, drinking warm milk with kind forest friends before bed.
+* **Instrumentation**: Wooden Oboe, Warm Clarinet, Classical Nylon Guitar, Subtle Wind Chimes.
+* **Tempo / Tuning**: `55 BPM • Organic Acoustic Warmth`
+* **Suno Style Prompt**:
+  `Wooden oboe, warm classical clarinet, gentle nylon string guitar, whimsical cozy woodland treehouse, Winnie the Pooh bedtime score, 55 BPM`
+* **Suno Structure Tags**:
+  ```text
+  [Instrumental]
+  [Intro: Delicate nylon guitar arpeggios]
+  [Theme: Warm wooden clarinet and oboe duet]
+  [Outro: Soft final chord and gentle wind chime shimmer]
+  ```
+
+---
+
+### 9. ✨ The Wishing Star & Crystal Glockenspiel (Pure Starlight Magic)
+* **Story Mood**: Making a bedtime wish upon the brightest star, watching stardust drift across the room.
+* **Instrumentation**: Crystal Glockenspiel, Lush Orchestral String Pad, Celesta Bells, Soft Harp.
+* **Tempo / Tuning**: `50 BPM • Celestial Wonder`
+* **Suno Style Prompt**:
+  `Crystal glockenspiel sparkle, lush orchestral string bed, celesta bells, harp glissando, celestial wishing star bedtime story, pure magic and wonder, 50 BPM`
+* **Suno Structure Tags**:
+  ```text
+  [Instrumental]
+  [Intro: Twinkling glockenspiel and celesta motif]
+  [Development: Wide lush orchestral string pad swell]
+  [Outro: Delicate fading stardust sparkle]
+  ```
+
+---
+
+### 10. 🕯️ Grandmother’s Fireplace Story (Nostalgic Cello & Felt Piano)
+* **Story Mood**: Feeling completely protected, loved, and safe while listening to an ancient wise bedtime story.
+* **Instrumentation**: Solo Stradivarius Cello, Warm Felt Upright Piano, Subtle Crackling Hearth.
+* **Tempo / Tuning**: `52 BPM • Nostalgic & Comforting`
+* **Suno Style Prompt**:
+  `Solo acoustic cello, warm felt upright piano, crackling fireplace ambiance, nostalgic bedtime story by grandmother, deep comforting love, 52 BPM`
+* **Suno Structure Tags**:
+  ```text
+  [Instrumental]
+  [Intro: Subtle fire crackle and gentle piano chords]
+  [Theme: Rich emotional cello melody]
+  [Outro: Soft piano triad and warm cello sustain]
   ```
