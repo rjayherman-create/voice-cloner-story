@@ -12,9 +12,34 @@ import universalTtsService from '../services/universal-tts-service.js';
 import soundtrackLibraryService from '../services/soundtrack-library.js';
 import audioMixerService from '../services/audio-mixer-service.js';
 
+import multer from 'multer';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+const SOUNDTRACKS_DIR = path.join(__dirname, '../../uploads/soundtracks');
+
+if (!fs.existsSync(SOUNDTRACKS_DIR)) {
+  fs.mkdirSync(SOUNDTRACKS_DIR, { recursive: true });
+}
+
+// Multer storage for custom uploaded soundtracks
+const soundtrackStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, SOUNDTRACKS_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.mp3';
+    const cleanName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+    const uniqueName = `custom-${cleanName}-${Date.now()}${ext}`;
+    cb(null, uniqueName);
+  }
+});
+
+const soundtrackUpload = multer({
+  storage: soundtrackStorage,
+  limits: { fileSize: 60 * 1024 * 1024 } // 60MB max per audio file
+});
 
 const router = express.Router();
 
@@ -155,6 +180,50 @@ router.get('/soundtracks', (req, res) => {
     categories: soundtrackLibraryService.getCategories(),
     soundtracks: tracks
   });
+});
+
+// POST Upload custom audio soundtrack (.mp3, .wav, .m4a, .ogg) to Library
+router.post('/soundtracks/upload', soundtrackUpload.single('audioFile'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Please select an audio file (.mp3, .wav, .m4a, .ogg) to upload.' });
+    }
+
+    const { title, category, tempo, mood, instrumentation, previewNote } = req.body;
+    const newTrack = soundtrackLibraryService.addCustomTrack({
+      title: title && title.trim() ? title.trim() : path.basename(req.file.originalname, path.extname(req.file.originalname)),
+      category: category && category.trim() ? category.trim() : 'Custom',
+      tempo: tempo && tempo.trim() ? tempo.trim() : 'Medium (90 BPM)',
+      mood: mood && mood.trim() ? mood.trim() : 'Custom Soundscape',
+      instrumentation: instrumentation && instrumentation.trim() ? instrumentation.trim() : 'Custom Studio Audio',
+      previewNote: previewNote && previewNote.trim() ? previewNote.trim() : `Uploaded audio file: ${req.file.originalname}`,
+      filename: req.file.filename
+    });
+
+    console.log(`[SoundtrackLibrary] Uploaded new track: "${newTrack.title}" (${req.file.filename})`);
+    res.json({
+      success: true,
+      track: newTrack,
+      message: `Soundtrack "${newTrack.title}" successfully added to your Music Library!`
+    });
+  } catch (err) {
+    console.error('[SoundtrackLibrary] Upload error:', err);
+    res.status(500).json({ error: err.message || 'Failed to upload soundtrack.' });
+  }
+});
+
+// DELETE Custom soundtrack by ID
+router.delete('/soundtracks/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = soundtrackLibraryService.deleteCustomTrack(id);
+    if (!success) {
+      return res.status(404).json({ error: 'Custom track not found or is a built-in master track.' });
+    }
+    res.json({ success: true, message: 'Custom soundtrack deleted from library.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST Mix Voiceover + Ambient Soundtrack (Auto & Manual Studio Mixer)

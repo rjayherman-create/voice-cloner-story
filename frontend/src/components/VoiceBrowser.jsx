@@ -250,6 +250,17 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [mixedMasterAudioUrl, setMixedMasterAudioUrl] = useState(null);
   const [mixedMasterDetails, setMixedMasterDetails] = useState(null);
 
+  // 7. Custom Soundtrack Uploader states (Persistent Database & Storage)
+  const [showSoundtrackUploadModal, setShowSoundtrackUploadModal] = useState(false);
+  const [uploadAudioFile, setUploadAudioFile] = useState(null);
+  const [uploadTrackTitle, setUploadTrackTitle] = useState('');
+  const [uploadTrackCategory, setUploadTrackCategory] = useState('Custom');
+  const [uploadTrackTempo, setUploadTrackTempo] = useState('Medium (80 BPM)');
+  const [uploadTrackMood, setUploadTrackMood] = useState('Relaxing & Atmospheric');
+  const [uploadTrackInstrumentation, setUploadTrackInstrumentation] = useState('Custom Instrument');
+  const [uploadTrackNote, setUploadTrackNote] = useState('');
+  const [isUploadingTrack, setIsUploadingTrack] = useState(false);
+
   // Refs for recording & timer
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -1151,6 +1162,68 @@ export default function VoiceBrowser({ onSelectVoice }) {
       alert('Mixing error: ' + err.message);
     } finally {
       setIsRenderingMix(false);
+    }
+  };
+
+  // 🎼 Custom Soundtrack Upload Handler (Save to Persistent Storage & Database)
+  const handleUploadCustomSoundtrack = async (e) => {
+    if (e) e.preventDefault();
+    if (!uploadAudioFile) {
+      alert('Please select an audio file (.mp3, .wav, .m4a, .ogg) to upload');
+      return;
+    }
+
+    setIsUploadingTrack(true);
+    try {
+      const formData = new FormData();
+      formData.append('audioFile', uploadAudioFile);
+      formData.append('title', uploadTrackTitle || uploadAudioFile.name);
+      formData.append('category', uploadTrackCategory);
+      formData.append('tempo', uploadTrackTempo);
+      formData.append('mood', uploadTrackMood);
+      formData.append('instrumentation', uploadTrackInstrumentation);
+      formData.append('previewNote', uploadTrackNote || `Uploaded custom track: ${uploadAudioFile.name}`);
+
+      const res = await fetch('/api/voiceover/soundtracks/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setShowSoundtrackUploadModal(false);
+        setUploadAudioFile(null);
+        setUploadTrackTitle('');
+        setUploadTrackNote('');
+        setAiSuccessMsg(`🎉 ${data.message}`);
+        await loadSoundtracks(soundtrackCategory, soundtrackSearch);
+        if (data.track) setSelectedSoundtrack(data.track);
+      } else {
+        alert(data.error || 'Failed to upload soundtrack');
+      }
+    } catch (err) {
+      alert('Upload error: ' + err.message);
+    } finally {
+      setIsUploadingTrack(false);
+    }
+  };
+
+  // 🗑️ Delete Custom Soundtrack from Library
+  const handleDeleteCustomSoundtrack = async (id, title, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to delete custom soundtrack "${title}" from your library?`)) return;
+
+    try {
+      const res = await fetch(`/api/voiceover/soundtracks/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        setAiSuccessMsg(`🗑️ Custom track "${title}" deleted from library.`);
+        await loadSoundtracks(soundtrackCategory, soundtrackSearch);
+      } else {
+        alert(data.error || 'Failed to delete track');
+      }
+    } catch (err) {
+      alert('Delete error: ' + err.message);
     }
   };
 
@@ -2696,23 +2769,34 @@ export default function VoiceBrowser({ onSelectVoice }) {
         <main className="soundtrack-tab-content fable-box">
           <audio ref={soundtrackAudioRef} loop />
 
-          <div className="soundtrack-header">
+          <div className="soundtrack-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
             <div>
-              <h2 className="screenplay-title">🎼 20-Track Royalty-Free Music & Ambience Library</h2>
-              <p className="screenplay-sub">Layer calming bedtime lullabies, lo-fi podcast grooves, broadcast tech pulses, and cinematic strings under your voiceovers.</p>
+              <h2 className="screenplay-title">🎼 Royalty-Free Music & Ambience Library</h2>
+              <p className="screenplay-sub">Layer calming bedtime lullabies, lo-fi podcast grooves, broadcast tech pulses, cinematic strings, or your own custom uploaded audio tracks.</p>
             </div>
-            {selectedSoundtrack && (
-              <span className="badge-selected-green" style={{ fontSize: '12px', padding: '6px 12px' }}>
-                🎵 Active Soundtrack: {selectedSoundtrack.title}
-              </span>
-            )}
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                className="gold-studio-btn"
+                onClick={() => setShowSoundtrackUploadModal(true)}
+                style={{ padding: '10px 18px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span>➕</span> Upload Custom Music Track
+              </button>
+              {selectedSoundtrack && (
+                <span className="badge-selected-green" style={{ fontSize: '12px', padding: '6px 12px' }}>
+                  🎵 Active: {selectedSoundtrack.title}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Category Filter Pills & Search Bar */}
           <div className="soundtrack-filter-bar" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '18px', background: '#0b1120', padding: '12px', borderRadius: '10px', border: '1px solid #1e293b' }}>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', flex: 1 }}>
               {[
-                { key: 'all', label: '🌟 All 20 Tracks' },
+                { key: 'all', label: '🌟 All Tracks' },
+                { key: 'Custom', label: '✨ Custom Uploads' },
                 { key: 'Bedtime', label: '🌙 Bedtime & Sleep' },
                 { key: 'Podcast', label: '🎙️ Podcast & Talk Show' },
                 { key: 'News & Tech', label: '📰 News & Tech' },
@@ -2770,7 +2854,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
             </div>
           </div>
 
-          {/* 20-Track Music Grid */}
+          {/* Tracks Music Grid */}
           <div className="soundtracks-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
             {soundtracks.map((st) => {
               const isPlaying = playingSoundtrackId === st.id;
@@ -2779,13 +2863,20 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <div 
                   key={st.id} 
                   className={`soundtrack-card ${isSelected ? 'selected-st-card' : ''}`}
-                  style={{ background: '#0f172a', border: isSelected ? '2px solid #f59e0b' : '1px solid #334155', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                  style={{ background: st.isCustom ? '#091e17' : '#0f172a', border: isSelected ? '2px solid #f59e0b' : st.isCustom ? '1.5px solid #10b981' : '1px solid #334155', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}
                 >
                   <div className="st-info">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span className="st-cat-badge" style={{ background: '#1e293b', color: '#f59e0b', padding: '3px 8px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 800 }}>
-                        {st.category}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="st-cat-badge" style={{ background: st.isCustom ? '#064e3b' : '#1e293b', color: st.isCustom ? '#34d399' : '#f59e0b', padding: '3px 8px', borderRadius: '4px', fontSize: '10.5px', fontWeight: 800 }}>
+                          {st.category}
+                        </span>
+                        {st.isCustom && (
+                          <span style={{ fontSize: '10px', background: '#059669', color: '#ffffff', padding: '2px 6px', borderRadius: '3px', fontWeight: 800 }}>
+                            ✨ CUSTOM
+                          </span>
+                        )}
+                      </div>
                       <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{st.tempo}</span>
                     </div>
 
@@ -2798,7 +2889,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     <p className="st-note" style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.4, marginBottom: '14px' }}>{st.previewNote}</p>
                   </div>
 
-                  <div className="st-actions" style={{ display: 'flex', gap: '8px' }}>
+                  <div className="st-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button 
                       className={`st-play-btn ${isPlaying ? 'st-playing' : ''}`}
                       onClick={() => toggleSoundtrackPlay(st)}
@@ -2817,6 +2908,16 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     >
                       {isSelected ? '✓ Active Track' : '⚡ Use Track'}
                     </button>
+
+                    {st.isCustom && (
+                      <button
+                        onClick={(e) => handleDeleteCustomSoundtrack(st.id, st.title, e)}
+                        title="Delete custom soundtrack"
+                        style={{ padding: '8px', borderRadius: '6px', background: '#3f1515', color: '#fca5a5', border: '1px solid #7f1d1d', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -2916,10 +3017,19 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label className="input-label-uppercase" style={{ fontSize: '11px' }}>Select Background Track (20 Tracks)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label className="input-label-uppercase" style={{ fontSize: '11px', margin: 0 }}>Select Background Track ({soundtracks.length} Tracks)</label>
+                  <button 
+                    type="button"
+                    onClick={() => setShowSoundtrackUploadModal(true)}
+                    style={{ background: 'none', border: 'none', color: '#10b981', fontSize: '11.5px', fontWeight: 800, cursor: 'pointer', padding: 0 }}
+                  >
+                    + Upload Custom Track
+                  </button>
+                </div>
                 <select 
                   className="dark-input-field"
-                  style={{ width: '100%', marginTop: '4px' }}
+                  style={{ width: '100%' }}
                   value={selectedSoundtrack ? selectedSoundtrack.id : 'lullaby-harp'}
                   onChange={(e) => {
                     const st = soundtracks.find(t => t.id === e.target.value);
@@ -2928,7 +3038,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 >
                   {soundtracks.map(t => (
                     <option key={t.id} value={t.id}>
-                      [{t.category}] {t.title} ({t.tempo})
+                      {t.isCustom ? '✨ [CUSTOM] ' : ''}[{t.category}] {t.title} ({t.tempo})
                     </option>
                   ))}
                 </select>
@@ -3171,6 +3281,154 @@ const { url, engine } = await response.json();`}
                   type="button" 
                   className="cancel-gray-btn"
                   onClick={() => setShowFamilyCloneModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: UPLOAD CUSTOM SOUNDTRACK & MUSIC TO DATABASE */}
+      {showSoundtrackUploadModal && (
+        <div className="modal-dark-overlay" onClick={() => setShowSoundtrackUploadModal(false)}>
+          <div className="modal-dark-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+            <button className="modal-close-x" onClick={() => setShowSoundtrackUploadModal(false)}>✕</button>
+
+            <div className="modal-header-section" style={{ borderBottom: '1px solid #1e293b', paddingBottom: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '24px' }}>🎼</span>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#f8fafc', margin: 0 }}>
+                    Upload Custom Soundtrack to Music Library
+                  </h2>
+                  <p style={{ fontSize: '12px', color: '#94a3b8', margin: '3px 0 0 0' }}>
+                    Upload your Suno AI tracks, studio instrumentals, or ambient soundscapes (.mp3, .wav, .m4a, .ogg)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleUploadCustomSoundtrack} className="modal-form">
+              {/* File Dropzone */}
+              <div className="modal-form-group">
+                <label>Audio File * (.mp3, .wav, .m4a, .ogg, max 60MB)</label>
+                <div style={{ border: '2px dashed #3b82f6', borderRadius: '8px', padding: '20px', textAlign: 'center', background: '#0b1120', cursor: 'pointer' }}>
+                  <input 
+                    type="file"
+                    accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac"
+                    onChange={(e) => {
+                      const file = e.target.files[0] || null;
+                      setUploadAudioFile(file);
+                      if (file && !uploadTrackTitle) {
+                        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+                        setUploadTrackTitle(cleanName);
+                      }
+                    }}
+                    required
+                    style={{ width: '100%' }}
+                  />
+                  {uploadAudioFile && (
+                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
+                      ✓ Selected: {uploadAudioFile.name} ({(uploadAudioFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Track Title */}
+              <div className="modal-form-group">
+                <label>Track Title *</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Lavender Sleep Wave, Suno Cinematic Theme, Lo-Fi Evening Beats"
+                  className="dark-input-field"
+                  value={uploadTrackTitle}
+                  onChange={(e) => setUploadTrackTitle(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Category & Tempo */}
+              <div className="modal-two-col">
+                <div className="modal-form-group">
+                  <label>Category / Mood Group</label>
+                  <select 
+                    className="dark-input-field"
+                    value={uploadTrackCategory}
+                    onChange={(e) => setUploadTrackCategory(e.target.value)}
+                  >
+                    <option value="Custom">✨ Custom Soundscapes</option>
+                    <option value="Bedtime">🌙 Bedtime & Sleep</option>
+                    <option value="Podcast">🎙️ Podcast & Talk Show</option>
+                    <option value="News & Tech">📰 News & Tech</option>
+                    <option value="Commercial">📢 Commercial & Ads</option>
+                    <option value="Cinematic">🎬 Cinematic & Fantasy</option>
+                  </select>
+                </div>
+
+                <div className="modal-form-group">
+                  <label>Tempo / BPM</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. 72 BPM, Slow & Gentle"
+                    className="dark-input-field"
+                    value={uploadTrackTempo}
+                    onChange={(e) => setUploadTrackTempo(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Instrumentation & Description */}
+              <div className="modal-two-col">
+                <div className="modal-form-group">
+                  <label>Instrumentation</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. Acoustic Harp, Solo Cello, Felt Piano"
+                    className="dark-input-field"
+                    value={uploadTrackInstrumentation}
+                    onChange={(e) => setUploadTrackInstrumentation(e.target.value)}
+                  />
+                </div>
+
+                <div className="modal-form-group">
+                  <label>Mood</label>
+                  <input 
+                    type="text"
+                    placeholder="e.g. Relaxing, Inspiring, Urgent"
+                    className="dark-input-field"
+                    value={uploadTrackMood}
+                    onChange={(e) => setUploadTrackMood(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-form-group">
+                <label>Description / Note (Optional)</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Generated with Suno AI for 432Hz sleep stories."
+                  className="dark-input-field"
+                  value={uploadTrackNote}
+                  onChange={(e) => setUploadTrackNote(e.target.value)}
+                />
+              </div>
+
+              <div className="modal-actions-row" style={{ marginTop: '16px' }}>
+                <button 
+                  type="submit" 
+                  className="gold-studio-btn"
+                  disabled={isUploadingTrack || !uploadAudioFile}
+                  style={{ flex: 2 }}
+                >
+                  {isUploadingTrack ? '⏳ UPLOADING & SAVING TO DATABASE...' : '💾 SAVE TRACK TO MUSIC LIBRARY'}
+                </button>
+                <button 
+                  type="button" 
+                  className="cancel-gray-btn"
+                  onClick={() => setShowSoundtrackUploadModal(false)}
                 >
                   Cancel
                 </button>

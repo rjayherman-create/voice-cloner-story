@@ -252,10 +252,77 @@ const SOUNDTRACK_CATALOG = [
   }
 ];
 
+const CUSTOM_SOUNDTRACKS_FILE = path.join(SOUNDTRACKS_DIR, 'custom-soundtracks.json');
+
 class SoundtrackLibraryService {
   constructor() {
-    this.catalog = SOUNDTRACK_CATALOG;
+    this.catalog = [...SOUNDTRACK_CATALOG];
+    this.customTracks = [];
     this.ensureAudioFilesExist();
+    this.loadCustomTracks();
+  }
+
+  // Load custom tracks from persistent JSON file
+  loadCustomTracks() {
+    try {
+      if (fs.existsSync(CUSTOM_SOUNDTRACKS_FILE)) {
+        const raw = fs.readFileSync(CUSTOM_SOUNDTRACKS_FILE, 'utf8');
+        this.customTracks = JSON.parse(raw);
+      } else {
+        this.customTracks = [];
+      }
+    } catch (e) {
+      console.error('[SoundtrackLibrary] Error loading custom tracks:', e.message);
+      this.customTracks = [];
+    }
+  }
+
+  // Save custom tracks to persistent JSON file
+  saveCustomTracks() {
+    try {
+      fs.writeFileSync(CUSTOM_SOUNDTRACKS_FILE, JSON.stringify(this.customTracks, null, 2), 'utf8');
+    } catch (e) {
+      console.error('[SoundtrackLibrary] Error saving custom tracks:', e.message);
+    }
+  }
+
+  // Add a new custom uploaded track
+  addCustomTrack({ title, category = 'Custom', tempo = 'Medium (90 BPM)', mood = 'Custom Soundscape', instrumentation = 'Custom Audio', previewNote = 'User uploaded audio track.', filename }) {
+    const id = `custom-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const newTrack = {
+      id,
+      title: title || 'Custom Soundtrack',
+      category: category || 'Custom',
+      genre: category || 'Custom',
+      tempo: tempo || 'Medium (90 BPM)',
+      mood: mood || 'Custom Soundscape',
+      instrumentation: instrumentation || 'Custom Audio Upload',
+      previewNote: previewNote || 'Custom uploaded audio track.',
+      url: `/uploads/soundtracks/${filename}`,
+      isCustom: true,
+      createdAt: new Date().toISOString()
+    };
+
+    this.customTracks.unshift(newTrack);
+    this.saveCustomTracks();
+    return newTrack;
+  }
+
+  // Delete a custom uploaded track
+  deleteCustomTrack(id) {
+    const track = this.customTracks.find(t => t.id === id);
+    if (!track) return false;
+
+    // Remove file from disk if it exists
+    const filename = path.basename(track.url);
+    const filePath = path.join(SOUNDTRACKS_DIR, filename);
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (e) {}
+    }
+
+    this.customTracks = this.customTracks.filter(t => t.id !== id);
+    this.saveCustomTracks();
+    return true;
   }
 
   // Ensure all 20 WAV files are generated and ready on disk
@@ -271,44 +338,53 @@ class SoundtrackLibraryService {
     }
   }
 
-  // Get all 20 tracks or filter by category
+  // Get full combined catalog (Built-in + Custom Uploads)
+  getCombinedCatalog() {
+    return [...this.customTracks, ...this.catalog];
+  }
+
+  // Get all tracks or filter by category
   getAll(category = null) {
+    const all = this.getCombinedCatalog();
     if (!category || category === 'all') {
-      return this.catalog;
+      return all;
     }
-    return this.catalog.filter(t => 
+    return all.filter(t => 
       t.category.toLowerCase() === category.toLowerCase() || 
-      t.genre.toLowerCase() === category.toLowerCase()
+      (t.genre && t.genre.toLowerCase() === category.toLowerCase())
     );
   }
 
   // Search by query (title, mood, instrumentation, preview note)
   search(query) {
+    const all = this.getCombinedCatalog();
     if (!query || !query.trim()) {
-      return this.catalog;
+      return all;
     }
     const q = query.toLowerCase().trim();
-    return this.catalog.filter(t => 
+    return all.filter(t => 
       t.title.toLowerCase().includes(q) ||
       t.category.toLowerCase().includes(q) ||
-      t.mood.toLowerCase().includes(q) ||
-      t.previewNote.toLowerCase().includes(q) ||
-      t.instrumentation.toLowerCase().includes(q)
+      (t.mood && t.mood.toLowerCase().includes(q)) ||
+      (t.previewNote && t.previewNote.toLowerCase().includes(q)) ||
+      (t.instrumentation && t.instrumentation.toLowerCase().includes(q))
     );
   }
 
   // Get single track by ID
   getById(id) {
-    return this.catalog.find(t => t.id === id) || null;
+    const all = this.getCombinedCatalog();
+    return all.find(t => t.id === id) || null;
   }
 
   // Get category list with counts
   getCategories() {
-    const cats = ['all', 'Bedtime', 'Podcast', 'News & Tech', 'Commercial', 'Cinematic'];
+    const all = this.getCombinedCatalog();
+    const cats = ['all', 'Custom', 'Bedtime', 'Podcast', 'News & Tech', 'Commercial', 'Cinematic'];
     return cats.map(cat => ({
       name: cat,
-      count: cat === 'all' ? this.catalog.length : this.catalog.filter(t => t.category.toLowerCase() === cat.toLowerCase()).length
-    }));
+      count: cat === 'all' ? all.length : all.filter(t => t.category.toLowerCase() === cat.toLowerCase()).length
+    })).filter(c => c.name !== 'Custom' || c.count > 0);
   }
 }
 
