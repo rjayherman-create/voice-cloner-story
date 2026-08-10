@@ -2081,3 +2081,74 @@
   color: #38bdf8;
   overflow-x: auto;
 }
+
+/* ========================================================================== */
+/* 🎛️ DRAG & DROP WORKSTATION STYLING                                       */
+/* ========================================================================== */
+.drag-drop-zone {
+  border: 2px dashed #3b82f6;
+  border-radius: 12px;
+  padding: 28px 20px;
+  text-align: center;
+  background: #0b1120;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.drag-drop-zone.drag-active {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.drag-drop-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  display: inline-block;
+  animation: floatIcon 2.5s ease-in-out infinite;
+}
+
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.drag-handle-btn {
+  cursor: grab;
+  color: #64748b;
+  font-size: 16px;
+  padding: 2px 6px;
+  user-select: none;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.drag-handle-btn:hover {
+  color: #f59e0b;
+  background: #1e293b;
+}
+
+.drag-handle-btn:active {
+  cursor: grabbing;
+}
+
+.dialogue-scene-card.dragging {
+  opacity: 0.35;
+  border: 2px dashed #f59e0b !important;
+  background: #1e293b !important;
+}
+
+.dialogue-scene-card.drag-over-target {
+  border-top: 3px solid #10b981 !important;
+  transform: translateY(-2px);
+  transition: transform 0.15s ease;
+}
+
+.sample-slot-card.slot-drag-active {
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.15) !important;
+  transform: scale(1.03);
+}
+

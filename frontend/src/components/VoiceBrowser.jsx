@@ -261,6 +261,12 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [uploadTrackNote, setUploadTrackNote] = useState('');
   const [isUploadingTrack, setIsUploadingTrack] = useState(false);
 
+  // 8. Drag & Drop Workstation states (Audio & Scene Reordering)
+  const [draggedSceneIndex, setDraggedSceneIndex] = useState(null);
+  const [dragOverSceneIndex, setDragOverSceneIndex] = useState(null);
+  const [isDraggingAudio, setIsDraggingAudio] = useState(false);
+  const [slotDragActive, setSlotDragActive] = useState({});
+
   // Refs for recording & timer
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -1068,6 +1074,64 @@ export default function VoiceBrowser({ onSelectVoice }) {
     if (!screenplayScript || !screenplayScript.scenes) return;
     const updated = screenplayScript.scenes.filter((_, i) => i !== idx);
     setScreenplayScript({ ...screenplayScript, scenes: updated });
+  };
+
+  // 🔀 Drag & Drop Dialogue Scene Reordering Handlers
+  const handleSceneDragStart = (idx, e) => {
+    setDraggedSceneIndex(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', idx.toString());
+  };
+
+  const handleSceneDragOver = (idx, e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverSceneIndex !== idx) {
+      setDragOverSceneIndex(idx);
+    }
+  };
+
+  const handleSceneDrop = (targetIdx, e) => {
+    e.preventDefault();
+    if (draggedSceneIndex === null || draggedSceneIndex === targetIdx) {
+      setDraggedSceneIndex(null);
+      setDragOverSceneIndex(null);
+      return;
+    }
+
+    const updatedScenes = [...screenplayScript.scenes];
+    const [movedScene] = updatedScenes.splice(draggedSceneIndex, 1);
+    updatedScenes.splice(targetIdx, 0, movedScene);
+
+    setScreenplayScript({
+      ...screenplayScript,
+      scenes: updatedScenes
+    });
+    setDraggedSceneIndex(null);
+    setDragOverSceneIndex(null);
+  };
+
+  const handleSceneDragEnd = () => {
+    setDraggedSceneIndex(null);
+    setDragOverSceneIndex(null);
+  };
+
+  // 📁 Drag & Drop Audio File Handlers (Soundtrack Uploader & Slots)
+  const handleAudioDropzoneDrop = (e) => {
+    e.preventDefault();
+    setIsDraggingAudio(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('audio/') || /\.(mp3|wav|m4a|ogg|flac|aac)$/i.test(file.name)) {
+        setUploadAudioFile(file);
+        if (!uploadTrackTitle) {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+          setUploadTrackTitle(cleanName);
+        }
+      } else {
+        alert('Please drop a valid audio file (.mp3, .wav, .m4a, .ogg, .flac)');
+      }
+    }
   };
 
   const handleSynthesizeScreenplay = async () => {
@@ -2710,40 +2774,59 @@ export default function VoiceBrowser({ onSelectVoice }) {
               </div>
 
               <div className="dialogue-scenes-list">
-                {screenplayScript.scenes.map((scene, idx) => (
-                  <div key={idx} className="dialogue-scene-card" style={{ marginBottom: '10px' }}>
-                    <div className="scene-speaker-tag" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="scene-num-badge">Scene {idx + 1}</span>
-                        <select
-                          className="dark-input-field mini-lang-dropdown"
-                          value={scene.character}
-                          onChange={(e) => handleUpdateSceneCharacter(idx, e.target.value)}
+                {screenplayScript.scenes.map((scene, idx) => {
+                  const isDragging = draggedSceneIndex === idx;
+                  const isDragOver = dragOverSceneIndex === idx;
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`dialogue-scene-card ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over-target' : ''}`}
+                      style={{ marginBottom: '10px' }}
+                      draggable={true}
+                      onDragStart={(e) => handleSceneDragStart(idx, e)}
+                      onDragOver={(e) => handleSceneDragOver(idx, e)}
+                      onDrop={(e) => handleSceneDrop(idx, e)}
+                      onDragEnd={handleSceneDragEnd}
+                    >
+                      <div className="scene-speaker-tag" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span 
+                            className="drag-handle-btn" 
+                            title="Drag and drop to reorder dialogue scene lines"
+                          >
+                            ⋮⋮
+                          </span>
+                          <span className="scene-num-badge">Scene {idx + 1}</span>
+                          <select
+                            className="dark-input-field mini-lang-dropdown"
+                            value={scene.character}
+                            onChange={(e) => handleUpdateSceneCharacter(idx, e.target.value)}
+                          >
+                            {['Narrator', 'Mother', 'Father', 'Child', 'Host', 'Co-Host', 'Guest', 'Anchor', 'Reporter', 'Announcer', 'Customer A', 'Customer B', 'Wise Elder'].map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <button 
+                          className="del-profile-btn"
+                          onClick={() => handleRemoveSceneLine(idx)}
+                          title="Delete this scene line"
                         >
-                          {['Narrator', 'Mother', 'Father', 'Child', 'Host', 'Co-Host', 'Guest', 'Anchor', 'Reporter', 'Announcer', 'Customer A', 'Customer B', 'Wise Elder'].map(c => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                        </select>
+                          🗑️ Remove
+                        </button>
                       </div>
 
-                      <button 
-                        className="del-profile-btn"
-                        onClick={() => handleRemoveSceneLine(idx)}
-                        title="Delete this scene line"
-                      >
-                        🗑️ Remove
-                      </button>
+                      <textarea 
+                        className="dark-textarea"
+                        style={{ marginTop: '8px', minHeight: '60px', width: '100%' }}
+                        dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
+                        value={scene.text}
+                        onChange={(e) => handleUpdateSceneText(idx, e.target.value)}
+                      />
                     </div>
-
-                    <textarea 
-                      className="dark-textarea"
-                      style={{ marginTop: '8px', minHeight: '60px', width: '100%' }}
-                      dir={selectedLanguage === 'he' || selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
-                      value={scene.text}
-                      onChange={(e) => handleUpdateSceneText(idx, e.target.value)}
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {screenplayAudioLines.length > 0 && (
@@ -3254,8 +3337,20 @@ const { url, engine } = await response.json();`}
                 <label>🗂️ Multi-Sample Voice Booster (Upload 1–3 Audio Clips to Bucket)</label>
                 <div className="sample-slots-grid">
                   {sampleSlots.map((slot) => (
-                    <div key={slot.id} className="sample-slot-card">
-                      <span className="slot-title">{slot.label}</span>
+                    <div 
+                      key={slot.id} 
+                      className={`sample-slot-card ${slotDragActive[slot.id] ? 'slot-drag-active' : ''}`}
+                      onDragOver={(e) => { e.preventDefault(); setSlotDragActive({ ...slotDragActive, [slot.id]: true }); }}
+                      onDragLeave={(e) => { e.preventDefault(); setSlotDragActive({ ...slotDragActive, [slot.id]: false }); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setSlotDragActive({ ...slotDragActive, [slot.id]: false });
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          handleSampleSlotFile(slot.id, e.dataTransfer.files[0]);
+                        }
+                      }}
+                    >
+                      <span className="slot-title">{slot.label} (Drag Audio Here)</span>
                       <input 
                         type="file"
                         accept="audio/*"
@@ -3304,17 +3399,30 @@ const { url, engine } = await response.json();`}
                     Upload Custom Soundtrack to Music Library
                   </h2>
                   <p style={{ fontSize: '12px', color: '#94a3b8', margin: '3px 0 0 0' }}>
-                    Upload your Suno AI tracks, studio instrumentals, or ambient soundscapes (.mp3, .wav, .m4a, .ogg)
+                    Drag & drop your Suno AI tracks, studio instrumentals, or ambient soundscapes (.mp3, .wav, .m4a, .ogg)
                   </p>
                 </div>
               </div>
             </div>
 
             <form onSubmit={handleUploadCustomSoundtrack} className="modal-form">
-              {/* File Dropzone */}
+              {/* File Drag & Drop Dropzone */}
               <div className="modal-form-group">
-                <label>Audio File * (.mp3, .wav, .m4a, .ogg, max 60MB)</label>
-                <div style={{ border: '2px dashed #3b82f6', borderRadius: '8px', padding: '20px', textAlign: 'center', background: '#0b1120', cursor: 'pointer' }}>
+                <label>Audio File * (Drag & Drop or Browse, max 60MB)</label>
+                <div 
+                  className={`drag-drop-zone ${isDraggingAudio ? 'drag-active' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setIsDraggingAudio(true); }}
+                  onDragLeave={(e) => { e.preventDefault(); setIsDraggingAudio(false); }}
+                  onDrop={handleAudioDropzoneDrop}
+                >
+                  <div className="drag-drop-icon">🎵</div>
+                  <strong style={{ fontSize: '13px', color: '#f8fafc', display: 'block', marginBottom: '4px' }}>
+                    {isDraggingAudio ? 'Release to Drop Audio File!' : 'Drag & Drop Audio File Here'}
+                  </strong>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '12px' }}>
+                    Supports .mp3, .wav, .m4a, .ogg, .flac, .aac
+                  </span>
+
                   <input 
                     type="file"
                     accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac"
@@ -3326,11 +3434,10 @@ const { url, engine } = await response.json();`}
                         setUploadTrackTitle(cleanName);
                       }
                     }}
-                    required
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', fontSize: '12px' }}
                   />
                   {uploadAudioFile && (
-                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
+                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
                       ✓ Selected: {uploadAudioFile.name} ({(uploadAudioFile.size / 1024 / 1024).toFixed(2)} MB)
                     </div>
                   )}
