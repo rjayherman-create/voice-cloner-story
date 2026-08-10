@@ -268,6 +268,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
   const [slotDragActive, setSlotDragActive] = useState({});
   const [replacingTrackId, setReplacingTrackId] = useState(null);
 
+  // 9. Step 4: Share & Distribute Workstation states
+  const [shareCopied, setShareCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
+  const [podcastEpisodeTitle, setPodcastEpisodeTitle] = useState('My New Audio Episode');
+  const [podcastShowNotes, setPodcastShowNotes] = useState('Produced with FableVoice AI Audio Studio.');
+  const [recipientEmail, setRecipientEmail] = useState('');
+
   // Refs for recording & timer
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -1384,25 +1391,32 @@ export default function VoiceBrowser({ onSelectVoice }) {
             className={`nav-pill-btn ${activeNav === 'studio' ? 'active-pill' : ''}`}
             onClick={() => setActiveNav('studio')}
           >
-            <span className="pill-num">1.</span> Voice Studio
-          </button>
-          <button 
-            className={`nav-pill-btn ${activeNav === 'screenplay' ? 'active-pill' : ''}`}
-            onClick={() => setActiveNav('screenplay')}
-          >
-            <span className="pill-num">2.</span> Multi-Voice Workshop
+            <span className="pill-num">Step 1.</span> 🎙️ Voice & Script
           </button>
           <button 
             className={`nav-pill-btn ${activeNav === 'soundtrack' ? 'active-pill' : ''}`}
             onClick={() => setActiveNav('soundtrack')}
           >
-            <span className="pill-num">3.</span> Ambience Library
+            <span className="pill-num">Step 2.</span> 🎼 Choose Music
           </button>
           <button 
             className={`nav-pill-btn ${activeNav === 'mixer' ? 'active-pill' : ''}`}
             onClick={() => setActiveNav('mixer')}
           >
-            <span className="pill-num">4.</span> 🎛️ Sound Studio (Mixer)
+            <span className="pill-num">Step 3.</span> 🎛️ Master Mixer
+          </button>
+          <button 
+            className={`nav-pill-btn ${activeNav === 'share' ? 'active-pill' : ''}`}
+            onClick={() => setActiveNav('share')}
+          >
+            <span className="pill-num">Step 4.</span> 🚀 Share & Distribute
+          </button>
+          <button 
+            className={`nav-pill-btn ${activeNav === 'screenplay' ? 'active-pill' : ''}`}
+            onClick={() => setActiveNav('screenplay')}
+            title="Multi-Voice Character Workshop"
+          >
+            🎭 Multi-Voice Workshop
           </button>
           <button 
             className={`nav-pill-btn ${activeNav === 'sdk' ? 'active-pill' : ''}`}
@@ -2523,6 +2537,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
                     <a href={synthesizedAudioUrl} download="fablevoice-audio.mp3" className="download-btn-blue">
                       ⬇ Download MP3
                     </a>
+                    <button
+                      onClick={() => setActiveNav('soundtrack')}
+                      className="gold-studio-btn"
+                      style={{ padding: '8px 16px', fontSize: '12px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000000', fontWeight: 800, border: 'none', cursor: 'pointer', borderRadius: '6px' }}
+                    >
+                      ➔ Next: Choose Music (Step 2)
+                    </button>
                   </div>
                 )}
               </div>
@@ -2890,7 +2911,7 @@ export default function VoiceBrowser({ onSelectVoice }) {
               <p className="screenplay-sub">Layer calming bedtime lullabies, lo-fi podcast grooves, broadcast tech pulses, cinematic strings, or your own custom uploaded audio tracks.</p>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 className="gold-studio-btn"
                 onClick={() => setShowSoundtrackUploadModal(true)}
@@ -2899,9 +2920,13 @@ export default function VoiceBrowser({ onSelectVoice }) {
                 <span>➕</span> Upload Custom Music Track
               </button>
               {selectedSoundtrack && (
-                <span className="badge-selected-green" style={{ fontSize: '12px', padding: '6px 12px' }}>
-                  🎵 Active: {selectedSoundtrack.title}
-                </span>
+                <button
+                  onClick={() => setActiveNav('mixer')}
+                  className="gold-studio-btn"
+                  style={{ padding: '10px 18px', fontSize: '13px', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#ffffff', cursor: 'pointer', fontWeight: 800 }}
+                >
+                  ➔ Proceed to Step 3: Mixer ({selectedSoundtrack.title})
+                </button>
               )}
             </div>
           </div>
@@ -3306,9 +3331,283 @@ export default function VoiceBrowser({ onSelectVoice }) {
                       🎵 Music Stem Only
                     </a>
                   )}
+
+                  <button
+                    onClick={() => setActiveNav('share')}
+                    className="gold-studio-btn"
+                    style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: '#ffffff', maxWidth: '280px' }}
+                  >
+                    ➔ Proceed to Step 4: Share & Distribute 🚀
+                  </button>
                 </div>
               </div>
             )}
+          </div>
+        </main>
+      )}
+
+      {/* ==================================================================== */}
+      {/* STEP 4: 🚀 SHARE, PUBLISH & DISTRIBUTE WORKSTATION                   */}
+      {/* ==================================================================== */}
+      {activeNav === 'share' && (
+        <main className="soundtrack-tab-content fable-box">
+          <div className="soundtrack-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', borderBottom: '1px solid #1e293b', paddingBottom: '16px', marginBottom: '20px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span className="st-cat-badge" style={{ background: '#064e3b', color: '#34d399', fontSize: '11px', padding: '4px 10px' }}>STEP 4 OF 4</span>
+                <h2 className="screenplay-title" style={{ margin: 0 }}>🚀 Share, Publish & Distribute</h2>
+              </div>
+              <p className="screenplay-sub">Distribute your mixed program directly to clients, podcasts, social media (TikTok, Reels, Shorts), WhatsApp, or grab public embed links.</p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                className="editor-sub-btn"
+                onClick={() => setActiveNav('mixer')}
+              >
+                ← Back to Step 3: Mixer
+              </button>
+            </div>
+          </div>
+
+          {/* MASTER AUDIO PREVIEW SUMMARY CARD */}
+          <div className="fable-box" style={{ background: '#0b1120', border: '1.5px solid #10b981', padding: '20px', borderRadius: '12px', marginBottom: '22px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
+              <div>
+                <strong style={{ fontSize: '15px', color: '#f8fafc', display: 'block' }}>
+                  {mixedMasterDetails ? `Master Audio Program: ${mixedMasterDetails.soundtrackTitle}` : `Narration Audio: ${activeVoiceObj?.name || 'Voice Program'}`}
+                </strong>
+                <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  {selectedLangObj.flag} {selectedLangObj.name} • {mixedMasterDetails ? `${mixedMasterDetails.durationSeconds}s Master Mix` : 'Voice Stem'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span className="badge-selected-green" style={{ fontSize: '12px', padding: '6px 12px' }}>
+                  ✓ Broadcast Master Ready
+                </span>
+              </div>
+            </div>
+
+            <audio 
+              controls 
+              src={mixedMasterAudioUrl || synthesizedAudioUrl || '/uploads/soundtracks/lullaby-harp.wav'} 
+              style={{ width: '100%', marginBottom: '14px' }} 
+            />
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <a 
+                href={mixedMasterAudioUrl || synthesizedAudioUrl || '#'} 
+                download="master-audio-program.wav" 
+                className="gold-studio-btn"
+                style={{ textDecoration: 'none', display: 'inline-block', maxWidth: '240px', fontSize: '13px', padding: '10px 18px' }}
+              >
+                ⬇️ Download Master Audio (.WAV)
+              </a>
+              {synthesizedAudioUrl && (
+                <a 
+                  href={synthesizedAudioUrl} 
+                  download="voiceover-stem.mp3" 
+                  className="download-btn-blue"
+                  style={{ textDecoration: 'none', display: 'inline-block', fontSize: '12px', padding: '10px 16px' }}
+                >
+                  🎙️ Download Voiceover Stem Only
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* DISTRIBUTION CHANNELS GRID */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+            {/* 1. DIRECT SHAREABLE LINK */}
+            <div className="soundtrack-card" style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span style={{ fontSize: '20px' }}>🔗</span>
+                <strong style={{ fontSize: '14px', color: '#f8fafc' }}>Public Shareable Link</strong>
+              </div>
+              <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px' }}>
+                Share this direct audio link with clients, team members, or audience for instant web streaming.
+              </p>
+
+              <input 
+                type="text" 
+                readOnly 
+                className="dark-input-field" 
+                style={{ width: '100%', marginBottom: '10px', fontSize: '11px', color: '#38bdf8' }}
+                value={typeof window !== 'undefined' ? `${window.location.origin}${mixedMasterAudioUrl || synthesizedAudioUrl || ''}` : ''}
+              />
+
+              <button 
+                className="gold-studio-btn"
+                style={{ width: '100%', padding: '10px', fontSize: '12px' }}
+                onClick={() => {
+                  const link = `${window.location.origin}${mixedMasterAudioUrl || synthesizedAudioUrl || ''}`;
+                  navigator.clipboard.writeText(link);
+                  setShareCopied(true);
+                  setTimeout(() => setShareCopied(false), 2500);
+                }}
+              >
+                {shareCopied ? '✓ Link Copied to Clipboard!' : '📋 Copy Public Audio Link'}
+              </button>
+            </div>
+
+            {/* 2. INSTANT MESSAGING SHARE (WhatsApp & Telegram) */}
+            <div className="soundtrack-card" style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span style={{ fontSize: '20px' }}>💬</span>
+                <strong style={{ fontSize: '14px', color: '#f8fafc' }}>Direct Send (WhatsApp & Telegram)</strong>
+              </div>
+              <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px' }}>
+                Send your finished audio clip directly to WhatsApp groups, Telegram channels, or clients in 1 click.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <a 
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`🎧 Listen to my new audio track created with FableVoice: ${typeof window !== 'undefined' ? window.location.origin : ''}${mixedMasterAudioUrl || synthesizedAudioUrl || ''}`)}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="gold-studio-btn"
+                  style={{ textDecoration: 'none', background: '#25D366', color: '#000000', textAlign: 'center', padding: '10px', fontSize: '12.5px', fontWeight: 800 }}
+                >
+                  💬 Send via WhatsApp
+                </a>
+
+                <a 
+                  href={`https://t.me/share/url?url=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}${mixedMasterAudioUrl || synthesizedAudioUrl || ''}`)}&text=${encodeURIComponent(`🎧 Audio Program created with FableVoice Studio`)}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="download-btn-blue"
+                  style={{ textDecoration: 'none', background: '#229ED9', color: '#ffffff', textAlign: 'center', padding: '10px', fontSize: '12.5px', fontWeight: 800 }}
+                >
+                  ✈️ Send via Telegram
+                </a>
+              </div>
+            </div>
+
+            {/* 3. SOCIAL MEDIA CREATOR PACK (TikTok, Reels, Shorts) */}
+            <div className="soundtrack-card" style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span style={{ fontSize: '20px' }}>📱</span>
+                <strong style={{ fontSize: '14px', color: '#f8fafc' }}>Social Media Pack (Reels, TikTok, Shorts)</strong>
+              </div>
+              <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px' }}>
+                Optimized audio stems ready to import directly into CapCut, Premiere, or TikTok/Instagram video editors.
+              </p>
+
+              <div style={{ background: '#030712', padding: '10px', borderRadius: '8px', marginBottom: '12px', fontSize: '11.5px', color: '#94a3b8' }}>
+                <div style={{ color: '#10b981', fontWeight: 700, marginBottom: '2px' }}>✓ 16-Bit Stereo Broadcast Format</div>
+                <div>• Perfect for 15s/30s/60s viral video reels</div>
+              </div>
+
+              <a 
+                href={mixedMasterAudioUrl || synthesizedAudioUrl || '#'} 
+                download="social-reel-audio.wav" 
+                className="gold-studio-btn"
+                style={{ textDecoration: 'none', display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px' }}
+              >
+                ⬇️ Export Social Reel Audio (.WAV)
+              </a>
+            </div>
+
+            {/* 4. PODCAST & RSS PUBLISHING PACK */}
+            <div className="soundtrack-card" style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span style={{ fontSize: '20px' }}>🎙️</span>
+                <strong style={{ fontSize: '14px', color: '#f8fafc' }}>Podcast Show Notes & RSS Pack</strong>
+              </div>
+              
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '3px' }}>Episode Title:</label>
+                <input 
+                  type="text" 
+                  className="dark-input-field" 
+                  style={{ width: '100%', fontSize: '11.5px' }}
+                  value={podcastEpisodeTitle}
+                  onChange={(e) => setPodcastEpisodeTitle(e.target.value)}
+                />
+              </div>
+
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '3px' }}>Show Notes & Summary:</label>
+                <textarea 
+                  className="dark-textarea" 
+                  style={{ width: '100%', minHeight: '50px', fontSize: '11px' }}
+                  value={podcastShowNotes}
+                  onChange={(e) => setPodcastShowNotes(e.target.value)}
+                />
+              </div>
+
+              <button 
+                className="download-btn-blue"
+                style={{ width: '100%', padding: '8px', fontSize: '12px' }}
+                onClick={() => {
+                  const metaText = `Episode Title: ${podcastEpisodeTitle}\nDuration: ${mixedMasterDetails?.durationSeconds || '0'}s\nVoice Persona: ${activeVoiceObj?.name || 'Studio'}\nSoundtrack: ${mixedMasterDetails?.soundtrackTitle || 'None'}\n\nShow Notes:\n${podcastShowNotes}\n\nAudio Link: ${window.location.origin}${mixedMasterAudioUrl || synthesizedAudioUrl || ''}`;
+                  navigator.clipboard.writeText(metaText);
+                  setAiSuccessMsg('📋 Podcast metadata & show notes copied to clipboard!');
+                }}
+              >
+                📋 Copy Podcast Metadata & Notes
+              </button>
+            </div>
+
+            {/* 5. CLIENT EMAIL & APPROVAL DISPATCH */}
+            <div className="soundtrack-card" style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span style={{ fontSize: '20px' }}>✉️</span>
+                <strong style={{ fontSize: '14px', color: '#f8fafc' }}>Send Preview to Client / Producer</strong>
+              </div>
+              <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '10px' }}>
+                Dispatch audio master directly via email for client sign-off or broadcast approval.
+              </p>
+
+              <input 
+                type="email" 
+                placeholder="client@company.com" 
+                className="dark-input-field" 
+                style={{ width: '100%', marginBottom: '10px', fontSize: '11.5px' }}
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+              />
+
+              <a 
+                href={`mailto:${recipientEmail}?subject=${encodeURIComponent(`Audio Master Preview: ${podcastEpisodeTitle}`)}&body=${encodeURIComponent(`Hi,\n\nPlease review our latest master audio program:\n\nAudio Link: ${typeof window !== 'undefined' ? window.location.origin : ''}${mixedMasterAudioUrl || synthesizedAudioUrl || ''}\n\nProduced with FableVoice Studio.`)}`}
+                className="gold-studio-btn"
+                style={{ textDecoration: 'none', display: 'block', textAlign: 'center', padding: '10px', fontSize: '12px' }}
+              >
+                ✉️ Open Email Draft with Audio Link
+              </a>
+            </div>
+
+            {/* 6. HTML EMBED WIDGET */}
+            <div className="soundtrack-card" style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <span style={{ fontSize: '20px' }}>🌐</span>
+                <strong style={{ fontSize: '14px', color: '#f8fafc' }}>Embed Audio Player on Website</strong>
+              </div>
+              <p style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '10px' }}>
+                Copy and paste this HTML snippet into any WordPress, Webflow, or custom website.
+              </p>
+
+              <textarea 
+                readOnly 
+                className="dark-textarea" 
+                style={{ width: '100%', minHeight: '50px', fontSize: '10.5px', fontFamily: 'monospace', color: '#38bdf8', marginBottom: '10px' }}
+                value={`<iframe src="${typeof window !== 'undefined' ? window.location.origin : ''}${mixedMasterAudioUrl || synthesizedAudioUrl || ''}" width="100%" height="60" frameborder="0"></iframe>`}
+              />
+
+              <button 
+                className="download-btn-blue"
+                style={{ width: '100%', padding: '8px', fontSize: '12px' }}
+                onClick={() => {
+                  const embed = `<iframe src="${window.location.origin}${mixedMasterAudioUrl || synthesizedAudioUrl || ''}" width="100%" height="60" frameborder="0"></iframe>`;
+                  navigator.clipboard.writeText(embed);
+                  setEmbedCopied(true);
+                  setTimeout(() => setEmbedCopied(false), 2500);
+                }}
+              >
+                {embedCopied ? '✓ Embed Code Copied!' : '📋 Copy Embed Code'}
+              </button>
+            </div>
           </div>
         </main>
       )}
