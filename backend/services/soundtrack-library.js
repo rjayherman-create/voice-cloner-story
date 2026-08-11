@@ -12,16 +12,16 @@ const SOUNDTRACKS_DIR = path.join(__dirname, '../../uploads/soundtracks');
 
 const SOUNDTRACK_CATALOG = [
   // ==========================================
-  // 🌙 CATEGORY 1: BEDTIME, LULLABY & SLEEP (4 Tracks)
+  // 🌙 CATEGORY 1: BEDTIME, LULLABY & SLEEP (13 Tracks)
   // ==========================================
   {
     id: 'lullaby-harp',
     title: 'Lullaby Harp & Celestial Strings',
     category: 'Bedtime',
     genre: 'Bedtime',
-    tempo: 'Slow & Gentle (60 BPM)',
+    tempo: 'Slow & Gentle (54 BPM)',
     mood: 'Soothing & Calming',
-    instrumentation: 'Acoustic Harp, Ambient String Quartet',
+    instrumentation: 'Acoustic Concert Harp, Muted Cello, Celesta',
     previewNote: 'Soft soothing harp notes for restful bedtime sleep and tranquil storytelling.',
     url: '/uploads/soundtracks/lullaby-harp.wav'
   },
@@ -30,9 +30,9 @@ const SOUNDTRACK_CATALOG = [
     title: 'Starlight Music Box & Dream Lullaby',
     category: 'Bedtime',
     genre: 'Bedtime',
-    tempo: 'Calm & Dreamy (64 BPM)',
+    tempo: 'Calm & Dreamy (58 BPM)',
     mood: 'Magical & Peaceful',
-    instrumentation: 'Music Box, Celestial Chimes, Warm Pads',
+    instrumentation: 'Vintage Music Box, Ethereal Ambient Synth Pads',
     previewNote: 'Delicate music box bells floating through starry skies for children.',
     url: '/uploads/soundtracks/cosmic-wonder.wav'
   },
@@ -41,22 +41,121 @@ const SOUNDTRACK_CATALOG = [
     title: 'Gentle Rain & Cozy Piano',
     category: 'Bedtime',
     genre: 'Bedtime',
-    tempo: 'Serene (55 BPM)',
+    tempo: 'Serene (52 BPM)',
     mood: 'Relaxing & Intimate',
-    instrumentation: 'Felt Piano, Ambient Rainscape',
+    instrumentation: 'Felt Piano, Wooden Pan Flute, Ambient Rainscape',
     previewNote: 'Warm acoustic piano chords accompanied by soft natural rainfall.',
     url: '/uploads/soundtracks/gentle-rain-piano.wav'
   },
   {
     id: 'warm-blanket-ambient',
-    title: 'Warm Blanket & Lavender Sleep Wave',
+    title: 'Warm Blanket & 432Hz Lavender Sleep Wave',
     category: 'Bedtime',
     genre: 'Bedtime',
-    tempo: 'Ultra Slow (48 BPM)',
+    tempo: 'Ultra Slow (46 BPM)',
     mood: 'Hypnotic & Restful',
-    instrumentation: 'Deep Analog Synthesizer, Drone Pads',
-    previewNote: 'Binaural-style relaxing harmonic hums designed for deep sleep.',
+    instrumentation: '432Hz Analog Synthesizer, Deep Sleep Drone',
+    previewNote: 'Binaural-style relaxing harmonic hums tuned to 432Hz for deep sleep.',
     url: '/uploads/soundtracks/warm-blanket-ambient.wav'
+  },
+  {
+    id: 'cloud-ship-musicbox',
+    title: 'Floating Cloud Ship & Starry Music Box',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Dreamy (58 BPM)',
+    mood: 'Magical & Serene',
+    instrumentation: 'Vintage Swiss Music Box, Ambient Pad, Glockenspiel',
+    previewNote: 'Sailing across moonlit clouds with twinkling bells for sweet dreams.',
+    url: '/uploads/soundtracks/cloud-ship-musicbox.wav'
+  },
+  {
+    id: 'cozy-burrow-flute',
+    title: 'Cozy Burrow Rain & Wooden Flute',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Intimate (52 BPM)',
+    mood: 'Fairytale & Cozy',
+    instrumentation: 'Wooden Pan Flute, Felt Piano, Soft Evening Rain',
+    previewNote: 'Forest animals snuggling in their dry burrow while gentle rain falls.',
+    url: '/uploads/soundtracks/cozy-burrow-flute.wav'
+  },
+  {
+    id: 'fairy-garden-chimes',
+    title: 'Moonlit Fairy Garden & Plucked Strings',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Gentle (60 BPM)',
+    mood: 'Whimsical & Enchanting',
+    instrumentation: 'Pizzicato Strings, Celtic Harp, Wind Chimes',
+    previewNote: 'Fireflies dancing over flowers and fairy creatures whispering goodnight.',
+    url: '/uploads/soundtracks/fairy-garden-chimes.wav'
+  },
+  {
+    id: 'whale-ocean-lullaby',
+    title: 'The Gentle Whale & Ocean Lullaby',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Weightless (48 BPM)',
+    mood: 'Tranquil & Rhythmic',
+    instrumentation: 'Solo Expressive Cello, Ocean Surf Soundscape',
+    previewNote: 'Floating weightlessly on calm warm sea waves under a full moon.',
+    url: '/uploads/soundtracks/whale-ocean-lullaby.wav'
+  },
+  {
+    id: 'golden-blanket-delta',
+    title: 'The Golden Blanket & 528Hz Delta Sleep',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Delta Wave (46 BPM)',
+    mood: 'Restorative & Deep',
+    instrumentation: 'Nylon Acoustic Guitar, 528Hz Solfeggio Harmonic Drone',
+    previewNote: 'Hypnotic sleep wave for uninterrupted, deeply restorative rest.',
+    url: '/uploads/soundtracks/golden-blanket-delta.wav'
+  },
+  {
+    id: 'dreamland-train',
+    title: 'The Little Train to Dreamland',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Hypnotic Rocking (56 BPM)',
+    mood: 'Comforting & Rhythmic',
+    instrumentation: 'Brushed Snare Rhythm, Acoustic Guitar, Upright Bass',
+    previewNote: 'Magical bedtime steam train gliding gently across starry rainbow tracks.',
+    url: '/uploads/soundtracks/dreamland-train.wav'
+  },
+  {
+    id: 'treehouse-woodwinds',
+    title: 'Moonlit Treehouse & Woodwind Trio',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Acoustic Warmth (55 BPM)',
+    mood: 'Whimsical & Nostalgic',
+    instrumentation: 'Wooden Oboe, Classical Clarinet, Nylon Guitar',
+    previewNote: 'Winnie-the-Pooh style cozy treehouse bedtime story score.',
+    url: '/uploads/soundtracks/treehouse-woodwinds.wav'
+  },
+  {
+    id: 'wishing-star-glockenspiel',
+    title: 'The Wishing Star & Crystal Glockenspiel',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Celestial (50 BPM)',
+    mood: 'Pure Wonder & Magic',
+    instrumentation: 'Crystal Glockenspiel, Orchestral String Bed, Celesta',
+    previewNote: 'Making a secret wish upon the evening star as stardust sparkles.',
+    url: '/uploads/soundtracks/wishing-star-glockenspiel.wav'
+  },
+  {
+    id: 'fireplace-grandma-story',
+    title: 'Grandmother’s Fireplace Story & Cello',
+    category: 'Bedtime',
+    genre: 'Bedtime',
+    tempo: 'Comforting (52 BPM)',
+    mood: 'Cherished & Safe',
+    instrumentation: 'Solo Stradivarius Cello, Felt Upright Piano, Hearth Crackle',
+    previewNote: 'Feeling deeply protected listening to an ancient bedtime tale by the fire.',
+    url: '/uploads/soundtracks/fireplace-grandma-story.wav'
   },
 
   // ==========================================
@@ -262,7 +361,7 @@ class SoundtrackLibraryService {
     this.loadCustomTracks();
   }
 
-  // Load custom tracks from persistent JSON file
+  // Load custom tracks from persistent JSON file and auto-discover audio files in storage
   loadCustomTracks() {
     try {
       if (fs.existsSync(CUSTOM_SOUNDTRACKS_FILE)) {
@@ -271,6 +370,38 @@ class SoundtrackLibraryService {
       } else {
         this.customTracks = [];
       }
+
+      // Auto-Discovery: Scan directory for any uploaded audio files not yet in catalog
+      if (fs.existsSync(SOUNDTRACKS_DIR)) {
+        const filesOnDisk = fs.readdirSync(SOUNDTRACKS_DIR);
+        const knownFilenames = new Set([
+          ...this.catalog.map(t => path.basename(t.url.split('?')[0])),
+          ...this.customTracks.map(t => path.basename(t.url.split('?')[0]))
+        ]);
+
+        for (const file of filesOnDisk) {
+          if (file.match(/\.(mp3|wav|m4a|ogg|flac|aac)$/i) && !knownFilenames.has(file)) {
+            const cleanTitle = file.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            const newDiscoveredTrack = {
+              id: `discovered-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              title: cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1),
+              category: 'Custom',
+              genre: 'Custom',
+              tempo: 'Medium (90 BPM)',
+              mood: 'Custom Audio',
+              instrumentation: 'Uploaded Audio File',
+              previewNote: `Custom soundtrack file: ${file}`,
+              url: `/uploads/soundtracks/${file}`,
+              isCustom: true,
+              createdAt: new Date().toISOString()
+            };
+            this.customTracks.push(newDiscoveredTrack);
+            console.log(`[SoundtrackLibrary] Auto-discovered custom audio file on disk: ${file}`);
+          }
+        }
+      }
+
+      this.saveCustomTracks();
     } catch (e) {
       console.error('[SoundtrackLibrary] Error loading custom tracks:', e.message);
       this.customTracks = [];
@@ -325,12 +456,16 @@ class SoundtrackLibraryService {
     return true;
   }
 
-  // Ensure all 20 WAV files are generated and ready on disk
+  // Ensure all soundtrack WAV files in catalog are generated and ready on disk
   ensureAudioFilesExist() {
     try {
-      const firstTrackPath = path.join(SOUNDTRACKS_DIR, 'lullaby-harp.wav');
-      if (!fs.existsSync(firstTrackPath)) {
-        console.log('[SoundtrackLibrary] Generating 20 soundtrack audio files...');
+      const hasMissingFiles = this.catalog.some(t => {
+        const targetPath = path.join(SOUNDTRACKS_DIR, path.basename(t.url.split('?')[0]));
+        return !fs.existsSync(targetPath);
+      });
+
+      if (hasMissingFiles) {
+        console.log('[SoundtrackLibrary] Generating all missing soundtrack audio files...');
         generateSoundtrackLibrary();
       }
     } catch (e) {

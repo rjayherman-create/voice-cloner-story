@@ -105,6 +105,93 @@ export function generateSoundtrackLibrary() {
         return drone + harmonic;
       }
     },
+    // 5. Cloud Ship Music Box
+    {
+      id: 'cloud-ship-musicbox',
+      render: (t) => {
+        const notes = [587.33, 659.25, 783.99, 880.00, 1046.50];
+        const step = Math.floor(t * 2.2) % notes.length;
+        const env = Math.exp(-((t * 2.2) % 1) * 5);
+        const box = Math.sin(2 * Math.PI * notes[step] * t) * env * 0.35;
+        const pad = Math.sin(2 * Math.PI * 146.83 * t) * 0.12;
+        return box + pad;
+      }
+    },
+    // 6. Cozy Burrow Flute
+    {
+      id: 'cozy-burrow-flute',
+      render: (t) => {
+        const fluteNotes = [329.63, 392.00, 440.00, 493.88, 587.33];
+        const step = Math.floor(t * 0.9) % fluteNotes.length;
+        const flute = Math.sin(2 * Math.PI * fluteNotes[step] * t) * 0.28;
+        const rain = (Math.random() * 2 - 1) * 0.05;
+        return flute + rain;
+      }
+    },
+    // 7. Fairy Garden Chimes
+    {
+      id: 'fairy-garden-chimes',
+      render: (t) => {
+        const harp = Math.sin(2 * Math.PI * (523.25 + ((Math.floor(t * 3) % 4) * 80)) * t) * Math.exp(-((t * 3) % 1) * 3) * 0.3;
+        const chimes = Math.sin(2 * Math.PI * 1567.98 * t) * (((t * 1.5) % 1 < 0.1) ? 0.15 : 0);
+        return harp + chimes;
+      }
+    },
+    // 8. Whale Ocean Lullaby
+    {
+      id: 'whale-ocean-lullaby',
+      render: (t) => {
+        const cello = Math.sin(2 * Math.PI * 65.41 * t) * (0.3 + 0.1 * Math.sin(2 * Math.PI * 0.3 * t));
+        const surf = (Math.random() * 2 - 1) * (0.04 * (Math.sin(2 * Math.PI * 0.15 * t) * 0.5 + 0.5));
+        return cello + surf;
+      }
+    },
+    // 9. Golden Blanket Delta
+    {
+      id: 'golden-blanket-delta',
+      render: (t) => {
+        const delta = Math.sin(2 * Math.PI * 43.65 * t) * 0.35; // Deep 43.65 Hz
+        const guitar = Math.sin(2 * Math.PI * (220 + ((Math.floor(t * 1.8) % 4) * 55)) * t) * Math.exp(-((t * 1.8) % 1) * 2.5) * 0.25;
+        return delta + guitar;
+      }
+    },
+    // 10. Dreamland Train
+    {
+      id: 'dreamland-train',
+      render: (t) => {
+        const trainBrushed = (Math.random() * 2 - 1) * (((t * 3.2) % 1 < 0.2) ? 0.12 : 0.02);
+        const guitar = Math.sin(2 * Math.PI * (196.00 + ((Math.floor(t * 1.6) % 3) * 65)) * t) * 0.2;
+        return trainBrushed + guitar;
+      }
+    },
+    // 11. Treehouse Woodwinds
+    {
+      id: 'treehouse-woodwinds',
+      render: (t) => {
+        const clarinet = Math.sin(2 * Math.PI * 261.63 * t) * (0.2 + 0.05 * Math.sin(2 * Math.PI * 4 * t));
+        const oboe = Math.sin(2 * Math.PI * 392.00 * t) * (0.15 + 0.05 * Math.sin(2 * Math.PI * 3 * t));
+        return clarinet + oboe;
+      }
+    },
+    // 12. Wishing Star Glockenspiel
+    {
+      id: 'wishing-star-glockenspiel',
+      render: (t) => {
+        const glock = Math.sin(2 * Math.PI * (783.99 + ((Math.floor(t * 2.5) % 5) * 120)) * t) * Math.exp(-((t * 2.5) % 1) * 4.5) * 0.35;
+        const pad = Math.sin(2 * Math.PI * 130.81 * t) * 0.15;
+        return glock + pad;
+      }
+    },
+    // 13. Fireplace Grandma Story
+    {
+      id: 'fireplace-grandma-story',
+      render: (t) => {
+        const crackle = (Math.random() * 2 - 1) * (((t * 7) % 1 < 0.08) ? 0.1 : 0.01);
+        const cello = Math.sin(2 * Math.PI * 98.00 * t) * 0.3;
+        const piano = Math.sin(2 * Math.PI * 261.63 * t) * Math.exp(-((t * 0.8) % 1) * 2) * 0.2;
+        return crackle + cello + piano;
+      }
+    },
     // 5. Lo-Fi Chill Talk
     {
       id: 'lofi-chill-talk',
