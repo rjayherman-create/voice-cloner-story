@@ -482,6 +482,15 @@ router.post('/screenplay/generate-script', (req, res) => {
   res.json(selectedStory);
 });
 
+  res.json({
+    success: true,
+    theme,
+    childName: name,
+    language: lang,
+    story: selectedStory
+  });
+});
+
 // POST Auto-Translate Text Endpoint
 router.post('/translate', async (req, res) => {
   try {
